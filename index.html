@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>While Under Attack</title>
+    <style>
+      /* Remove margens da página e pinta o fundo de cinza escuro/preto */
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #111111; /* Cor de fundo nas laterais */
+        overflow: hidden;
+      }
+      /* Centraliza o jogo perfeitamente na tela */
+      #game {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
