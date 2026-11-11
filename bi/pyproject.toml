@@ -1,0 +1,18 @@
+[project]
+name = "wua-bi"
+version = "0.1.0"
+description = "ETL Medallion, modelo dimensional e dashboard do while under_attack"
+requires-python = ">=3.11"
+dependencies = [
+    "psycopg[binary]>=3.3",
+    "fastapi>=0.118",
+    "uvicorn[standard]>=0.37",
+    "python-dotenv>=1.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
