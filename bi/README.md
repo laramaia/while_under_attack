@@ -121,14 +121,86 @@ gratuito contínuo — só crédito de teste.
 |---|---|
 | `python -m wua_bi.etl criar` | cria schemas e tabelas (seguro de repetir) |
 | `python -m wua_bi.etl semear` | gera eventos sintéticos na bronze |
-| `python -m wua_bi.etl rodar` | bronze → silver → gold |
-| `python -m wua_bi.etl conferir` | confere os indicadores contra as regras de negócio |
-| `python -m wua_bi.etl tudo` | os quatro, na ordem |
+| `python -m wua_bi.etl rodar` | bronze → silver → gold, passando pelo gate |
+| `python -m wua_bi.etl agendar` | roda sozinho a cada 15 min (ADR-009) |
+| `python -m wua_bi.etl conferir` | mostra o boletim de qualidade da última execução |
+| `python -m wua_bi.etl tudo` | criar + semear + rodar + conferir |
 
-O gatilho do ETL ficou em aberto na ADR-003. Aqui ele é **manual**, de
-propósito: é o mais simples de operar e o mais fácil de demonstrar. Cada
-execução reconstrói a silver e a gold inteiras a partir da bronze — não há
+Cada execução reconstrói a silver e a gold inteiras a partir da bronze — não há
 estado incremental para dar errado, e rodar duas vezes dá o mesmo resultado.
+
+**O gatilho** ficou em aberto na ADR-003, foi decidido na apresentação de
+26/10/2026 e virou a **ADR-009**: agendado a cada 15 minutos, com o manual
+mantido para demonstração. Os dois chamam a mesma função (`pipeline.executar`),
+então trocar o gatilho — por cron, por um Scheduled Job do Render ou por um DAG
+do Airflow — não mexe em nenhuma linha do ETL.
+
+```bash
+python -m wua_bi.etl agendar                 # a cada 15 min
+python -m wua_bi.etl agendar --intervalo 5   # a cada 5 min
+python -m wua_bi.etl agendar --vezes 3       # 3 ciclos e sai (teste)
+```
+
+### O gate de qualidade (ADR-010)
+
+As regras de negócio não são conferidas *depois* do ETL: elas são **duas portas
+dentro dele**.
+
+```
+silver → PORTA DA SILVER → gold → PORTA DA GOLD → commit
+```
+
+As duas rodam na mesma transação. Se qualquer uma das **10 regras** reprovar, a
+transação inteira volta atrás: nada é publicado e a gold continua sendo a
+última versão aprovada. É isso que autoriza chamá-la de *certificada*.
+
+Cada regra fica na porta mais cedo em que consegue rodar — as que leem bronze e
+silver barram antes de montar a gold; as que leem a gold rodam depois dela e
+antes do `commit`.
+
+Duas das dez são de **reconciliação**: `REC-001` confere que todo EV-04 da
+bronze virou tentativa ou foi para a quarentena, e `REC-002` que as contagens
+dos lotes de ingestão batem com a bronze.
+
+Para ver o gate barrando (é o roteiro de demonstração na banca): injete na
+bronze um programa com um bloco fora do catálogo e rode `etl rodar`. A silver
+chega a ser montada, a regra `CAT-001` reprova, tudo volta atrás e
+`gold.fato_tentativa` fica intacta.
+
+### Quando uma execução falha
+
+Três destinos, do mais barato ao mais caro: **stderr** sempre, a coluna
+**`bronze.etl_execucao.erro`** sempre, e um **POST para `WUA_ALERTA_WEBHOOK`**
+se a variável estiver configurada (Discord, Slack, Teams ou um script próprio).
+Nenhuma dependência nova.
+
+```sql
+select etapa, disparo, terminada_em, erro
+from bronze.etl_execucao where erro is not null order by execucao_id desc;
+```
+
+---
+
+## Arquitetura corporativa de referência
+
+A disciplina exige que o projeto atenda à **Arquitetura Corporativa de Dados —
+UNIVAG** (Lakehouse Medallion com Delta Lake, Spark, Airflow, Power BI e uma
+faixa de governança transversal).
+
+O projeto adota essa arquitetura **por capacidade, e não por produto**: toda
+capacidade que o diagrama exige está implementada, e cada escolha de produto
+diferente está justificada com alternativa, decisão e custo aceito.
+
+**Leia antes de mexer em qualquer coisa deste README:**
+
+| Documento | O que tem |
+|---|---|
+| [`docs/arquitetura-de-referencia.md`](docs/arquitetura-de-referencia.md) | o mapa caixa por caixa, a governança (LGPD, linhagem, continuidade), o que mudou na API e o roteiro de demonstração na banca |
+| [`docs/adr-complemento.md`](docs/adr-complemento.md) | ADR-008, ADR-009 e ADR-010, no formato do documento oficial da equipe |
+
+Resumo do que **mudou no projeto** por causa dessa exigência: gate de qualidade
+entre as camadas (ADR-010), orquestração agendada (ADR-009), alerta de falha,
+controle de ingestão por lote e quatro endpoints de observabilidade.
 
 ---
 
@@ -143,6 +215,19 @@ estado incremental para dar errado, e rodar duas vezes dá o mesmo resultado.
 - Gatilho que recusa `update` e `delete` — RN-016, a bronze é imutável. Corrigir
   dado errado se faz **reprocessando a silver**, nunca editando a bronze.
 - `origem` separa dado real de sintético — RS-02.
+
+Mais três tabelas de controle, que não são dado de jogo:
+
+- `bronze.ingestao_lote` — **um lote de ingestão por linha** (ADR-007), com as
+  contagens de recebidos, gravados, ignorados e rejeitados. Quem escreve é o
+  **back-end**; o BI só lê. Enquanto o endpoint não existe, o gerador sintético
+  escreve, para o caminho ficar exercitado. `bronze.eventos.lote_id` liga cada
+  evento ao lote que o trouxe — é anulável, então não quebra o contrato já
+  combinado com o back-end.
+- `bronze.etl_execucao` — log das execuções: etapa, gatilho (`manual` ou
+  `agendado`), duração e erro.
+- `bronze.etl_qualidade` — uma linha por regra por execução. É o boletim que o
+  `etl conferir` lê.
 
 O schema `app` guarda as contas. Não faz parte da Medallion: está aqui só para o
 ETL montar a `dim_jogador` enquanto o back-end não existe.
@@ -197,8 +282,41 @@ corrigir é a camada gold.
 | RN-016 | `db/01_bronze.sql` → gatilho `trg_eventos_imutavel` |
 | RN-018 | `programa.py` → `pilha_executavel` |
 
-`python -m wua_bi.etl conferir` traduz oito dessas regras em consultas e falha
-se alguma for violada. Serve de teste e de roteiro para a banca.
+Dez dessas regras viraram consultas no **gate de qualidade** (`etl/qualidade.py`,
+ADR-010). Elas rodam dentro da execução do ETL e **barram a publicação da gold**
+se alguma reprovar — não são mais uma conferência feita depois. `etl conferir`
+mostra o boletim da última execução.
+
+---
+
+## A API
+
+Só leitura da camada gold (ADR-001). A documentação completa é gerada pelo
+FastAPI em <http://localhost:8000/docs> e as rotas estão agrupadas em quatro
+tags: `acesso`, `jogador`, `professor` e `operacao`.
+
+Na arquitetura de referência esta é a caixa *"API analítica (somente leitura)"*,
+e o controle de acesso que o diagrama chama de **RLS/OLS** vive aqui, num lugar
+só: `exigir_acesso_a()` (RN-004) e `exigir_professor()` (RN-005).
+
+As rotas de **operação** são as da faixa de observabilidade:
+
+| Endpoint | Perfil | O que devolve |
+|---|---|---|
+| `GET /api/saude` | **sem token** | liveness: só `{"status":"ok","banco":"ok"}`, nenhum dado de ninguém. Serve para acordar o Render antes da apresentação e para um alerta externo consultar |
+| `GET /api/qualidade` | professor | boletim do último gate: uma linha por regra, com a porta e as divergências |
+| `GET /api/execucoes` | professor | últimas execuções do ETL: etapa, gatilho, duração e erro |
+| `GET /api/ingestao` | professor | contagens dos lotes: recebidos, gravados, ignorados, rejeitados |
+
+`GET /api/procedencia` ganhou `gold_certificada`, `regras_qualidade`,
+`qualidade_verificada_em` e `falha_pendente` — é por `falha_pendente` que o
+dashboard pode avisar que os números podem estar velhos.
+
+> **Isto muda o contrato com o back-end.** `bronze.ingestao_lote` e a coluna
+> `lote_id` são escritas pelo endpoint de ingestão, e as três contagens são
+> exatamente o que a resposta `207` do guia já precisava devolver. O detalhe
+> está em [`docs/arquitetura-de-referencia.md`](docs/arquitetura-de-referencia.md),
+> §7.3, e há uma implementação de referência de ~25 linhas em `gerador.py`.
 
 ---
 
@@ -304,3 +422,17 @@ definição de "bloco que a fase introduz" mora só no código (`catalogo.py`).
 - **PD-010** — o gerador assume que a fase seguinte só abre depois da anterior
   (RN-017). Se a equipe decidir o contrário, o funil do professor muda de
   significado.
+
+Mais o que veio da arquitetura corporativa de referência (a lista completa, com
+justificativa, está em [`docs/arquitetura-de-referencia.md`](docs/arquitetura-de-referencia.md), §8):
+
+- **Confirmar a leitura da ADR-008** — se o professor exige os *produtos*
+  (Airflow, Spark, Delta Lake) e não as capacidades, o escopo muda, e essa
+  conversa precisa acontecer **antes** de qualquer outra coisa.
+- **PD-012** — termo de consentimento para menores de idade. Impacto alto e,
+  num jogo educativo, provavelmente se aplica.
+- **RN-003** sair de "Proposta" — é a regra que impede o nome completo de
+  entrar na `dim_jogador`.
+- **Base legal e retenção** dos eventos: por quanto tempo ficam guardados e com
+  que fundamento. Ninguém escreveu ainda.
+- **Testar uma restauração de backup** no Neon, uma vez, antes da banca.

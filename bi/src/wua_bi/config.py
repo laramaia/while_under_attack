@@ -26,3 +26,17 @@ DIR_DASHBOARD = RAIZ_BI / "dashboard"
 # silver tambem encerra a sessao depois deste tempo sem eventos. Valor proposto
 # no documento; ainda nao validado com dados reais.
 MINUTOS_INATIVIDADE_SESSAO = 30
+
+# ---------------------------------------------------------------------------
+# Orquestracao (ADR-009)
+#
+# Na arquitetura de referencia quem dispara o ciclo e o Airflow. Aqui o
+# intervalo e o mesmo que a equipe decidiu na apresentacao de 26/10/2026, e o
+# agendador e proprio - a justificativa esta na ADR-009.
+# ---------------------------------------------------------------------------
+INTERVALO_ETL_MIN = int(os.getenv("WUA_ETL_INTERVALO_MIN", "15"))
+
+# Observabilidade: para onde vai o aviso quando uma execucao falha. Vazio =
+# so stderr e a coluna erro da bronze.etl_execucao. Aceita qualquer URL que
+# receba um POST com JSON (Discord, Slack, Teams, um script proprio).
+ALERTA_WEBHOOK = os.getenv("WUA_ALERTA_WEBHOOK", "").strip()

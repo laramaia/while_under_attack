@@ -456,6 +456,10 @@ def gravar_na_bronze(
             cursor.execute("alter table bronze.eventos disable trigger trg_eventos_imutavel")
             cursor.execute("delete from bronze.eventos where origem = 'sintetico'")
             cursor.execute("alter table bronze.eventos enable trigger trg_eventos_imutavel")
+            # Os lotes sinteticos saem junto com os eventos deles, senao a
+            # reconciliacao REC-002 passa a comparar lotes velhos com eventos
+            # novos e reprova o gate sem haver problema nenhum.
+            cursor.execute("delete from bronze.ingestao_lote where origem = 'sintetico'")
 
         ids: dict[str, int] = {}
         for conta in contas:
@@ -478,27 +482,59 @@ def gravar_na_bronze(
 
         for bloco in por_jogador:
             jogador_id = ids[bloco["usuario"]]
+
+            # Um lote por jogador, imitando o que o endpoint de ingestao fara
+            # (ADR-007: o jogo envia em lote). Isso existe por dois motivos:
+            # deixa a reconciliacao REC-002 com dado de verdade para comparar,
+            # e serve de implementacao de referencia para o back-end - as
+            # contagens abaixo sao as mesmas que o POST /api/eventos precisa
+            # devolver (gravados / ignorados / rejeitados).
+            cursor.execute(
+                """
+                insert into bronze.ingestao_lote
+                    (jogador_id, origem, eventos_recebidos, detalhe)
+                values (%s, 'sintetico', %s, %s)
+                returning lote_id
+                """,
+                (jogador_id, len(bloco["eventos"]),
+                 json.dumps({"fonte": "gerador sintetico", "usuario": bloco["usuario"]})),
+            )
+            lote_id = cursor.fetchone()["lote_id"]
+
+            gravados = 0
             for evento in bloco["eventos"]:
                 cursor.execute(
                     """
                     insert into bronze.eventos (
                         event_id, event_type, schema_version, catalog_version,
                         game_version, session_id, seq, occurred_at, payload,
-                        jogador_id, received_at, origem
+                        jogador_id, received_at, origem, lote_id
                     ) values (
                         %(event_id)s, %(event_type)s, %(schema_version)s,
                         %(catalog_version)s, %(game_version)s, %(session_id)s,
                         %(seq)s, %(occurred_at)s, %(payload)s, %(jogador_id)s,
-                        %(received_at)s, 'sintetico'
+                        %(received_at)s, 'sintetico', %(lote_id)s
                     )
                     on conflict (event_id) do nothing
                     """,
                     {**evento,
                      "payload": json.dumps(evento["payload"]),
                      "jogador_id": jogador_id,
-                     "received_at": evento["_received_at"]},
+                     "received_at": evento["_received_at"],
+                     "lote_id": lote_id},
                 )
-                total += cursor.rowcount
+                gravados += cursor.rowcount
+
+            # on conflict do nothing: o que nao gravou foi duplicado (RN-015).
+            cursor.execute(
+                """
+                update bronze.ingestao_lote
+                   set eventos_gravados = %s, eventos_ignorados = %s
+                 where lote_id = %s
+                """,
+                (gravados, len(bloco["eventos"]) - gravados, lote_id),
+            )
+            total += gravados
 
         conexao.commit()
 

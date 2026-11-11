@@ -276,9 +276,87 @@ from bronze.eventos e
 """
 
 
+# ---------------------------------------------------------------------------
+# Observabilidade e qualidade
+#
+# Arquitetura de referencia, faixas "Observabilidade (metricas · logs ·
+# alertas)" e "Qualidade de dados". Sao consultas de operacao, nao de
+# aprendizagem: respondem "da para confiar no que esta na tela agora?".
+# ---------------------------------------------------------------------------
+
+ULTIMA_QUALIDADE = """
+select
+    count(*)                            as regras,
+    count(*) filter (where aprovada)    as regras_aprovadas,
+    coalesce(bool_and(aprovada), false) as aprovada,
+    max(verificada_em)                  as verificada_em
+from bronze.etl_qualidade
+where execucao_id = (select max(execucao_id) from bronze.etl_qualidade)
+"""
+
+BOLETIM_QUALIDADE = """
+select porta, regra, descricao, divergencias, aprovada, verificada_em
+from bronze.etl_qualidade
+where execucao_id = (select max(execucao_id) from bronze.etl_qualidade)
+order by porta desc, regra
+"""
+
+EXECUCOES_ETL = """
+select
+    execucao_id, etapa, disparo, iniciada_em, terminada_em,
+    linhas_gravadas, erro,
+    round(extract(epoch from (terminada_em - iniciada_em))::numeric, 2) as duracao_s
+from bronze.etl_execucao
+order by execucao_id desc
+limit %(limite)s
+"""
+
+# A ultima execucao que falhou e ainda nao foi seguida de uma bem-sucedida.
+# E isto que o dashboard precisa saber para avisar que o numero na tela pode
+# estar velho.
+FALHA_PENDENTE = """
+select etapa, disparo, terminada_em, erro
+from bronze.etl_execucao
+where erro is not null
+  and terminada_em > coalesce(
+      (select max(terminada_em) from bronze.etl_execucao
+        where erro is null and etapa = 'qualidade'),
+      '-infinity'::timestamptz)
+order by execucao_id desc
+limit 1
+"""
+
+INGESTAO_LOTES = """
+select
+    count(*)                        as lotes,
+    coalesce(sum(eventos_recebidos), 0)  as recebidos,
+    coalesce(sum(eventos_gravados), 0)   as gravados,
+    coalesce(sum(eventos_ignorados), 0)  as ignorados,
+    coalesce(sum(eventos_rejeitados), 0) as rejeitados,
+    max(recebido_em)                as ultimo_lote
+from bronze.ingestao_lote
+"""
+
+
 def _um(sql: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
     linhas = db.consultar(sql, params)
     return linhas[0] if linhas else {}
+
+
+def qualidade() -> dict[str, Any]:
+    """Resumo do ultimo gate: quantas regras rodaram e se a gold foi certificada."""
+    dados = _um(ULTIMA_QUALIDADE)
+    dados["boletim"] = db.consultar(BOLETIM_QUALIDADE)
+    dados["falha_pendente"] = _um(FALHA_PENDENTE) or None
+    return dados
+
+
+def execucoes(limite: int = 20) -> list[dict[str, Any]]:
+    return db.consultar(EXECUCOES_ETL, {"limite": limite})
+
+
+def ingestao() -> dict[str, Any]:
+    return _um(INGESTAO_LOTES)
 
 
 def resumo_jogador(jogador_sk: int) -> dict[str, Any]:
@@ -442,4 +520,15 @@ def procedencia() -> dict[str, Any]:
     sinteticos = dados.get("eventos_sinteticos") or 0
     dados["so_sintetico"] = eventos > 0 and sinteticos == eventos
     dados["tem_sintetico"] = sinteticos > 0
+
+    # "Metricas certificadas" na arquitetura de referencia quer dizer: estes
+    # numeros passaram pelo gate de qualidade (ADR-010). Quem le o dashboard
+    # precisa poder ver isso sem abrir o banco.
+    ultimo_gate = _um(ULTIMA_QUALIDADE)
+    dados["gold_certificada"] = bool(ultimo_gate.get("aprovada"))
+    dados["regras_qualidade"] = ultimo_gate.get("regras") or 0
+    dados["qualidade_verificada_em"] = ultimo_gate.get("verificada_em")
+
+    falha = _um(FALHA_PENDENTE)
+    dados["falha_pendente"] = falha or None
     return dados
