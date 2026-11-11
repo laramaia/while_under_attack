@@ -1,0 +1,116 @@
+{
+  "catalog_version": "2026.10.1-rascunho",
+  "_aviso": "Versao PROVISORIA. Monta a hipotese de progressao do Catalogo de Fases (secao 3) para destravar o ETL e o dashboard. Os identificadores tecnicos dependem da PD-013 e as fases e solucoes de referencia da PD-006. Trocar antes de coletar dados reais (RS-03).",
+  "_nota_reforco": "Nem toda fase introduz um conceito: uma fase que repete o conceito_id de uma fase anterior e uma fase de REFORCO, e o ETL a trata assim. A F05 existe como exemplo disso. Isso nao exige campo novo: o papel sai do proprio conceito_id.",
+
+  "conceitos": [
+    { "conceito_id": "sequencia", "nome": "Sequencia", "ordem": 1 },
+    { "conceito_id": "repeticao_fixa", "nome": "Repeticao com numero fixo", "ordem": 2 },
+    { "conceito_id": "condicional", "nome": "Condicional", "ordem": 3 },
+    { "conceito_id": "repeticao_condicional", "nome": "Repeticao com condicao", "ordem": 4 },
+    { "conceito_id": "combinacao", "nome": "Combinacao", "ordem": 5 }
+  ],
+
+  "tipos_de_bloco": [
+    { "tipo": "ao_clicar_em_play", "categoria": "evento" },
+    { "tipo": "andar", "categoria": "acao", "params": { "passos": "inteiro" } },
+    { "tipo": "atacar", "categoria": "acao" },
+    { "tipo": "se", "categoria": "condicional", "tem_condicao": true, "tem_corpo": true },
+    { "tipo": "repetir", "categoria": "repeticao", "params": { "vezes": "inteiro" }, "tem_corpo": true },
+    { "tipo": "enquanto", "categoria": "repeticao", "tem_condicao": true, "tem_corpo": true }
+  ],
+
+  "condicoes": [
+    { "tipo": "inimigo_a_frente" },
+    { "tipo": "inimigo_vivo" }
+  ],
+
+  "fases": [
+    {
+      "fase_id": "F01",
+      "ordem": 1,
+      "titulo": "Primeiros passos",
+      "conceito_id": "sequencia",
+      "blocos_disponiveis": ["ao_clicar_em_play", "andar", "atacar"],
+      "solucao_referencia": { "pilhas": [[
+        { "id": "r1", "tipo": "ao_clicar_em_play" },
+        { "id": "r2", "tipo": "andar", "params": { "passos": 2 } },
+        { "id": "r3", "tipo": "atacar" }
+      ]] }
+    },
+    {
+      "fase_id": "F02",
+      "ordem": 2,
+      "titulo": "Golpe atras de golpe",
+      "conceito_id": "repeticao_fixa",
+      "blocos_disponiveis": ["ao_clicar_em_play", "andar", "atacar", "repetir"],
+      "solucao_referencia": { "pilhas": [[
+        { "id": "r1", "tipo": "ao_clicar_em_play" },
+        { "id": "r2", "tipo": "andar", "params": { "passos": 2 } },
+        { "id": "r3", "tipo": "repetir", "params": { "vezes": 3 }, "corpo": [
+          { "id": "r4", "tipo": "atacar" }
+        ] }
+      ]] }
+    },
+    {
+      "fase_id": "F03",
+      "ordem": 3,
+      "titulo": "So quando der",
+      "conceito_id": "condicional",
+      "blocos_disponiveis": ["ao_clicar_em_play", "andar", "atacar", "repetir", "se"],
+      "solucao_referencia": { "pilhas": [[
+        { "id": "r1", "tipo": "ao_clicar_em_play" },
+        { "id": "r2", "tipo": "repetir", "params": { "vezes": 4 }, "corpo": [
+          { "id": "r3", "tipo": "se", "condicao": { "tipo": "inimigo_a_frente" }, "corpo": [
+            { "id": "r4", "tipo": "atacar" }
+          ] },
+          { "id": "r5", "tipo": "andar", "params": { "passos": 1 } }
+        ] }
+      ]] }
+    },
+    {
+      "fase_id": "F04",
+      "ordem": 4,
+      "titulo": "Enquanto ele estiver de pe",
+      "conceito_id": "repeticao_condicional",
+      "blocos_disponiveis": ["ao_clicar_em_play", "andar", "atacar", "repetir", "se", "enquanto"],
+      "solucao_referencia": { "pilhas": [[
+        { "id": "r1", "tipo": "ao_clicar_em_play" },
+        { "id": "r2", "tipo": "andar", "params": { "passos": 2 } },
+        { "id": "r3", "tipo": "enquanto", "condicao": { "tipo": "inimigo_vivo" }, "corpo": [
+          { "id": "r4", "tipo": "atacar" }
+        ] }
+      ]] }
+    },
+    {
+      "fase_id": "F05",
+      "ordem": 5,
+      "titulo": "Ele aguenta mais",
+      "conceito_id": "repeticao_condicional",
+      "blocos_disponiveis": ["ao_clicar_em_play", "andar", "atacar", "repetir", "se", "enquanto"],
+      "solucao_referencia": { "pilhas": [[
+        { "id": "r1", "tipo": "ao_clicar_em_play" },
+        { "id": "r2", "tipo": "enquanto", "condicao": { "tipo": "inimigo_vivo" }, "corpo": [
+          { "id": "r3", "tipo": "andar", "params": { "passos": 1 } },
+          { "id": "r4", "tipo": "atacar" }
+        ] }
+      ]] }
+    },
+    {
+      "fase_id": "F06",
+      "ordem": 6,
+      "titulo": "Duelo longo",
+      "conceito_id": "combinacao",
+      "blocos_disponiveis": ["ao_clicar_em_play", "andar", "atacar", "repetir", "se", "enquanto"],
+      "solucao_referencia": { "pilhas": [[
+        { "id": "r1", "tipo": "ao_clicar_em_play" },
+        { "id": "r2", "tipo": "enquanto", "condicao": { "tipo": "inimigo_vivo" }, "corpo": [
+          { "id": "r3", "tipo": "se", "condicao": { "tipo": "inimigo_a_frente" }, "corpo": [
+            { "id": "r4", "tipo": "atacar" }
+          ] },
+          { "id": "r5", "tipo": "andar", "params": { "passos": 1 } }
+        ] }
+      ]] }
+    }
+  ]
+}

@@ -1,0 +1,439 @@
+/* Dashboard do while under_attack.
+   Sem etapa de build (ADR-002): CSS puro, variaveis para os dois temas.
+   As cores de dados vem da paleta validada; nao invente tons novos. */
+
+:root {
+  color-scheme: light;
+
+  --plano:            #f9f9f7;
+  --superficie:       #fcfcfb;
+  --tinta:            #0b0b0b;
+  --tinta-2:          #52514e;
+  --tinta-fraca:      #898781;
+  --grade:            #e1e0d9;
+  --eixo:             #c3c2b7;
+  --borda:            rgba(11, 11, 11, 0.10);
+
+  --serie-1:          #2a78d6;
+  --serie-2:          #eb6834;
+  --serie-3:          #1baf7a;
+
+  --bom:              #0ca30c;
+  --atencao:          #fab219;
+  --critico:          #d03b3b;
+
+  /* rampa ordinal azul, do mais claro ao mais escuro */
+  --rampa-1: #86b6ef;
+  --rampa-2: #5598e7;
+  --rampa-3: #2a78d6;
+  --rampa-4: #1c5cab;
+  --rampa-5: #104281;
+  --rampa-0: #f0efec;      /* sem dado */
+
+  --raio: 10px;
+  --fonte: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    color-scheme: dark;
+    --plano:        #0d0d0d;
+    --superficie:   #1a1a19;
+    --tinta:        #f0efec;
+    --tinta-2:      #c3c2b7;
+    --tinta-fraca:  #898781;
+    --grade:        #2c2c2a;
+    --eixo:         #383835;
+    --borda:        rgba(255, 255, 255, 0.10);
+
+    --serie-1:      #3987e5;
+    --serie-2:      #d95926;
+    --serie-3:      #199e70;
+
+    --rampa-1: #184f95;
+    --rampa-2: #256abf;
+    --rampa-3: #3987e5;
+    --rampa-4: #6da7ec;
+    --rampa-5: #9ec5f4;
+    --rampa-0: #383835;
+  }
+}
+
+:root[data-tema="escuro"] {
+  color-scheme: dark;
+  --plano:        #0d0d0d;
+  --superficie:   #1a1a19;
+  --tinta:        #f0efec;
+  --tinta-2:      #c3c2b7;
+  --tinta-fraca:  #898781;
+  --grade:        #2c2c2a;
+  --eixo:         #383835;
+  --borda:        rgba(255, 255, 255, 0.10);
+
+  --serie-1:      #3987e5;
+  --serie-2:      #d95926;
+  --serie-3:      #199e70;
+
+  --rampa-1: #184f95;
+  --rampa-2: #256abf;
+  --rampa-3: #3987e5;
+  --rampa-4: #6da7ec;
+  --rampa-5: #9ec5f4;
+  --rampa-0: #383835;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--plano);
+  color: var(--tinta);
+  font-family: var(--fonte);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ---------- cabecalho ---------- */
+
+header.topo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--borda);
+  background: var(--superficie);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.topo h1 {
+  font-size: 17px;
+  margin: 0;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.topo .espaco { flex: 1; }
+
+.topo nav a {
+  color: var(--tinta-2);
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.topo nav a:hover { background: var(--plano); }
+.topo nav a[aria-current="page"] { color: var(--tinta); background: var(--plano); font-weight: 600; }
+
+/* ---------- avisos ---------- */
+
+.aviso {
+  margin: 0;
+  padding: 9px 16px;
+  font-size: 13px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid var(--borda);
+}
+/* RS-02: dado sintetico nunca pode ser confundido com dado real */
+.aviso.sintetico { background: color-mix(in srgb, var(--atencao) 16%, var(--superficie)); }
+.aviso.erro      { background: color-mix(in srgb, var(--critico) 16%, var(--superficie)); }
+
+main { padding: 20px 16px 48px; max-width: 1180px; margin: 0 auto; }
+
+/* ---------- blocos ---------- */
+
+section.cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.cartao > h2 {
+  font-size: 15px;
+  margin: 0 0 2px;
+  font-weight: 650;
+}
+
+.cartao > p.nota {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--tinta-fraca);
+}
+
+.grade-cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* ---------- numeros ---------- */
+
+.numeros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.numero {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 14px 16px;
+}
+.numero .valor {
+  font-size: 28px;
+  font-weight: 640;
+  letter-spacing: -0.02em;
+  display: block;
+  line-height: 1.15;
+}
+.numero .rotulo {
+  font-size: 12.5px;
+  color: var(--tinta-fraca);
+  display: block;
+  margin-top: 3px;
+}
+
+/* ---------- graficos ---------- */
+
+.tela { position: relative; height: 280px; }
+.tela.alta { height: 340px; }
+
+/* ---------- tabelas ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+th, td {
+  text-align: left;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--grade);
+}
+th {
+  color: var(--tinta-fraca);
+  font-weight: 600;
+  font-size: 12.5px;
+}
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tbody tr:last-child td { border-bottom: none; }
+
+.marca {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.marca.ok       { background: color-mix(in srgb, var(--bom) 20%, transparent); color: var(--tinta); }
+.marca.pendente { background: color-mix(in srgb, var(--atencao) 24%, transparent); color: var(--tinta); }
+.marca.fora     { background: var(--grade); color: var(--tinta-fraca); }
+
+/* ---------- heatmap ---------- */
+
+.heatmap { overflow-x: auto; }
+.heatmap table { font-size: 13px; }
+.heatmap td.celula {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  padding: 0;
+  border: none;
+}
+/* o vao de 2px entre celulas e o separador exigido entre preenchimentos */
+.heatmap td.celula > span {
+  display: block;
+  margin: 2px;
+  padding: 8px 4px;
+  border-radius: 6px;
+  color: var(--tinta);
+}
+/* A rampa tem passos proprios em cada tema, entao a tinta da celula e
+   escolhida pelo passo, nao herdada: branco sobre tom claro nao se le. */
+.heatmap td.celula > span.tinta-clara { color: #fcfcfb; }
+.heatmap td.celula > span.tinta-escura { color: #0b0b0b; }
+.heatmap th.nome { white-space: nowrap; }
+
+.legenda-rampa {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--tinta-fraca);
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.legenda-rampa i {
+  width: 22px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* ---------- login ---------- */
+
+.login {
+  max-width: 340px;
+  margin: 12vh auto;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 24px;
+}
+.login h1 { font-size: 19px; margin: 0 0 4px; }
+.login p.nota { color: var(--tinta-fraca); font-size: 13px; margin: 0 0 18px; }
+.login label { display: block; font-size: 13px; margin-bottom: 4px; color: var(--tinta-2); }
+.login input {
+  width: 100%;
+  padding: 9px 11px;
+  margin-bottom: 14px;
+  border: 1px solid var(--eixo);
+  border-radius: 8px;
+  background: var(--plano);
+  color: var(--tinta);
+  font-size: 14px;
+  font-family: inherit;
+}
+.login input:focus { outline: 2px solid var(--serie-1); outline-offset: 1px; }
+
+button.acao {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: var(--serie-1);
+  color: #fcfcfb;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+button.acao:hover { filter: brightness(1.08); }
+
+button.discreto {
+  padding: 5px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--superficie);
+  color: var(--tinta-2);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+button.discreto:hover { background: var(--plano); }
+
+select.discreto {
+  padding: 5px 8px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--superficie);
+  color: var(--tinta);
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.erro-login {
+  color: var(--critico);
+  font-size: 13px;
+  margin: 0 0 12px;
+  min-height: 18px;
+}
+
+.vazio {
+  color: var(--tinta-fraca);
+  font-size: 13.5px;
+  padding: 18px 0;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .numero .valor { font-size: 23px; }
+  main { padding: 14px 12px 36px; }
+}
+
+/* ---------- barra de filtros ---------- */
+
+.filtros {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+.filtros label { font-size: 12.5px; color: var(--tinta-fraca); }
+.filtros .separador { flex: 1; }
+.filtros .resultado { font-size: 12.5px; color: var(--tinta-fraca); }
+
+/* ---------- destaques ---------- */
+
+.destaques { display: grid; gap: 8px; }
+
+.destaque {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--borda);
+  /* a cor do nível nunca é o único sinal: vem sempre com ícone e rótulo */
+  border-left-width: 3px;
+}
+.destaque.critico  { border-left-color: var(--critico); }
+.destaque.atencao  { border-left-color: var(--atencao); }
+.destaque.info     { border-left-color: var(--serie-1); }
+
+.destaque .icone { font-size: 14px; line-height: 1.4; }
+.destaque .corpo { flex: 1; }
+.destaque .corpo strong { display: block; font-size: 13.5px; margin-bottom: 1px; }
+.destaque .corpo span { font-size: 13px; color: var(--tinta-2); }
+.destaque .nivel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tinta-fraca);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---------- cabeçalho de cartão com ação ---------- */
+
+.cartao .topo-cartao {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.cartao .topo-cartao > div { flex: 1; }
+.cartao .topo-cartao h2 { margin-bottom: 2px; }
+.cartao .topo-cartao p.nota { margin: 0; }
+
+.tabela-apoio { margin-top: 14px; overflow-x: auto; }
+.tabela-apoio[hidden] { display: none; }
+
+/* ---------- comparação com a turma ---------- */
+
+.legenda-inline {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--tinta-fraca);
+  margin-top: 10px;
+}
+.legenda-inline i {
+  width: 10px; height: 10px; border-radius: 3px;
+  display: inline-block; margin-right: 5px;
+}

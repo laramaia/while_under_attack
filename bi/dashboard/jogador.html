@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meu progresso · while under_attack</title>
+  <link rel="stylesheet" href="estilo.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+  <header class="topo"></header>
+  <p class="aviso" id="procedencia"></p>
+
+  <main>
+    <!-- só aparece para o perfil professor, que escolhe de quem é a tela (RN-005) -->
+    <p id="escolha-jogador" hidden style="margin:0 0 16px"></p>
+
+    <!-- O3: devolver ao jogador um diagnóstico do próprio aprendizado -->
+    <div class="numeros" id="numeros"></div>
+
+    <section class="cartao" id="c-tentativas">
+      <div class="topo-cartao">
+        <div>
+          <h2>Quantas tentativas até vencer cada fase</h2>
+          <p class="nota">
+            Conta vitórias e derrotas até a primeira vitória, inclusive (RN-012).
+            As fases estão na ordem em que são ensinadas, e a barra clara é a
+            mediana da turma na mesma fase, para você ter com o que comparar.
+          </p>
+        </div>
+        <button class="discreto ver-tabela">Ver tabela</button>
+      </div>
+      <div class="tela"><canvas id="g-tentativas"></canvas></div>
+      <div class="tabela-apoio" hidden></div>
+    </section>
+
+    <section class="cartao">
+      <h2>Você usou o bloco que a fase ensina?</h2>
+      <p class="nota">
+        Cada conceito tem um bloco que o representa. Dá para vencer sem ele —
+        repetindo o mesmo ataque várias vezes em vez de usar o bloco de
+        repetição, por exemplo —, mas aí o conceito ficou para trás. Conceito
+        que não se resume a um bloco não aparece aqui.
+      </p>
+      <div id="conceitos-aplicados"></div>
+    </section>
+
+    <div class="grade-cartoes">
+      <section class="cartao">
+        <h2>O quanto o seu código é enxuto</h2>
+        <p class="nota">
+          Blocos da solução de referência ÷ blocos do seu programa vencedor
+          (RN-014). A linha tracejada em 1,0 é a referência.
+        </p>
+        <div class="tela"><canvas id="g-eficiencia"></canvas></div>
+      </section>
+
+      <section class="cartao">
+        <h2>Onde você travou</h2>
+        <p class="nota">
+          Suas derrotas, separadas por causa: o programa acabou antes de
+          derrubar o inimigo, ou a execução parou num bloco (RN-008).
+        </p>
+        <div class="tela"><canvas id="g-travou"></canvas></div>
+      </section>
+    </div>
+
+    <section class="cartao">
+      <h2>Fase a fase</h2>
+      <p class="nota">Os mesmos números da tela, em tabela.</p>
+      <div style="overflow-x:auto"><table id="t-fases"></table></div>
+    </section>
+
+    <section class="cartao">
+      <h2>Conceitos</h2>
+      <p class="nota">Cada fase ensina um conceito de lógica, nesta ordem.</p>
+      <div style="overflow-x:auto"><table id="t-conceitos"></table></div>
+    </section>
+  </main>
+
+  <script type="module" src="jogador.js"></script>
+</body>
+</html>
