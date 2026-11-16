@@ -401,6 +401,53 @@ grande. Se a equipe não quiser, basta remover a segunda série do gráfico
 equipe concordar com ele, vale virar uma regra numerada, porque hoje a
 definição de "bloco que a fase introduz" mora só no código (`catalogo.py`).
 
+## O catálogo e o jogo
+
+O `catalogo-fases.json` é a fonte única sobre fases, conceitos e blocos
+(ADR-006). Desde a `catalog_version` **2026.11.1-rascunho** ele usa os
+identificadores e as categorias do **`src/model/defaultCatalog.ts`**, que é o
+catálogo real do jogo — não mais os nomes propostos no documento.
+
+| | Antes (proposta) | Agora (jogo) |
+|---|---|---|
+| Categorias | `evento`, `acao`, `condicional`, `repeticao` | `event`, `action`, `repeat`, `condition` |
+| Evento | `ao_clicar_em_play` | `on-flag`, `on-start` (**são dois**) |
+| Ação | `andar`, `atacar` | `advance`, `attack`, `defend` |
+| Repetição | `repetir` (param `vezes`) | `repeat` (**3x fixo**, sem parâmetro) |
+| Condicional | `se` (+ `enquanto`) | `if-else` |
+
+### O que mudou no ETL por causa disso
+
+- **`tipos_de_evento` não procura mais a categoria `"evento"`.** O nome estava
+  cravado em `catalogo.py` e o jogo chama a categoria de `event`: do jeito
+  antigo o conjunto ficaria vazio, **nenhuma pilha seria executável e a RN-018
+  reprovaria tudo em silêncio**. Agora quem declara é o catálogo, no campo
+  `inicia_pilha` de cada bloco — tradução direta do `shape: 'hat'` do jogo.
+  O `validar()` recusa um catálogo em que ninguém declare isso.
+- **O gerador não cita bloco pelo nome.** Ele comparava com `"repetir"` e
+  `"enquanto"`; com o catálogo real nenhum casava, e o gerador parava de
+  produzir o caso que o indicador de conceito aplicado existe para achar.
+  Agora as repetições vêm de `cat.repeticoes()` e os blocos de enchimento de
+  `cat.blocos_simples_de(fase)`.
+- **O dashboard não mantém mais uma lista de nomes.** O `app.js` tinha um mapa
+  escrito à mão com `andar`, `atacar`, `repetir`, `enquanto`. Os rótulos agora
+  vêm de `GET /api/catalogo`.
+
+### O que a PD-013 ainda não resolveu
+
+| | Situação |
+|---|---|
+| **Não existe `enquanto`** | O jogo não tem bloco de repetição com condição — **o "while" que dá nome ao projeto**. O conceito `repeticao_condicional` saiu desta versão do catálogo porque não há bloco que o ensine. Se a equipe criar o bloco, o conceito volta |
+| **Lista de condições** | Vazia. O `BlockTemplate` do jogo tem só `id`, `label`, `color` e `shape`: não há condição para escolher, nem no `if-else` |
+| **O "senão"** | O rótulo diz "Se / Senão", mas o `BlockInstance` tem um único `inner` — não há ramo senão no modelo de dados |
+| **`repeat` é 3x fixo** | Sem parâmetro editável. O catálogo registra isso em `vezes_fixas: 3`; se virar parâmetro, passa a `params.vezes` |
+| **`corpo` × `inner`** | O Contrato de Eventos usa `corpo` para o conteúdo dos blocos em C; o jogo guarda em `inner`. Como o jogo **ainda não serializa nada**, isso é decisão de quem for escrever o envio: ou o jogo traduz na hora de enviar, ou o contrato muda |
+
+As **fases** continuam provisórias (PD-006) e por isso a `catalog_version`
+mantém o sufixo `-rascunho`. O que deixou de ser hipótese foram os blocos.
+
+---
+
 ## O que ainda depende da equipe
 
 - **PD-006** — `catalogo-fases.json` (na raiz do repositório) está numa versão
@@ -410,11 +457,10 @@ definição de "bloco que a fase introduz" mora só no código (`catalogo.py`).
   A F05 está ali como exemplo de **fase de reforço**, para o indicador ter o que
   mostrar; o Catálogo de Fases ainda não descreve esse tipo de fase, e vale
   acrescentar essa ideia ao documento.
-- **PD-013** — os identificadores técnicos dos blocos (`andar`, `atacar`,
-  `enquanto`...) são propostas e precisam bater com os do código do jogo. Hoje
-  o `defaultCatalog.ts` do jogo usa outros nomes (`advance`, `defend`,
-  `if-else`), e as categorias também divergem do documento: são duas listas
-  diferentes para a mesma coisa.
+- **PD-013** — **parcialmente resolvida.** O `catalogo-fases.json` passou a usar
+  os identificadores e as categorias do `src/model/defaultCatalog.ts`, o
+  catálogo real do jogo. Veja a seção "O catálogo e o jogo" abaixo para o que
+  ainda falta.
 - **PD-011** — a escolha do framework não afeta esta pasta: o dashboard é
   cliente REST e funciona igual com FastAPI, Flask ou Django.
 - **PD-005** — o `docker-compose.yml` é só para desenvolvimento. Onde o banco

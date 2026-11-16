@@ -253,6 +253,29 @@ def vitoria_por_tentativa(
     return db.consultar(consultas.VITORIA_POR_TENTATIVA, {"conceito": conceito})
 
 
+@app.get("/api/catalogo", tags=["acesso"])
+def catalogo(usuario: auth.Usuario = Depends(auth.usuario_atual)) -> dict[str, Any]:
+    """O catalogo de blocos como o ETL o carregou (ADR-006).
+
+    Existe para o dashboard nao manter uma segunda lista de nomes de bloco.
+    Ate aqui o `app.js` tinha um mapa cravado com `andar`, `atacar`,
+    `repetir`, `enquanto` — identificadores que nunca existiram no jogo. Com
+    o catalogo real isso passaria a mostrar `attack` e `if-else` crus na tela.
+
+    Servindo os rotulos daqui, o catalogo continua sendo fonte unica tambem
+    para o texto que o jogador le, e trocar um nome de bloco deixa de exigir
+    mexer em dois lugares.
+    """
+    cat = catalogo_padrao()
+    return {
+        "catalog_version": cat.catalog_version,
+        "blocos": [
+            {"tipo": tipo, "categoria": categoria, "rotulo": cat.rotulo(tipo)}
+            for tipo, categoria in sorted(cat.tipos_de_bloco.items())
+        ],
+    }
+
+
 @app.get("/api/conceitos", tags=["acesso"])
 def conceitos_filtro(usuario: auth.Usuario = Depends(auth.usuario_atual)) -> list[dict]:
     return db.consultar(consultas.CONCEITOS_FILTRO)

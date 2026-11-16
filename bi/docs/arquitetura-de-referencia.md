@@ -473,7 +473,7 @@ Nenhum destes é código; todos são decisão.
 | 2 | **`PD-012`** — termo de consentimento para menores de idade. Impacto alto e provavelmente se aplica | equipe |
 | 3 | **`RN-003`** sair de "Proposta" — é a regra que impede nome completo. Envolve dado pessoal | equipe |
 | 4 | **`PD-005`** — onde hospedar. Pré-requisito para separar dev de prod (§5.6) | equipe |
-| 5 | **`PD-013`** — identificadores de bloco. Continua sendo a única pendência que **quebra** o sistema quando o dado real chegar | equipe do jogo + BI |
+| 5 | **`PD-013`** — **parcialmente resolvida em 16/11/2026**: o catálogo passou a usar os identificadores e categorias reais do jogo (`catalog_version` 2026.11.1-rascunho). Falta a lista de condições, o ramo "senão", e decidir `corpo` × `inner` no envio. E **não existe bloco de repetição com condição** — o conceito saiu do catálogo. Detalhe em `bi/README.md`, seção "O catálogo e o jogo" | equipe do jogo + BI |
 | 6 | **Base legal e retenção** dos eventos — por quanto tempo e com que fundamento | equipe |
 | 7 | **Testar uma restauração de backup** no Neon, uma vez, antes da banca | BI |
 

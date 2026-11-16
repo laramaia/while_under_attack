@@ -54,8 +54,9 @@ class ProgramaLido:
 def ler_programa(programa: dict[str, Any], tipos_de_evento: set[str]) -> ProgramaLido:
     """Transforma o programa aninhado numa lista plana de blocos.
 
-    `tipos_de_evento` sao os tipos de bloco da categoria "evento" segundo o
-    catalogo. Uma pilha so executa se comecar com um deles (RN-018).
+    `tipos_de_evento` sao os tipos que o catalogo marca com `inicia_pilha` -
+    os blocos "hat" da Palette. Uma pilha so executa se comecar com um deles
+    (RN-018). Hoje o jogo tem dois: "Ao clicar em play" e "Ao iniciar fase".
     """
     lido = ProgramaLido()
     pilhas = programa.get("pilhas") or []

@@ -121,25 +121,29 @@ def _programa_errado(fase: Fase, rng: random.Random) -> dict[str, Any]:
     return _renumerar(programa)
 
 
-def _desenrolar(pilha: list[dict[str, Any]], bloco_conceito: str, rng: random.Random) -> bool:
+def _desenrolar(pilha: list[dict[str, Any]], bloco_conceito: str,
+                rng: random.Random, cat: Catalogo) -> bool:
     """Troca o bloco que a fase ensina pelo seu corpo repetido na mao.
 
     E o que um jogador faz quando vence a fase sem ter entendido o conceito:
-    em vez de "repetir 3 vezes [atacar]", ele empilha "atacar" tres vezes. O
+    em vez de "Repetir 3x [Atacar]", ele empilha "Atacar" tres vezes. O
     programa funciona, fica maior que a referencia e nao usa o bloco novo —
     exatamente o caso que o indicador de conceito aplicado existe para achar.
+
+    Quantas vezes repetir vem do catalogo (`cat.repeticoes`), nao de uma lista
+    de nomes de bloco cravada aqui. Antes este trecho comparava com "repetir"
+    e "enquanto", identificadores que nunca existiram no jogo: com o catalogo
+    real nenhum dos dois casava, e todo desenrolamento virava "repete uma vez"
+    — ou seja, o gerador parava de produzir o caso que o indicador procura.
     """
     for i, bloco in enumerate(pilha):
         if bloco.get("tipo") != bloco_conceito:
             continue
 
         corpo = bloco.get("corpo") or []
-        if bloco_conceito == "repetir":
-            vezes = (bloco.get("params") or {}).get("vezes", 3)
-        elif bloco_conceito == "enquanto":
-            vezes = rng.randint(3, 5)
-        else:  # "se": o jogador simplesmente faz a acao sempre
-            vezes = 1
+        # Bloco que nao repete (um condicional, por exemplo): o jogador
+        # simplesmente faz a acao sempre, uma vez.
+        vezes = cat.repeticoes(bloco) or 1
 
         pilha[i:i + 1] = [copy.deepcopy(b) for _ in range(vezes) for b in corpo]
         return True
@@ -148,7 +152,8 @@ def _desenrolar(pilha: list[dict[str, Any]], bloco_conceito: str, rng: random.Ra
 
 
 def _programa_vencedor(
-    fase: Fase, rng: random.Random, habilidade: float, bloco_conceito: str | None
+    fase: Fase, rng: random.Random, habilidade: float,
+    bloco_conceito: str | None, cat: Catalogo
 ) -> dict[str, Any]:
     """Programa que vence, mais ou menos enxuto conforme a habilidade.
 
@@ -160,17 +165,24 @@ def _programa_vencedor(
 
     # quem tem menos habilidade as vezes vence contornando o conceito
     if bloco_conceito and rng.random() < (1 - habilidade) * 0.55:
-        _desenrolar(pilha, bloco_conceito, rng)
+        _desenrolar(pilha, bloco_conceito, rng, cat)
+
+    # Blocos soltos da Palette desta fase: acoes que nao iniciam pilha nem tem
+    # corpo. Vem do catalogo para o gerador nao citar nenhum bloco pelo nome -
+    # era assim que "atacar" e "andar" tinham sobrevivido aqui.
+    simples = cat.blocos_simples_de(fase)
 
     # quem tem menos habilidade deixa blocos redundantes no programa
-    excedentes = max(0, int(round((1 - habilidade) * rng.uniform(0, 6))))
-    for _ in range(excedentes):
-        pilha.insert(rng.randrange(1, len(pilha) + 1), {"tipo": "atacar"})
+    if simples:
+        excedentes = max(0, int(round((1 - habilidade) * rng.uniform(0, 6))))
+        for _ in range(excedentes):
+            pilha.insert(rng.randrange(1, len(pilha) + 1),
+                         {"tipo": rng.choice(simples)})
 
-    # as vezes sobra uma pilha solta no Workspace, sem bloco de evento.
-    # Ela conta no programa mas nao executa (RN-018).
-    if rng.random() < 0.15:
-        programa["pilhas"].append([{"tipo": "andar", "params": {"passos": 1}}])
+        # as vezes sobra uma pilha solta no Workspace, sem bloco de evento.
+        # Ela conta no programa mas nao executa (RN-018).
+        if rng.random() < 0.15:
+            programa["pilhas"].append([{"tipo": rng.choice(simples)}])
 
     return _renumerar(programa)
 
@@ -227,6 +239,7 @@ def _simular_fase(
     proximo_seq: Iterator[int],
     catalog_version: str,
     bloco_conceito: str | None,
+    cat: Catalogo,
 ) -> tuple[list[dict[str, Any]], bool]:
     """Tentativas de um jogador numa fase, ate vencer ou desistir."""
     eventos: list[dict[str, Any]] = [
@@ -249,7 +262,7 @@ def _simular_fase(
     for _ in range(maximo):
         if rng.random() < chance_vitoria:
             resultado = "vitoria"
-            programa = _programa_vencedor(fase, rng, habilidade, bloco_conceito)
+            programa = _programa_vencedor(fase, rng, habilidade, bloco_conceito, cat)
         elif rng.random() < 0.12:
             resultado = "interrompida"
             programa = _programa_errado(fase, rng)
@@ -385,6 +398,7 @@ def gerar(
                 evs, venceu = _simular_fase(
                     fases[fase_atual], habilidade, rng, relogio, session_id,
                     seq, cat.catalog_version, cat.bloco_do_conceito(fases[fase_atual]),
+                    cat,
                 )
                 eventos_do_jogador.extend(evs)
                 if venceu:

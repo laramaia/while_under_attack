@@ -46,11 +46,48 @@ class Catalogo:
     fases: tuple[Fase, ...]
     tipos_de_bloco: dict[str, str]  # tipo -> categoria
     condicoes: tuple[str, ...]
+    # tipos que iniciam uma pilha (os blocos "hat" do jogo). Vem do catalogo,
+    # nao do nome da categoria - ver tipos_de_evento.
+    inicia_pilha: frozenset[str] = frozenset()
+    # tipos que tem corpo (os "c-block" do jogo)
+    com_corpo: frozenset[str] = frozenset()
+    # quantas vezes um bloco de repeticao sem parametro repete o corpo
+    vezes_fixas: tuple[tuple[str, int], ...] = ()
+    # rotulo legivel de cada tipo, como o jogo o escreve na Palette
+    rotulos: tuple[tuple[str, str], ...] = ()
+
+    def rotulo(self, tipo: str) -> str:
+        """Nome do bloco como o jogador o le. Cai no proprio tipo se faltar."""
+        return dict(self.rotulos).get(tipo, tipo)
 
     @property
     def tipos_de_evento(self) -> set[str]:
-        """Tipos da categoria evento. Definem qual pilha executa (RN-018)."""
-        return {t for t, cat in self.tipos_de_bloco.items() if cat == "evento"}
+        """Tipos que iniciam uma pilha. Definem qual pilha executa (RN-018).
+
+        Antes isto era `cat == "evento"`, com o nome da categoria cravado no
+        codigo. Nao servia: o catalogo do jogo chama a categoria de `event`, e
+        o dia em que o nome mudasse o conjunto viraria vazio, nenhuma pilha
+        seria executavel e a RN-018 passaria a reprovar tudo em silencio.
+
+        Agora quem declara e o proprio catalogo, em `inicia_pilha` - que e a
+        traducao direta do `shape: 'hat'` do BlockTemplate do jogo. A ADR-006
+        diz que o catalogo e a fonte unica; isto faz valer tambem para "qual
+        bloco comeca uma pilha".
+        """
+        return set(self.inicia_pilha)
+
+    def repeticoes(self, bloco: dict[str, Any]) -> int | None:
+        """Quantas vezes este bloco repete o corpo, se for de repeticao.
+
+        Duas formas, nesta ordem: um parametro `vezes` no proprio bloco (se um
+        dia a Palette ganhar parametro editavel) ou o `vezes_fixas` declarado
+        no catalogo - que hoje e o caso do `repeat`, cujo rotulo no jogo e
+        literalmente "Repetir 3x". Nulo quando o bloco nao repete.
+        """
+        params = bloco.get("params") or {}
+        if "vezes" in params:
+            return int(params["vezes"])
+        return dict(self.vezes_fixas).get(bloco.get("tipo", ""))
 
     def fase(self, fase_id: str) -> Fase | None:
         return next((f for f in self.fases if f.fase_id == fase_id), None)
@@ -107,10 +144,37 @@ class Catalogo:
     def categoria(self, tipo: str) -> str | None:
         return self.tipos_de_bloco.get(tipo)
 
+    def blocos_simples_de(self, fase: Fase) -> tuple[str, ...]:
+        """Blocos da Palette da fase que nao iniciam pilha nem tem corpo.
+
+        Sao as acoes soltas - as pecas que um programa pode ganhar a mais sem
+        mudar de forma. O gerador usa isto para inchar um programa sem citar
+        nenhum identificador de bloco pelo nome.
+        """
+        return tuple(
+            t for t in fase.blocos_disponiveis
+            if t not in self.inicia_pilha and t not in self.com_corpo
+        )
+
     def validar(self) -> list[str]:
         """Problemas que tornariam o catalogo inutilizavel pelo ETL."""
         problemas: list[str] = []
         ids_conceito = {c.conceito_id for c in self.conceitos}
+
+        # Sem nenhum bloco iniciando pilha, a RN-018 reprovaria todo programa
+        # e o erro so apareceria como "nenhuma tentativa executavel" la na
+        # frente. Melhor recusar o catalogo aqui.
+        if not self.inicia_pilha:
+            problemas.append(
+                "nenhum tipo de bloco declara inicia_pilha: sem isso a RN-018 "
+                "considera que nenhuma pilha executa"
+            )
+
+        for tipo in self.inicia_pilha:
+            if tipo not in self.tipos_de_bloco:
+                problemas.append(
+                    f"inicia_pilha cita '{tipo}', que nao esta em tipos_de_bloco"
+                )
 
         for fase in self.fases:
             if fase.conceito_id not in ids_conceito:
@@ -150,6 +214,20 @@ def carregar(caminho: Path | None = None) -> Catalogo:
         ),
         tipos_de_bloco={t["tipo"]: t["categoria"] for t in bruto["tipos_de_bloco"]},
         condicoes=tuple(c["tipo"] for c in bruto.get("condicoes", [])),
+        inicia_pilha=frozenset(
+            t["tipo"] for t in bruto["tipos_de_bloco"] if t.get("inicia_pilha")
+        ),
+        com_corpo=frozenset(
+            t["tipo"] for t in bruto["tipos_de_bloco"] if t.get("tem_corpo")
+        ),
+        vezes_fixas=tuple(
+            (t["tipo"], int(t["vezes_fixas"]))
+            for t in bruto["tipos_de_bloco"] if t.get("vezes_fixas") is not None
+        ),
+        rotulos=tuple(
+            (t["tipo"], t["rotulo"])
+            for t in bruto["tipos_de_bloco"] if t.get("rotulo")
+        ),
     )
 
 

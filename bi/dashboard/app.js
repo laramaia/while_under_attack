@@ -150,17 +150,28 @@ export function formatarData(iso) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
-/** Nomes técnicos do catálogo viram texto legível (PD-013 ainda vai mexer nesses ids). */
+/**
+ * Rótulos dos blocos, vindos do catálogo (ADR-006).
+ *
+ * Aqui havia um mapa escrito à mão com `andar`, `atacar`, `repetir` e
+ * `enquanto` — nomes que nunca existiram no jogo. Era uma segunda lista
+ * correndo em paralelo ao catálogo, e das duas a errada era esta. Agora o
+ * dashboard pergunta: um lugar só define como cada bloco se chama.
+ */
+const rotulosDeBloco = new Map();
+
+export async function carregarRotulosDeBloco() {
+  try {
+    const cat = await api('/catalogo');
+    for (const b of cat.blocos) rotulosDeBloco.set(b.tipo, b.rotulo);
+  } catch {
+    /* sem os rótulos a tela ainda serve: cai no identificador técnico */
+  }
+}
+
 export function nomeDeBloco(tipo) {
-  const nomes = {
-    ao_clicar_em_play: 'Ao clicar em Play',
-    andar: 'Andar',
-    atacar: 'Atacar',
-    se: 'Se',
-    repetir: 'Repetir N vezes',
-    enquanto: 'Enquanto',
-  };
-  return nomes[tipo] || tipo;
+  if (!tipo) return '—';
+  return rotulosDeBloco.get(tipo) || tipo;
 }
 
 export const CAUSAS = {

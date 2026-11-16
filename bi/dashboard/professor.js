@@ -3,6 +3,7 @@
 
 import {
   api, exigirSessao, montarTopo, mostrarProcedencia, mostrarErro,
+  carregarRotulosDeBloco,
   aplicarTemaSalvo, prepararGraficos, aoTrocarTema, desenhar, semDados,
   eixos, BARRA, EMPILHADA, cor, num, vazio, formatarData, nomeDeBloco,
   temaEscuro, comTabela, tabela, lerFiltros, query,
@@ -432,6 +433,7 @@ function desenharTudo() {
 try {
   await carregarBase();
   await carregarRecorte();
+  await carregarRotulosDeBloco();
   prepararGraficos();
   montarFiltros();
   numeros();

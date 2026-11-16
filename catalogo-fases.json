@@ -1,29 +1,64 @@
 {
-  "catalog_version": "2026.10.1-rascunho",
-  "_aviso": "Versao PROVISORIA. Monta a hipotese de progressao do Catalogo de Fases (secao 3) para destravar o ETL e o dashboard. Os identificadores tecnicos dependem da PD-013 e as fases e solucoes de referencia da PD-006. Trocar antes de coletar dados reais (RS-03).",
-  "_nota_reforco": "Nem toda fase introduz um conceito: uma fase que repete o conceito_id de uma fase anterior e uma fase de REFORCO, e o ETL a trata assim. A F05 existe como exemplo disso. Isso nao exige campo novo: o papel sai do proprio conceito_id.",
+  "catalog_version": "2026.11.1-rascunho",
+
+  "_fonte": "Os blocos e as categorias abaixo foram tirados de src/model/defaultCatalog.ts, o catalogo real do jogo, no commit 0127da5. Antes desta versao o arquivo usava identificadores propostos (ao_clicar_em_play, andar, atacar, se, repetir, enquanto) que nao existiam no jogo. Isso fechava parte da PD-013: os identificadores agora sao os do codigo.",
+
+  "_ainda_provisorio": "As FASES continuam provisorias (PD-006) e por isso a catalog_version mantem o sufixo -rascunho. Os identificadores de bloco nao sao mais hipotese; a progressao, os titulos e as solucoes de referencia ainda sao.",
+
+  "_nota_reforco": "Nem toda fase introduz um conceito: uma fase que repete o conceito_id de uma fase anterior e uma fase de REFORCO, e o ETL a trata assim. A F03 existe como exemplo disso. Isso nao exige campo novo: o papel sai do proprio conceito_id.",
+
+  "_sem_repeticao_condicional": "O jogo NAO tem bloco de repeticao com condicao (o 'enquanto' que da nome ao projeto). A Palette tem apenas 'repeat' (Repetir 3x). Por isso o conceito repeticao_condicional saiu desta versao: nao existe bloco que o ensine. Se a equipe criar o bloco, o conceito volta.",
 
   "conceitos": [
     { "conceito_id": "sequencia", "nome": "Sequencia", "ordem": 1 },
     { "conceito_id": "repeticao_fixa", "nome": "Repeticao com numero fixo", "ordem": 2 },
     { "conceito_id": "condicional", "nome": "Condicional", "ordem": 3 },
-    { "conceito_id": "repeticao_condicional", "nome": "Repeticao com condicao", "ordem": 4 },
-    { "conceito_id": "combinacao", "nome": "Combinacao", "ordem": 5 }
+    { "conceito_id": "combinacao", "nome": "Combinacao", "ordem": 4 }
   ],
 
   "tipos_de_bloco": [
-    { "tipo": "ao_clicar_em_play", "categoria": "evento" },
-    { "tipo": "andar", "categoria": "acao", "params": { "passos": "inteiro" } },
-    { "tipo": "atacar", "categoria": "acao" },
-    { "tipo": "se", "categoria": "condicional", "tem_condicao": true, "tem_corpo": true },
-    { "tipo": "repetir", "categoria": "repeticao", "params": { "vezes": "inteiro" }, "tem_corpo": true },
-    { "tipo": "enquanto", "categoria": "repeticao", "tem_condicao": true, "tem_corpo": true }
+    {
+      "tipo": "on-flag",
+      "categoria": "event",
+      "rotulo": "Ao clicar em play",
+      "inicia_pilha": true
+    },
+    {
+      "tipo": "on-start",
+      "categoria": "event",
+      "rotulo": "Ao iniciar fase",
+      "inicia_pilha": true
+    },
+    { "tipo": "attack",  "categoria": "action", "rotulo": "Atacar" },
+    { "tipo": "defend",  "categoria": "action", "rotulo": "Defender" },
+    { "tipo": "advance", "categoria": "action", "rotulo": "Avancar" },
+    {
+      "tipo": "repeat",
+      "categoria": "repeat",
+      "rotulo": "Repetir 3x",
+      "tem_corpo": true,
+      "vezes_fixas": 3,
+      "_nota": "O jogo nao tem parametro editavel: o rotulo e literalmente 'Repetir 3x'. Por isso vezes_fixas em vez de params.vezes."
+    },
+    {
+      "tipo": "if-else",
+      "categoria": "condition",
+      "rotulo": "Se / Senao",
+      "tem_corpo": true,
+      "tem_condicao": false,
+      "_nota": "O rotulo diz 'Se / Senao', mas o BlockInstance do jogo tem um unico 'inner': nao ha ramo senao no modelo de dados, e nao ha condicao selecionavel. Quando a equipe implementar os dois, mudar aqui e no Contrato de Eventos."
+    }
   ],
 
-  "condicoes": [
-    { "tipo": "inimigo_a_frente" },
-    { "tipo": "inimigo_vivo" }
-  ],
+  "_categorias": {
+    "event": "Eventos",
+    "action": "Acao",
+    "repeat": "Repeticao",
+    "condition": "Condicional"
+  },
+
+  "condicoes": [],
+  "_condicoes_nota": "Vazio de proposito. O BlockTemplate do jogo tem apenas id, label, color e shape - nao ha condicao para escolher. A lista de condicoes continua sendo a parte aberta da PD-013.",
 
   "fases": [
     {
@@ -31,11 +66,11 @@
       "ordem": 1,
       "titulo": "Primeiros passos",
       "conceito_id": "sequencia",
-      "blocos_disponiveis": ["ao_clicar_em_play", "andar", "atacar"],
+      "blocos_disponiveis": ["on-flag", "on-start", "advance", "attack", "defend"],
       "solucao_referencia": { "pilhas": [[
-        { "id": "r1", "tipo": "ao_clicar_em_play" },
-        { "id": "r2", "tipo": "andar", "params": { "passos": 2 } },
-        { "id": "r3", "tipo": "atacar" }
+        { "id": "r1", "tipo": "on-flag" },
+        { "id": "r2", "tipo": "advance" },
+        { "id": "r3", "tipo": "attack" }
       ]] }
     },
     {
@@ -43,72 +78,56 @@
       "ordem": 2,
       "titulo": "Golpe atras de golpe",
       "conceito_id": "repeticao_fixa",
-      "blocos_disponiveis": ["ao_clicar_em_play", "andar", "atacar", "repetir"],
+      "blocos_disponiveis": ["on-flag", "on-start", "advance", "attack", "defend", "repeat"],
       "solucao_referencia": { "pilhas": [[
-        { "id": "r1", "tipo": "ao_clicar_em_play" },
-        { "id": "r2", "tipo": "andar", "params": { "passos": 2 } },
-        { "id": "r3", "tipo": "repetir", "params": { "vezes": 3 }, "corpo": [
-          { "id": "r4", "tipo": "atacar" }
+        { "id": "r1", "tipo": "on-flag" },
+        { "id": "r2", "tipo": "advance" },
+        { "id": "r3", "tipo": "repeat", "corpo": [
+          { "id": "r4", "tipo": "attack" }
         ] }
       ]] }
     },
     {
       "fase_id": "F03",
       "ordem": 3,
-      "titulo": "So quando der",
-      "conceito_id": "condicional",
-      "blocos_disponiveis": ["ao_clicar_em_play", "andar", "atacar", "repetir", "se"],
+      "titulo": "Ele aguenta mais",
+      "conceito_id": "repeticao_fixa",
+      "blocos_disponiveis": ["on-flag", "on-start", "advance", "attack", "defend", "repeat"],
       "solucao_referencia": { "pilhas": [[
-        { "id": "r1", "tipo": "ao_clicar_em_play" },
-        { "id": "r2", "tipo": "repetir", "params": { "vezes": 4 }, "corpo": [
-          { "id": "r3", "tipo": "se", "condicao": { "tipo": "inimigo_a_frente" }, "corpo": [
-            { "id": "r4", "tipo": "atacar" }
-          ] },
-          { "id": "r5", "tipo": "andar", "params": { "passos": 1 } }
+        { "id": "r1", "tipo": "on-flag" },
+        { "id": "r2", "tipo": "repeat", "corpo": [
+          { "id": "r3", "tipo": "advance" },
+          { "id": "r4", "tipo": "attack" }
         ] }
       ]] }
     },
     {
       "fase_id": "F04",
       "ordem": 4,
-      "titulo": "Enquanto ele estiver de pe",
-      "conceito_id": "repeticao_condicional",
-      "blocos_disponiveis": ["ao_clicar_em_play", "andar", "atacar", "repetir", "se", "enquanto"],
+      "titulo": "So quando der",
+      "conceito_id": "condicional",
+      "blocos_disponiveis": ["on-flag", "on-start", "advance", "attack", "defend", "repeat", "if-else"],
       "solucao_referencia": { "pilhas": [[
-        { "id": "r1", "tipo": "ao_clicar_em_play" },
-        { "id": "r2", "tipo": "andar", "params": { "passos": 2 } },
-        { "id": "r3", "tipo": "enquanto", "condicao": { "tipo": "inimigo_vivo" }, "corpo": [
-          { "id": "r4", "tipo": "atacar" }
+        { "id": "r1", "tipo": "on-flag" },
+        { "id": "r2", "tipo": "advance" },
+        { "id": "r3", "tipo": "if-else", "corpo": [
+          { "id": "r4", "tipo": "attack" }
         ] }
       ]] }
     },
     {
       "fase_id": "F05",
       "ordem": 5,
-      "titulo": "Ele aguenta mais",
-      "conceito_id": "repeticao_condicional",
-      "blocos_disponiveis": ["ao_clicar_em_play", "andar", "atacar", "repetir", "se", "enquanto"],
-      "solucao_referencia": { "pilhas": [[
-        { "id": "r1", "tipo": "ao_clicar_em_play" },
-        { "id": "r2", "tipo": "enquanto", "condicao": { "tipo": "inimigo_vivo" }, "corpo": [
-          { "id": "r3", "tipo": "andar", "params": { "passos": 1 } },
-          { "id": "r4", "tipo": "atacar" }
-        ] }
-      ]] }
-    },
-    {
-      "fase_id": "F06",
-      "ordem": 6,
       "titulo": "Duelo longo",
       "conceito_id": "combinacao",
-      "blocos_disponiveis": ["ao_clicar_em_play", "andar", "atacar", "repetir", "se", "enquanto"],
+      "blocos_disponiveis": ["on-flag", "on-start", "advance", "attack", "defend", "repeat", "if-else"],
       "solucao_referencia": { "pilhas": [[
-        { "id": "r1", "tipo": "ao_clicar_em_play" },
-        { "id": "r2", "tipo": "enquanto", "condicao": { "tipo": "inimigo_vivo" }, "corpo": [
-          { "id": "r3", "tipo": "se", "condicao": { "tipo": "inimigo_a_frente" }, "corpo": [
-            { "id": "r4", "tipo": "atacar" }
+        { "id": "r1", "tipo": "on-flag" },
+        { "id": "r2", "tipo": "repeat", "corpo": [
+          { "id": "r3", "tipo": "if-else", "corpo": [
+            { "id": "r4", "tipo": "attack" }
           ] },
-          { "id": "r5", "tipo": "andar", "params": { "passos": 1 } }
+          { "id": "r5", "tipo": "advance" }
         ] }
       ]] }
     }
