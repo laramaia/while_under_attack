@@ -9,6 +9,7 @@ dependencies = [
     "uvicorn[standard]>=0.37",
     "python-dotenv>=1.0",
     "bcrypt>=4.0",
+    "PyJWT>=2.9",
 ]
 
 [build-system]

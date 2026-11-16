@@ -41,6 +41,11 @@ contas já existentes.
 
 ## Endpoints disponíveis
 
+- `POST http://localhost:8001/login` — recebe `{"usuario", "senha"}`, valida
+  contra o hash `bcrypt` em `app.jogador` (ADR-004) e devolve
+  `{"token", "jogador_id", "nome_exibicao", "perfil"}`.
+- `GET http://localhost:8001/eu` — lê `Authorization: Bearer <token>` (RN-006) e
+  devolve os dados do usuário autenticado.
 - `GET http://localhost:8001/saude` — devolve `{"status": "ok", "banco": "ok"}`
   quando a conexão com o Postgres responde.
 - `GET http://localhost:8001/docs` — documentação interativa gerada pelo FastAPI.

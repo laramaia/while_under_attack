@@ -11,9 +11,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, status
+from pydantic import BaseModel
 
-from . import db
+from . import auth, db
 
 app = FastAPI(
     title="while under_attack - Back-end",
@@ -24,9 +25,45 @@ app = FastAPI(
         "de dados Postgres."
     ),
     openapi_tags=[
+        {"name": "acesso", "description": "Autenticacao por usuario e senha e identidade via JWT (ADR-004, RN-002, RN-006)."},
         {"name": "operacao", "description": "Verificacao de disponibilidade e conexao com o banco."},
     ],
 )
+
+
+class PedidoLogin(BaseModel):
+    usuario: str
+    senha: str
+
+
+@app.post("/login", tags=["acesso"])
+def login(pedido: PedidoLogin) -> dict[str, Any]:
+    """Autentica o usuario contra o hash bcrypt e devolve o token JWT (ADR-004, RN-002)."""
+    usuario = auth.autenticar(pedido.usuario, pedido.senha)
+    if usuario is None:
+        # Mensagem unica: nao revela se o usuario existe no banco (ADR-004).
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="usuario ou senha invalidos",
+        )
+
+    return {
+        "token": auth.emitir_token(usuario),
+        "jogador_id": usuario.jogador_id,
+        "nome_exibicao": usuario.nome_exibicao,
+        "perfil": usuario.perfil,
+    }
+
+
+@app.get("/eu", tags=["acesso"])
+def eu(usuario: auth.Usuario = Depends(auth.usuario_atual)) -> dict[str, Any]:
+    """Devolve a identidade lida do cabecalho Authorization: Bearer <token> (RN-006)."""
+    return {
+        "jogador_id": usuario.jogador_id,
+        "usuario": usuario.usuario,
+        "nome_exibicao": usuario.nome_exibicao,
+        "perfil": usuario.perfil,
+    }
 
 
 @app.get("/saude", tags=["operacao"])
