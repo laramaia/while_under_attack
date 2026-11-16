@@ -14,7 +14,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException, status
 from pydantic import BaseModel
 
-from . import auth, db
+from . import auth, db, ingestao
 
 app = FastAPI(
     title="while under_attack - Back-end",
@@ -26,6 +26,7 @@ app = FastAPI(
     ),
     openapi_tags=[
         {"name": "acesso", "description": "Autenticacao por usuario e senha e identidade via JWT (ADR-004, RN-002, RN-006)."},
+        {"name": "ingestao", "description": "Recebimento de lotes de eventos do jogo na camada bronze (ADR-007, RN-006, RN-015, RN-016)."},
         {"name": "operacao", "description": "Verificacao de disponibilidade e conexao com o banco."},
     ],
 )
@@ -64,6 +65,23 @@ def eu(usuario: auth.Usuario = Depends(auth.usuario_atual)) -> dict[str, Any]:
         "nome_exibicao": usuario.nome_exibicao,
         "perfil": usuario.perfil,
     }
+
+
+@app.post(
+    "/api/eventos",
+    status_code=status.HTTP_207_MULTI_STATUS,
+    tags=["ingestao"],
+)
+def receber_eventos(
+    pedido: ingestao.PedidoLoteEventos,
+    usuario: auth.Usuario = Depends(auth.usuario_atual),
+) -> dict[str, Any]:
+    """Recebe um lote de eventos do jogo e grava na camada bronze (ADR-007, RN-006, RN-015).
+
+    Devolve HTTP 207 com as contagens de gravados, ignorados (duplicados) e a
+    lista de rejeitados, registrando as mesmas contagens em bronze.ingestao_lote.
+    """
+    return ingestao.ingerir_lote(pedido.eventos, usuario.jogador_id)
 
 
 @app.get("/saude", tags=["operacao"])

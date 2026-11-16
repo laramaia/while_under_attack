@@ -46,6 +46,10 @@ contas já existentes.
   `{"token", "jogador_id", "nome_exibicao", "perfil"}`.
 - `GET http://localhost:8001/eu` — lê `Authorization: Bearer <token>` (RN-006) e
   devolve os dados do usuário autenticado.
+- `POST http://localhost:8001/api/eventos` — recebe um lote `{"eventos": [...]}`
+  autenticado via `Bearer <token>` (ADR-007, RN-006, RN-015), grava em
+  `bronze.eventos` e `bronze.ingestao_lote`, e responde `207 Multi-Status` com
+  `{"gravados", "ignorados", "rejeitados"}`.
 - `GET http://localhost:8001/saude` — devolve `{"status": "ok", "banco": "ok"}`
   quando a conexão com o Postgres responde.
 - `GET http://localhost:8001/docs` — documentação interativa gerada pelo FastAPI.
