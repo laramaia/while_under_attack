@@ -22,12 +22,22 @@ porta 8000):
 
 ```bash
 cd backend
-cp .env.example .env          # ajuste a WUA_DB_URL se necessário
+cp .env.example .env                # ajuste a WUA_DB_URL se necessário
+cp contas.example.json contas.json  # ajuste usuários e senhas iniciais
 python -m venv .venv && .venv/Scripts/pip install -e .
+.venv/Scripts/python -m wua_backend.seed
 .venv/Scripts/python -m uvicorn wua_backend.main:app --reload --port 8001
 ```
 
 No Linux ou macOS, troque `.venv/Scripts/` por `.venv/bin/`.
+
+### Seed de contas (RN-001, RN-003, ADR-004)
+
+O comando `python -m wua_backend.seed` lê `backend/contas.json` (ou outro arquivo
+passado via `--arquivo`), valida que `nome_exibicao` é apenas primeiro nome ou
+apelido (RN-003), gera o hash da senha com `bcrypt` (ADR-004) e insere na tabela
+`app.jogador`. Pode ser executado várias vezes sem duplicar nem sobrescrever
+contas já existentes.
 
 ## Endpoints disponíveis
 

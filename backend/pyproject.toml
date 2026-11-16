@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.118",
     "uvicorn[standard]>=0.37",
     "python-dotenv>=1.0",
+    "bcrypt>=4.0",
 ]
 
 [build-system]
