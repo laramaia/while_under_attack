@@ -20,14 +20,44 @@ Tudo o que vem **depois** da tabela `bronze.eventos` já está pronto e rodando
 
 ## Antes do primeiro prompt
 
-No terminal, uma vez só:
+> **O Mateo ainda não é colaborador do repositório.** Isso **não** impede ele de
+> trabalhar. O git é local: dá para clonar, criar branch, editar e **commitar**
+> sem acesso nenhum ao GitHub. A única operação que precisa de permissão é o
+> `git push` — e ela fica para depois, na seção
+> [Quando o acesso sair](#quando-o-acesso-sair), no fim deste arquivo.
+
+### Passo 1 — pegar o repositório
+
+O repositório é **público**, então o clone funciona sem credencial nenhuma —
+ser colaborador só é necessário para escrever nele:
+
+```
+git clone https://github.com/laramaia/while_under_attack.git
+cd while_under_attack
+git checkout bi/inteligencia-de-negocios
+```
+
+A branch `bi/inteligencia-de-negocios` é onde está o trabalho atual, incluindo
+este arquivo. A `main` está atrasada em relação a ela.
+
+### Passo 2 — a branch dele e a identidade
+
+```
+git checkout -b mateo/backend-ingestao
+git config user.name "Mateo <sobrenome>"
+git config user.email "<email-do-github-dele>"
+```
+
+O `git config` sem `--global` vale só neste repositório. Vale usar **o mesmo
+e-mail da conta GitHub dele**: assim, quando os commits forem publicados, o
+GitHub reconhece a autoria e os commits aparecem no nome dele — que é o que
+prova a participação dele no trabalho.
+
+### Passo 3 — o Gemini
 
 ```
 node --version            # precisa ser 20 ou maior
 npm install -g @google/gemini-cli
-git clone <url-do-repositorio> integrador_while_under_attack
-cd integrador_while_under_attack
-git checkout -b mateo/backend-ingestao
 gemini
 ```
 
@@ -78,7 +108,12 @@ mais uma fatia de Inteligência de Negócios. Projeto de faculdade (PEI, Grupo 4
   inteiro de uma vez.
 - Ao terminar cada tarefa, me explique em português simples o que você fez e por
   quê — alguém da equipe precisa conseguir defender isso numa banca (RS-04).
-- Não faça commit nem git push sozinho. Eu faço.
+- Não faça commit sozinho: me mostre o diff e a mensagem proposta, e espere eu
+  aprovar. Depois de aprovada, pode rodar o commit.
+- NUNCA rode git push, git pull, git fetch nem git merge com o remoto. Eu ainda
+  não tenho acesso de escrita a este repositório, e o commit local basta.
+- Nunca rode git reset --hard, git checkout -- . nem git clean. Se precisar
+  desfazer algo, me diga o que fazer e eu decido.
 ```
 
 ---
@@ -411,15 +446,28 @@ divergência entre código e documentação é tratada como bug.
 ## Prompt 11 — fechar o trabalho
 
 ```
-Me ajude a fechar este trabalho no git.
+Me ajude a fechar este trabalho no git. Eu ainda não tenho acesso de escrita ao
+repositório, então vamos commitar LOCALMENTE e deixar o push para depois.
 
 1. Mostre o que mudou (git status e git diff --stat) e me explique cada arquivo
    da lista em uma linha.
-2. Proponha uma mensagem de commit no estilo das mensagens que já existem neste
+2. Confirme que eu estou na branch mateo/backend-ingestao e não em outra.
+3. Confirme que nenhum arquivo .env, nenhuma senha e nenhuma string de conexão
+   entrou no que vai ser commitado. Se entrou, pare e me avise.
+4. Proponha uma mensagem de commit no estilo das mensagens que já existem neste
    repositório — olhe o git log para pegar o padrão (português, imperativo,
    sem emoji, citando o identificador da regra ou pendência quando couber).
-3. NÃO faça o commit nem o push. Eu faço depois de revisar.
+5. Depois que eu aprovar a mensagem, faça o commit. Só o commit.
+6. NÃO rode git push. Não tenho permissão ainda e o comando vai falhar.
+
+Pode fazer vários commits assim, um por tarefa, ao longo dos dias. Eles ficam
+guardados na minha máquina até eu ganhar acesso.
 ```
+
+> **Importante:** commits locais existem só no computador do Mateo. Se a máquina
+> dele morrer, o trabalho morre junto. Enquanto o acesso não sai, vale ele rodar
+> `git bundle create ~/backup-wua.bundle --all` de vez em quando e guardar esse
+> arquivo em outro lugar — é o repositório inteiro, com histórico, num arquivo só.
 
 ---
 
@@ -451,3 +499,65 @@ pasta é de outra pessoa da equipe e está pronta.
 Resuma em 10 linhas o estado atual: o que já funciona, o que está pela metade e
 qual é o próximo passo. Vou fechar o terminal e preciso retomar depois.
 ```
+
+```
+Eu ainda não tenho acesso de escrita a este repositório. Confirme que você não
+rodou nenhum comando git que fale com o remoto, e que meus commits estão todos
+na branch mateo/backend-ingestao.
+```
+
+---
+
+## Quando o acesso sair
+
+A Heloisa ou a Lara adicionam o Mateo em **Settings → Collaborators**, no
+GitHub. Ele aceita o convite por e-mail. Só então os commits sobem — e sobem
+todos de uma vez, com data e autoria originais: o git guarda quando cada commit
+foi feito, não quando foi publicado.
+
+Como ele clonou do GitHub, o remoto já está configurado. Só falta:
+
+```
+git fetch origin
+```
+
+```
+git rebase origin/bi/inteligencia-de-negocios
+```
+
+```
+git push -u origin mateo/backend-ingestao
+```
+
+O `push` só vai funcionar depois que o convite de colaborador for aceito. Antes
+disso ele responde `403` — o que é esperado, não é erro de configuração.
+
+### Sobre o rebase
+
+A branch `bi/inteligencia-de-negocios` vai ter andado enquanto ele trabalhava
+offline. O `rebase` pega os commits dele e reaplica em cima do que mudou, para
+o histórico ficar numa linha só em vez de um emaranhado.
+
+Se der conflito, **não é para resolver no chute**. Prompt para colar:
+
+```
+O rebase deu conflito. Para cada arquivo em conflito, me mostre os dois lados e
+me explique o que cada um estava tentando fazer. Não resolva nada ainda: eu
+preciso entender antes, e talvez precise perguntar para quem escreveu o outro
+lado. Se o conflito for em arquivo dentro de bi/, pare imediatamente e me avise
+— essa pasta é de outra pessoa.
+```
+
+Se ele preferir não arriscar o rebase, `git push -u origin mateo/backend-ingestao`
+sem rebase nenhum também funciona. O histórico fica menos limpo, e os conflitos
+aparecem na hora de abrir o Pull Request — o que é até melhor, porque aí a
+equipe inteira vê.
+
+### Depois do push
+
+Abrir um **Pull Request** de `mateo/backend-ingestao` para
+`bi/inteligencia-de-negocios`, não para a `main`. A descrição pode ser o resumo
+de meia página que saiu do Prompt 10 — ele já foi escrito exatamente para isso.
+
+E o RS-04 vale aqui: alguém da equipe precisa conseguir **explicar cada parte
+na banca**. O Pull Request é onde essa revisão acontece.
