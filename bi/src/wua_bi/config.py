@@ -17,7 +17,10 @@ DB_URL = os.getenv("WUA_DB_URL", "postgresql://wua:wua_dev@localhost:55432/wua")
 # diretorio de onde o comando foi chamado.
 CAMINHO_CATALOGO = (RAIZ_BI / os.getenv("WUA_CATALOGO", "../catalogo-fases.json")).resolve()
 
-SEGREDO = os.getenv("WUA_SEGREDO", "segredo-de-desenvolvimento")
+SEGREDO = os.getenv("WUA_SEGREDO", "segredo-de-desenvolvimento-minimo-32-bytes")
+
+# URL do back-end que autentica os usuarios e emite o JWT (ADR-002, ADR-004).
+BACKEND_URL = os.getenv("WUA_BACKEND_URL", "http://localhost:8001").rstrip("/")
 
 DIR_DDL = RAIZ_BI / "db"
 DIR_DASHBOARD = RAIZ_BI / "dashboard"
