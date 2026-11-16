@@ -7,8 +7,8 @@ export class StartScene extends Phaser.Scene {
   private logo!: Phaser.GameObjects.Image;
   private playButton!: Phaser.GameObjects.Text;
 
-  constructor() { 
-    super('StartScene'); 
+  constructor() {
+    super('StartScene');
   }
 
   preload(): void {
@@ -19,16 +19,17 @@ export class StartScene extends Phaser.Scene {
     this.background = AddBackground(this);
     this.logo = this.add.image(0, 0, 'logo').setOrigin(0.5).setScale(0.30);
     this.playButton = this.add.text(0, 0, 'Jogar', {
-      fontFamily: 'Georgia, serif', 
-      fontSize: '28px', 
+      fontFamily: 'Georgia, serif',
+      fontSize: '28px',
       color: '#ffffff',
-      backgroundColor: '#8c3b3b', 
+      backgroundColor: '#8c3b3b',
       padding: { x: 40, y: 12 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     this.playButton.on('pointerdown', () => this.scene.start('BattleScene'));
     this.updateLayout();
-    this.scale.on('resize', () => {
-      this.updateLayout();
+    this.scale.on('resize', this.updateLayout, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off('resize', this.updateLayout, this);
     });
   }
 

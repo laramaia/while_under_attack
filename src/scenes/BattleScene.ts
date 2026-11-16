@@ -5,6 +5,8 @@ import { GameArea } from '../game/GameArea';
 import { createDefaultCatalog } from '../model/defaultCatalog';
 import { BlockTemplate } from '../model/BlockTemplate';
 import { AddBackground } from '../game/AddBackground';
+import { getVisibleArea } from '../utils/viewport';
+import { GAME_H, GAME_W } from '../config';
 
 interface DragState { inst: BlockInstance; ox: number; oy: number }
 
@@ -15,6 +17,23 @@ export class BattleScene extends Phaser.Scene {
 
   constructor() {
     super('BattleScene');
+  }
+
+  preload(): void {
+    this.load.on('loaderror', (file: Phaser.Loader.File) => {
+      console.error(
+        `Falha ao carregar o recurso: ${file.key}`,
+        file.src,
+      );
+    });
+    this.load.image('button_play', 'assets/ui/button_play.png');
+    this.load.image('button_pause', 'assets/ui/button_pause.png');
+    this.load.image('button_restart', 'assets/ui/button_restart.png');
+    this.load.image('palette_tab_background', 'assets/ui/panel/palette_tab_background.png');
+    this.load.image('tab_event', 'assets/ui/panel/tab_event.png');
+    this.load.image('tab_action', 'assets/ui/panel/tab_action.png');
+    this.load.image('tab_repeat', 'assets/ui/panel/tab_repeat.png');
+    this.load.image('tab_condition', 'assets/ui/panel/tab_condition.png');
   }
 
   create(): void {
@@ -33,50 +52,43 @@ export class BattleScene extends Phaser.Scene {
 
     this.scale.on('resize', () => {
       this.adjustCameraToScreen();
+      this.editor.onResize();
     });
 
     this.adjustCameraToScreen();
 
     this.editor.palette.on('template-pressed',
       (template: BlockTemplate, wx: number, wy: number, p: Phaser.Input.Pointer) => {
-        this.startDrag(new BlockInstance(this, template, wx, wy), p.x - wx, p.y - wy);
+        console.log('[2] template-pressed:', template.id, { wx, wy });
+        this.startDrag(new BlockInstance(this, template, wx, wy), p.worldX - wx, p.worldY - wy);
       });
 
     this.editor.workspace.on('block-pressed', (inst: BlockInstance, p: Phaser.Input.Pointer) => {
       const m = inst.getWorldTransformMatrix();
       const wx = m.tx, wy = m.ty;
       this.editor.workspace.removeBlockInstance(inst);
-      this.startDrag(inst, p.x - wx, p.y - wy, wx, wy);
+      this.startDrag(inst, p.worldX - wx, p.worldY - wy, wx, wy);
     });
 
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
-      if (this.drag) this.drag.inst.setPosition(p.x - this.drag.ox, p.y - this.drag.oy);
+      if (this.drag) this.drag.inst.setPosition(p.worldX - this.drag.ox, p.worldY - this.drag.oy);
     });
 
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.endDrag(p));
+    this.input.on('pointerupoutside', (p: Phaser.Input.Pointer) => this.endDrag(p));
   }
 
   private adjustCameraToScreen(): void {
-    const screenWidth = this.scale.width;
-    const screenHeight = this.scale.height;
-    const baseWidth = 1280;
-    const baseHeight = 720;
-    const scaleX = screenWidth / baseWidth;
-    const scaleY = screenHeight / baseHeight;
-    const zoom = Math.min(scaleX, scaleY);
+    const { zoom, width, height } = getVisibleArea(this);
 
     this.cameras.main.setZoom(zoom);
-    this.cameras.main.centerOn(baseWidth / 2, baseHeight / 2);
+    this.cameras.main.centerOn(GAME_W / 2, GAME_H / 2);
 
     if (this.background) {
-      this.background.setPosition(baseWidth / 2, baseHeight / 2);
-      
-      const effectiveWidth = screenWidth / zoom;
-      const effectiveHeight = screenHeight / zoom;
-      const bgScaleX = effectiveWidth / this.background.width;
-      const bgScaleY = effectiveHeight / this.background.height;
-      
-      this.background.setScale(Math.max(bgScaleX, bgScaleY));
+      this.background.setPosition(GAME_W / 2, GAME_H / 2);
+      this.background.setScale(
+        Math.max(width / this.background.width, height / this.background.height),
+      );
     }
   }
 
@@ -85,6 +97,7 @@ export class BattleScene extends Phaser.Scene {
     inst.setDepth(1000).setAlpha(0.9);
     if (wx !== undefined && wy !== undefined) inst.setPosition(wx, wy);
     this.drag = { inst, ox, oy };
+    console.log('[3] startDrag:', { x: inst.x, y: inst.y, visible: inst.visible, w: inst.width, h: inst.height });
   }
 
   private endDrag(p: Phaser.Input.Pointer): void {
@@ -92,8 +105,16 @@ export class BattleScene extends Phaser.Scene {
     const { inst, ox, oy } = this.drag;
     this.drag = null;
 
-    if (this.editor.workspace.containsWorldPoint(p.x, p.y)) {
-      this.editor.workspace.addBlockInstance(inst, p.x - ox, p.y - oy);
+    const inside = this.editor.workspace.containsWorldPoint(p.worldX, p.worldY);
+    console.log('[drop]', {
+      mouse: { x: p.worldX, y: p.worldY },
+      area: this.editor.workspace,
+      inside,
+      blockSize: { w: inst.width, h: inst.height },
+    });
+
+    if (inside) {
+      this.editor.workspace.addBlockInstance(inst, p.worldX - ox, p.worldY - oy);
     } else {
       inst.destroy();
     }

@@ -3,63 +3,112 @@ import { BlockCatalog } from '../model/BlockCatalog';
 import { BlockGroup } from '../model/BlockGroup';
 import { BlockTemplate } from '../model/BlockTemplate';
 import { BlockView } from './BlockView';
-import { BLOCK_W, GAME_H, PALETTE_CONTENT_W, PALETTE_CONTENT_X } from '../config';
+import {
+  BLOCK_GAP,
+  BLOCK_LIST_Y,
+  BLOCK_W,
+  GAME_H,
+  PALETTE_CONTENT_W,
+  PALETTE_CONTENT_X,
+  PLATE_H,
+  PLATE_W,
+  PLATE_X,
+  PLATE_Y,
+  TAB_GAP,
+  TAB_ICON_SIZE,
+  TAB_IDLE_ALPHA,
+  TAB_ITEM_H,
+  TAB_LABEL_COLOR,
+  TAB_LABEL_FONT,
+  TAB_LABEL_GAP,
+  TAB_LABEL_IDLE_ALPHA,
+  TAB_LABEL_SIZE,
+  TAB_PAD_Y,
+  TAB_SELECTED_SCALE,
+} from '../config';
+
+interface TabButton {
+  icon: Phaser.GameObjects.Image;
+  label: Phaser.GameObjects.Text;
+  baseScale: number;
+  group: BlockGroup;
+}
 
 export class Palette extends Phaser.GameObjects.Container {
-  private readonly catalog: BlockCatalog;
   private currentGroup: BlockGroup;
   private contentContainer: Phaser.GameObjects.Container;
-  private tabButtons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; group: BlockGroup }[] = [];
+  private plate!: Phaser.GameObjects.Image;
+  private tabButtons: TabButton[] = [];
 
   constructor(scene: Phaser.Scene, x: number, y: number, catalog: BlockCatalog) {
     super(scene, x, y);
-    this.catalog = catalog;
     this.setSize(PALETTE_CONTENT_W, GAME_H);
-
-    const groups = this.catalog.groups;
-    this.currentGroup = groups.length > 0 ? groups[0] : new BlockGroup('default', 'Padrão', 0xffffff);
-
+    const groups = catalog.groups;
+    this.currentGroup = groups[0] ?? new BlockGroup('default', 'Padrão', 0xffffff);
+    this.buildPlate();
     this.contentContainer = scene.add.container(0, 0);
     this.add(this.contentContainer);
-
     this.buildTabs(groups);
     this.refreshContent();
   }
 
+  private buildPlate(): void {
+    this.plate = this.scene.add
+      .image(PLATE_X, PLATE_Y, 'palette_tab_background')
+      .setOrigin(0, 0)
+      .setDisplaySize(PLATE_W, PLATE_H);
+    this.add(this.plate);
+  }
+
   private buildTabs(groups: BlockGroup[]): void {
-    const totalWidth = PALETTE_CONTENT_W - 16;
-    const tabWidth = totalWidth / groups.length;
-    let cursorX = PALETTE_CONTENT_X + 8;
+    const cx = this.plate.x + this.plate.displayWidth / 2;
+    const startY = this.plate.y + TAB_PAD_Y;
 
-    groups.forEach((group) => {
-      const tabBg = this.scene.add.rectangle(cursorX, 60, tabWidth - 4, 32, group.color)
-        .setOrigin(0, 0)
-        .setInteractive()
-        .setAlpha(group === this.currentGroup ? 1 : 0.6);
-
-      const tabText = this.scene.add.text(cursorX + (tabWidth - 4) / 2, 76, group.label, {
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '13px',
-        color: '#2b2118',
-        fontStyle: 'bold',
-      }).setOrigin(0.5);
-
-      tabBg.on('pointerdown', () => {
-        this.currentGroup = group;
-        this.updateTabStyles();
-        this.refreshContent();
-      });
-
-      this.add([tabBg, tabText]);
-      this.tabButtons.push({ bg: tabBg, text: tabText, group });
-
-      cursorX += tabWidth;
+    groups.forEach((group, i) => {
+      const top = startY + i * (TAB_ITEM_H + TAB_GAP);
+      this.tabButtons.push(this.createTab(group, cx, top));
     });
+
+    this.updateTabStyles();
+  }
+
+  private createTab(group: BlockGroup, cx: number, top: number): TabButton {
+    const icon = this.scene.add
+      .image(cx, top + TAB_ICON_SIZE / 2, `tab_${group.id}`)
+      .setInteractive({ useHandCursor: true });
+    const baseScale = TAB_ICON_SIZE / icon.height;
+    icon.setScale(baseScale);
+
+    const label = this.scene.add
+      .text(cx, top + TAB_ICON_SIZE + TAB_LABEL_GAP, group.label, {
+        fontFamily: TAB_LABEL_FONT,
+        fontSize: TAB_LABEL_SIZE,
+        color: TAB_LABEL_COLOR,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5, 0)
+      .setResolution(2)
+      .setInteractive({ useHandCursor: true });
+
+    icon.on('pointerdown', () => this.selectGroup(group));
+    label.on('pointerdown', () => this.selectGroup(group));
+
+    this.add([icon, label]);
+    return { icon, label, baseScale, group };
+  }
+
+  private selectGroup(group: BlockGroup): void {
+    this.currentGroup = group;
+    this.updateTabStyles();
+    this.refreshContent();
   }
 
   private updateTabStyles(): void {
     this.tabButtons.forEach((tab) => {
-      tab.bg.setAlpha(tab.group === this.currentGroup ? 1 : 0.6);
+      const selected = tab.group === this.currentGroup;
+      tab.icon.setAlpha(selected ? 1 : TAB_IDLE_ALPHA);
+      tab.icon.setScale(tab.baseScale * (selected ? TAB_SELECTED_SCALE : 1));
+      tab.label.setAlpha(selected ? 1 : TAB_LABEL_IDLE_ALPHA);
     });
   }
 
@@ -67,15 +116,13 @@ export class Palette extends Phaser.GameObjects.Container {
     this.contentContainer.removeAll(true);
 
     const left = PALETTE_CONTENT_X + (PALETTE_CONTENT_W - BLOCK_W) / 2;
-    let cursorY = 114;
+    let cursorY = BLOCK_LIST_Y;
 
-    const blocks = this.currentGroup.blocks;
-
-    blocks.forEach((template: BlockTemplate) => {
+    this.currentGroup.blocks.forEach((template: BlockTemplate) => {
       const view = new BlockView(this.scene, template, left, cursorY).enableHit();
       view.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.onPressed(view, template, pointer));
       this.contentContainer.add(view);
-      cursorY += view.height + 10;
+      cursorY += view.height + BLOCK_GAP;
     });
   }
 
