@@ -17,7 +17,7 @@ status Resolvida, com o link.
 | PD-002 | Composição atual da equipe e responsáveis (ETL, hospedagem, testes, documentação) | Plano | **Alto** |
 | PD-003 | Prazo final e marcos (banca, Feira dos PEIs) | Plano | **Alto** |
 | PD-004 | Forma de distribuição do jogo: navegador, PWA ou APK | ADR-007, login | Médio |
-| PD-005 | Onde hospedar a API e o banco com acesso pelo celular; existe orçamento? | Implantação | **Alto** |
+| PD-005 | Onde hospedar **a API**; existe orçamento? *(o banco já foi resolvido — ver abaixo)* | Implantação | **Alto** |
 | PD-006 | Lista oficial de conceitos, fases e soluções de referência | Catálogo, RN-014 | **Alto** |
 | PD-008 | Editar o programa durante a pausa encerra a tentativa? | RN-009, EV-05 | Médio |
 | PD-009 | Com várias pilhas executáveis, todas executam? Em paralelo ou em sequência? Pilhas sem bloco de evento são ignoradas, como propõe a RN-018? | Contrato de eventos, RN-018 | Médio |
@@ -58,6 +58,32 @@ nomes propostos (`ao_clicar_em_play`, `andar`, `atacar`, `se`, `repetir`,
   editável?
 - **As duas listas continuam separadas.** Ver Catálogo de Fases, seção 5: ou o
   jogo passa a ler o JSON, ou o JSON passa a ser gerado do código.
+
+### PD-005 — o banco já está resolvido; falta a API
+
+**Resolvido em 16/11/2026:** a Lara criou o banco do projeto no
+[Neon](https://neon.com), plano gratuito, e o BI está conectado nele. As três
+camadas da Medallion (`bronze`, `silver`, `gold`) e o schema operacional `app`
+foram aplicados lá, com as garantias conferidas no próprio banco: gatilho de
+imutabilidade da bronze (RN-016), `unique (event_id)` (RN-015), o `check` dos
+cinco tipos de evento e as chaves estrangeiras.
+
+**Continua aberto:** onde a API vai rodar. A recomendação registrada é o
+[Render](https://render.com), Web Service gratuito, com duas ressalvas já
+conhecidas: ele hiberna após 15 minutos sem acesso (abrir o link alguns minutos
+antes da apresentação) e, hibernando, **não serve para hospedar o agendador do
+ETL** — nesse cenário o gatilho da ADR-009 precisa ser um Scheduled Job ou um
+cron externo.
+
+**Duas coisas de segurança que vieram junto:**
+
+1. A string de conexão é um **segredo** e não entra no repositório. Ela fica no
+   `bi/.env`, que o `.gitignore` cobre. Quem for rodar o projeto pede a
+   conexão à equipe.
+2. O usuário em uso é o `neondb_owner`, que é o **dono** do banco. Para o MVP
+   serve, mas o ideal é o BI ter um usuário só de leitura nas camadas que ele
+   lê e escrita só em `silver` e `gold` — a bronze ele nunca precisa alterar
+   (RN-016).
 
 ### PD-014 — `corpo` × `inner`
 

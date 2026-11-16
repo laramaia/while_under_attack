@@ -40,6 +40,13 @@ O código só precisa de uma coisa: uma string de conexão Postgres em
 `WUA_DB_URL`. Onde esse Postgres mora é escolha de quem está rodando, e **nada
 no projeto obriga a instalar Docker**.
 
+> **O banco do projeto já existe.** A Lara criou um no [Neon](https://neon.com)
+> e as três camadas estão aplicadas lá. **Peça a string de conexão à equipe** e
+> cole no seu `bi/.env` — ela é um segredo e não está no repositório.
+>
+> As opções abaixo continuam valendo para quem quiser um banco só seu, para
+> mexer sem afetar os outros.
+
 ### Opção A — Postgres gratuito na nuvem (recomendada)
 
 Não instala nada na máquina, funciona em qualquer computador e já resolve
