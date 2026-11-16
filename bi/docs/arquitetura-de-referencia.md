@@ -19,7 +19,9 @@ coisa, e tratá-los como se fossem levaria este projeto a um lugar ruim.
 
 > **A decisão deste documento: o projeto adota a arquitetura por capacidade, e
 > justifica produto a produto onde escolheu outro caminho.** Está registrada na
-> ADR-008.
+> [ADR-008](../../docs/04-Registro-de-Decisoes-ADR.md#adr-008--conformidade-com-a-arquitetura-corporativa-por-capacidade-não-por-produto).
+> As ADRs 008, 009 e 010 estão no documento oficial da equipe,
+> [`docs/04-Registro-de-Decisoes-ADR.md`](../../docs/04-Registro-de-Decisoes-ADR.md).
 
 Três fatos sustentam essa escolha, e os três são verificáveis:
 

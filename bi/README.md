@@ -196,7 +196,7 @@ diferente está justificada com alternativa, decisão e custo aceito.
 | Documento | O que tem |
 |---|---|
 | [`docs/arquitetura-de-referencia.md`](docs/arquitetura-de-referencia.md) | o mapa caixa por caixa, a governança (LGPD, linhagem, continuidade), o que mudou na API e o roteiro de demonstração na banca |
-| [`docs/adr-complemento.md`](docs/adr-complemento.md) | ADR-008, ADR-009 e ADR-010, no formato do documento oficial da equipe |
+| [`../docs/04-Registro-de-Decisoes-ADR.md`](../docs/04-Registro-de-Decisoes-ADR.md) | as ADR-008, ADR-009 e ADR-010 que saíram desta frente, junto das sete anteriores |
 
 Resumo do que **mudou no projeto** por causa dessa exigência: gate de qualidade
 entre as camadas (ADR-010), orquestração agendada (ADR-009), alerta de falha,
