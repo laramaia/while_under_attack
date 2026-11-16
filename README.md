@@ -140,6 +140,7 @@ acima — é o que torna as decisões defensáveis na banca.
 | Parte | Situação |
 |---|---|
 | Jogo: Palette, Workspace, arrastar e soltar | em andamento |
+| Jogo: fases | **não existe o conceito** — há uma `BattleScene`, não uma progressão (PD-018) |
 | Jogo: envio de eventos | **não começou** |
 | Back-end: autenticação e ingestão | **não existe** |
 | BI: ETL, modelo dimensional, API, dashboards | pronto e rodando |
@@ -150,9 +151,9 @@ A tela mostra uma faixa amarela avisando disso.
 
 As pendências que mais seguram o projeto estão em
 [Pendências e Riscos](docs/07-Pendencias-e-Riscos.md); as de impacto alto hoje
-são a **PD-003** (prazo e marcos), a **PD-005** (onde hospedar), a **PD-006**
-(as fases oficiais) e a **PD-017** (se vai existir o bloco de repetição com
-condição).
+são a **PD-018** (o jogo não tem fases, e `fase_id` está em quase todo
+indicador), a **PD-006** (as fases oficiais), a **PD-003** (prazo e marcos) e
+a **PD-017** (se vai existir o bloco de repetição com condição).
 
 ---
 

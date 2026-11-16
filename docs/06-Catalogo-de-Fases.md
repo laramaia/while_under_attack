@@ -167,7 +167,22 @@ que a Palette ainda não tem.
 
 ---
 
-## 5. O catálogo e o jogo continuam sendo duas listas
+## 5. O jogo ainda não tem fases
+
+Este documento descreve fases, e o `catalogo-fases.json` as define — mas **o
+jogo não tem o conceito**. Em `src/` não existe `fase`, `level` nem `stage`:
+existe uma `BattleScene`, que monta o catálogo de blocos direto e não lê o
+`catalogo-fases.json`.
+
+Enquanto for assim, as fases existem só do lado do BI: o gerador sintético
+produz eventos com `fase_id`, mas um jogador real não geraria nenhum.
+
+Está registrado como **PD-018**, e é hoje o que mais segura a coleta de dado
+real — mais do que a PD-013. Ver Pendências e Riscos.
+
+---
+
+## 6. O catálogo e o jogo continuam sendo duas listas
 
 A ADR-006 diz que o `catalogo-fases.json` é a **fonte única**, lida pelo jogo e
 pelo ETL. Hoje isso **não é verdade**: o jogo tem o seu próprio
@@ -193,4 +208,4 @@ hora, em vez de virar número errado no dashboard.
 | Data | Mudança |
 |---|---|
 | 13/10/2026 | Versão inicial. Categorias de bloco confirmadas (PD-007) |
-| 16/11/2026 | Seção 1 reescrita com os blocos e identificadores reais do jogo. Formato do arquivo atualizado com `rotulo`, `inicia_pilha`, `tem_corpo` e `vezes_fixas`. Nova seção 3 documentando fases de introdução e reforço (RN-020), que antes só existiam no ETL. Progressão reduzida a quatro conceitos: **repetição com condição saiu por não haver bloco** (PD-017). Nova seção 5 sobre o catálogo e o jogo ainda serem duas listas |
+| 16/11/2026 | Seção 1 reescrita com os blocos e identificadores reais do jogo. Formato do arquivo atualizado com `rotulo`, `inicia_pilha`, `tem_corpo` e `vezes_fixas`. Nova seção 3 documentando fases de introdução e reforço (RN-020), que antes só existiam no ETL. Progressão reduzida a quatro conceitos: **repetição com condição saiu por não haver bloco** (PD-017). Novas seções 5 e 6: o jogo ainda não tem fases (**PD-018**) e o catálogo e o jogo ainda serem duas listas |

@@ -196,6 +196,7 @@ revisões que faltam. Todas dependem do jogo.
 
 | | Situação | Pendência |
 |---|---|---|
+| **O jogo não tem fases** | `fase`, `level` e `stage` não aparecem em lugar nenhum do `src/` do jogo: existe uma `BattleScene`, não uma progressão. Sem isso **o EV-03 não existe e o EV-04 chega sem `fase_id`**, e a silver manda a tentativa para a quarentena. É o que mais segura a coleta hoje — ver a pendência antes de escrever o envio | **PD-018** |
 | **`corpo` × `inner`** | Este contrato usa `corpo` para o conteúdo dos blocos em C. O `BlockInstance` do jogo guarda em `inner`. Como o jogo ainda não serializa nada, dá para resolver dos dois lados: o jogo traduz na hora de enviar, ou mudamos o contrato. **Precisa ser decidido antes de o jogo começar a enviar** | **PD-014** |
 | **`condicao`** | O `BlockTemplate` do jogo tem só `id`, `label`, `color` e `shape`: não há condição para escolher, nem no `if-else`. O campo fica fora do contrato até existirem condições | PD-013 |
 | **`senao`** | O rótulo do bloco diz "Se / Senão", mas o `BlockInstance` tem um único `inner` — não há ramo senão no modelo de dados. O campo continua reservado | PD-013 |
@@ -236,4 +237,4 @@ As três contagens são as mesmas colunas de `bronze.ingestao_lote`.
 |---|---|---|
 | 1 | 13/10/2026 | Versão inicial (rascunho) |
 | 1 | 13/10/2026 | Categorias de bloco confirmadas; campo `condicao` adicionado ao formato do programa |
-| 1 | 16/11/2026 | Identificadores de bloco do exemplo trocados pelos reais do jogo. Nova seção 6 com o que está em aberto. `condicao` e `params` marcados como não usados; `corpo` × `inner` registrado como **PD-014**. Acrescentados `origem` e `lote_id` aos campos que o jogo não envia, e o formato `207` à validação. **Sem mudança incompatível: `schema_version` continua 1** |
+| 1 | 16/11/2026 | Identificadores de bloco do exemplo trocados pelos reais do jogo. Nova seção 6 com o que está em aberto. `condicao` e `params` marcados como não usados; `corpo` × `inner` registrado como **PD-014** e a falta de fases no jogo como **PD-018**. Acrescentados `origem` e `lote_id` aos campos que o jogo não envia, e o formato `207` à validação. **Sem mudança incompatível: `schema_version` continua 1** |

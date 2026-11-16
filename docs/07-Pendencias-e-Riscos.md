@@ -28,6 +28,7 @@ status Resolvida, com o link.
 | **PD-015** | **Base legal e tempo de retenção dos eventos.** Por quanto tempo os dados ficam guardados e com que fundamento são coletados | LGPD | **Alto** |
 | **PD-016** | **A exigência da arquitetura corporativa é dos produtos (Airflow, Spark, Delta Lake) ou das capacidades?** | ADR-008 | **Alto** |
 | **PD-017** | **Existirá bloco de repetição com condição (o "enquanto")?** | Catálogo, PD-006 | **Alto** |
+| **PD-018** | **O jogo não tem conceito de fase.** Como ele vai saber em que fase está, para mandar `fase_id`? | Contrato de eventos, **todos os indicadores** | **Alto — bloqueia a coleta** |
 
 ### Resolvidas
 
@@ -119,6 +120,64 @@ Se o bloco entrar, o conceito e as fases voltam.
 
 ---
 
+### PD-018 — o jogo não tem conceito de fase
+
+**Levantada em 16/11/2026**, ao preparar o Contrato de Eventos para quem vai
+escrever o envio. Apareceu nas duas pontas ao mesmo tempo: na análise do
+back-end e na conferência do lado do BI.
+
+**O que foi verificado no código do jogo** (`origin/main`, commit `0127da5`):
+
+- As palavras `fase`, `level`, `stage` e `fase_id` **não aparecem em lugar
+  nenhum** de `src/`.
+- Existem quatro cenas: `BootScene`, `StartScene`, `MenuScene` e `BattleScene`.
+  A `BattleScene` monta o catálogo de blocos direto, sem saber qual fase está
+  rodando.
+- O jogo **não lê** o `catalogo-fases.json`.
+
+Ou seja: hoje existe **um combate**, não uma progressão de fases.
+
+#### Por que isto é mais grave que a PD-013
+
+A `fase_id` está em quase tudo que o BI calcula:
+
+| Indicador | Depende da fase porque |
+|---|---|
+| Tentativas até vencer (RN-012) | é contado por jogador **× fase** |
+| Eficiência do código (RN-014) | compara com a solução de referência **da fase** |
+| Conceito aplicado (RN-019) | olha o bloco que **a fase** ensina |
+| Funil do professor (O4) | é literalmente "em que fases eles param" |
+| Introdução × reforço (RN-020) | compara duas fases do mesmo conceito |
+
+Sem fase, o **EV-03 (`fase_iniciada`) não existe** e o **EV-04 chega sem
+`fase_id`**. A silver manda a tentativa para a quarentena com o motivo "fase
+fora do catálogo" — um caminho que o ETL já implementa, mas como exceção, não
+como caso normal.
+
+**A consequência prática para o cronograma:** o jogo precisa de fases **antes**
+de precisar de telemetria. Escrever o envio de eventos antes disso produz
+eventos que o ETL recusa.
+
+#### O que precisa ser decidido
+
+1. **Quem define as fases?** A PD-006 (lista oficial de conceitos, fases e
+   soluções de referência) continua aberta, e agora ela bloqueia o jogo também,
+   não só o BI.
+2. **Como o jogo sabe em que fase está?** O caminho que a ADR-006 previa é o
+   jogo ler o `catalogo-fases.json` — que também fecharia a divergência da
+   PD-013 de vez (ver Catálogo de Fases, seção 5).
+3. **O que a `BattleScene` recebe?** Hoje ela monta tudo sozinha. Precisaria
+   receber ao menos o `fase_id`, os `blocos_disponiveis` e o inimigo daquela
+   fase.
+
+#### Enquanto não é resolvido
+
+O gerador sintético continua produzindo eventos com `fase_id` conforme o
+catálogo, então o ETL, a gold e o dashboard seguem sendo desenvolvidos e
+demonstrados. O que **não** é possível é coletar dado real de jogador.
+
+---
+
 ## Riscos
 
 | ID | Risco | Mitigação | Situação |
@@ -148,3 +207,4 @@ melhor decidir isso antes da banca do que durante.
 |---|---|
 | 13/10/2026 | Versão inicial, PD-001 a PD-013 e RS-01 a RS-05 |
 | 16/11/2026 | PD-013 passa a **parcialmente resolvida**. Acrescentadas **PD-014** (`corpo` × `inner`), **PD-015** (base legal e retenção), **PD-016** (produtos ou capacidades) e **PD-017** (bloco de repetição com condição). Acrescentado o risco **RS-06** (backup nunca testado, ambiente único). Coluna *Situação* nos riscos, com o estado real de cada mitigação |
+| 16/11/2026 | **PD-005** passa a parcialmente resolvida: o banco do projeto está no Neon e o BI está conectado nele. Acrescentada a **PD-018** (o jogo não tem conceito de fase), levantada ao preparar o Contrato de Eventos para quem vai escrever o envio |
