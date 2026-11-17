@@ -28,7 +28,7 @@ status Resolvida, com o link.
 | **PD-018** | **De onde o jogo vai tirar o `fase_id`?** As fases estão sendo criadas no jogo; falta combinar se os identificadores saem do `catalogo-fases.json` ou são definidos no código | Contrato de eventos, ADR-006 | Médio |
 | **PD-019** | **Qual o teto de eventos por lote?** Hoje não há limite: um lote de qualquer tamanho é aceito inteiro | ADR-007, ingestão | Médio |
 | **PD-020** | **Quem renomeia o `auth_provisoria.py`?** O conteúdo já não é provisório — valida o JWT e aplica RN-004 e RN-005 — mas o nome diz o contrário | ADR-004, legibilidade | Baixo |
-| **PD-021** | **O bloco `on-start` está na Palette e nunca executa.** O motor do jogo só dispara pilhas que começam com `on-flag`. Ou o jogo passa a executá-lo, ou ele sai da Palette, ou perde o `inicia_pilha` no catálogo | RN-018, RN-014, RN-019 | **Alto** |
+| **PD-021** | **O bloco `on-start` está na Palette e nunca executa.** O motor do jogo só dispara pilhas que começam com `on-flag`. Ou o jogo passa a executá-lo, ou ele sai da Palette, ou perde o `inicia_pilha` no catálogo. Aberta como [issue #4](https://github.com/laramaia/while_under_attack/issues/4) | RN-018, RN-014, RN-019 | **Alto** |
 
 ### Resolvidas
 
@@ -209,6 +209,7 @@ provisórios.
 ### PD-021 — o `on-start` está na Palette e nunca executa
 
 Levantada em 16/11/2026, ao rodar o `ProgramRunner` que entrou na `main`.
+Aberta como [issue #4](https://github.com/laramaia/while_under_attack/issues/4).
 
 O motor de execução do jogo faz:
 
@@ -249,7 +250,8 @@ pergunta em vez de respondê-la: o bloco continuaria na Palette sem fazer nada.
 ### Um defeito no Workspace, que não é pendência de decisão
 
 Não é decisão de ninguém, é bug, mas afeta os dados e por isso fica
-registrado aqui. Em `Workspace.removeBlockInstance`, apagar o **primeiro**
+registrado aqui, e aberto como [issue #5](https://github.com/laramaia/while_under_attack/issues/5).
+Em `Workspace.removeBlockInstance`, apagar o **primeiro**
 bloco de uma pilha some com o resto dela:
 
 | O que se apaga | O que acontece |

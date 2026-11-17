@@ -35,7 +35,8 @@ Fonte: `src/model/defaultCatalog.ts`, commit `0127da5`.
 > `template.id === 'on-flag'`; uma pilha encabeçada por `on-start` nunca roda.
 > O bloco continua na Palette desde a primeira fase. Como este catálogo marca
 > os dois com `inicia_pilha: true`, o ETL conta como executável uma pilha que o
-> jogo ignora — é a **PD-021**, e ela mexe na RN-014 e na RN-019.
+> jogo ignora — é a **PD-021**, aberta como [issue #4](https://github.com/laramaia/while_under_attack/issues/4), e ela mexe
+> na RN-014 e na RN-019.
 >
 > A outra metade da PD-009 ficou respondida: havendo várias pilhas com
 > `on-flag`, **todas executam, em sequência**, na ordem em que foram soltas no

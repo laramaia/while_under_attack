@@ -76,7 +76,7 @@
 > blocos que nunca rodaram. Pior, a RN-019 poderia dar ao jogador o crédito de
 > ter aplicado o conceito usando um `repeat` que o jogo nunca executou.
 >
-> Três saídas, e é decisão da equipe (**PD-021**): o jogo passa a executar
+> Três saídas, e é decisão da equipe (**PD-021**, [issue #4](https://github.com/laramaia/while_under_attack/issues/4)): o jogo passa a executar
 > `on-start` também; ou `on-start` sai da Palette; ou ele perde o
 > `inicia_pilha` no `catalogo-fases.json` e a RN-018 passa a falar de um bloco
 > só. **Enquanto não se decidir, o indicador mente para qualquer jogador que
