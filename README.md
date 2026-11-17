@@ -29,22 +29,26 @@ A fatia de BI existe para **distinguir esses dois casos**.
 
 ## As duas metades
 
-| | O que é | Onde |
-|---|---|---|
-| **Jogo** | Phaser 4 + TypeScript, para celular. Palette, Workspace, arrastar e soltar, execução | [`src/`](src/), [`public/`](public/) |
-| **Inteligência de Negócios** | Arquitetura Medallion, ETL, modelo dimensional, API de leitura e dois dashboards | [`bi/`](bi/) |
+| | O que é | Onde | Porta |
+|---|---|---|---|
+| **Jogo** | Phaser 4 + TypeScript, para celular. Palette, Workspace, arrastar e soltar, execução | [`src/`](src/), [`public/`](public/) | 5173 |
+| **Back-end** | FastAPI. Autentica com bcrypt e JWT, e recebe os eventos do jogo na camada bronze | [`backend/`](backend/) | 8001 |
+| **Inteligência de Negócios** | Arquitetura Medallion, ETL, modelo dimensional, API de leitura e dois dashboards | [`bi/`](bi/) | 8000 |
 
-O **back-end** (autenticação e ingestão dos eventos) ainda não existe. A
-fronteira entre ele e o BI é **o banco, não uma biblioteca**: o back-end
-escreve em `bronze.eventos`, o BI só lê. Foi assim que o BI pôde ficar pronto
-antes.
+A fronteira entre o back-end e o BI é **o banco, não uma biblioteca**: não há
+nenhum import de um no outro. O back-end escreve em `bronze.eventos`, o BI só
+lê. Foi assim que o BI pôde ficar pronto antes de o back-end existir.
+
+A única conversa direta entre os dois é o login: o BI **delega** ao back-end em
+vez de duplicar a conferência de senha. Para onde vai cada chamada está em
+[API e Integração](docs/08-API-e-Integracao.md).
 
 ---
 
 ## Estrutura
 
 ```
-docs/                  os oito documentos oficiais do projeto
+docs/                  os nove documentos oficiais do projeto
 catalogo-fases.json    fases, conceitos e blocos — fonte única (ADR-006)
 
 src/                   o jogo (Phaser + TypeScript)
@@ -52,6 +56,12 @@ src/                   o jogo (Phaser + TypeScript)
   editor/              Palette, Workspace, instâncias de bloco
   scenes/              Boot, Start, Menu, Battle
 public/                imagens e assets
+
+backend/               autenticação e ingestão de eventos
+  src/wua_backend/
+    auth.py            bcrypt + JWT, dependência Bearer
+    seed.py            criação das contas, sem autocadastro
+    ingestao.py        POST /api/eventos → bronze, com controle de lote
 
 bi/                    a fatia de Inteligência de Negócios
   db/                  DDL das três camadas: bronze, silver, gold
@@ -90,20 +100,48 @@ python -m venv .venv && .venv/bin/pip install -e .
 ```
 
 ```bash
-.venv/bin/python -m wua_bi.etl tudo
+.venv/bin/python -m wua_bi.etl criar && .venv/bin/python -m wua_bi.etl rodar
 ```
 
 ```bash
-.venv/bin/python -m uvicorn wua_bi.api.main:app --reload
+.venv/bin/python -m uvicorn wua_bi.api.main:app --reload --port 8000
 ```
 
 Dashboard em <http://localhost:8000/dashboard/>, documentação da API em
-<http://localhost:8000/docs>. Contas de teste criadas pelo seed: usuário e
-senha iguais — `professor`, `ana`, `bruno`, `carla`, `diego`, `elisa`,
-`felipe`, `gabi`, `hugo`, `ines`, `joao`.
+<http://localhost:8000/docs>.
+
+### O back-end
+
+Cria as tabelas? **Não** — elas vêm do `bi/db/`, então rode o BI primeiro.
+
+```bash
+cd backend && cp .env.example .env && cp contas.example.json contas.json
+```
+
+```bash
+python -m venv .venv && .venv/bin/pip install -e .
+```
+
+```bash
+.venv/bin/python -m wua_backend.seed
+```
+
+```bash
+.venv/bin/python -m uvicorn wua_backend.main:app --reload --port 8001
+```
+
+> **O `WUA_SEGREDO` tem de ser a mesma string em `bi/.env` e em
+> `backend/.env`.** Um assina o token, o outro valida a assinatura. Se os dois
+> diferirem, o login responde `200` e todas as chamadas seguintes respondem
+> `401` — a falha aparece longe da causa.
+
+Contas de teste no banco do projeto: usuário e senha iguais — `teste` e
+`professor`. **O dashboard não autentica sem o back-end no ar**, porque delega
+o login a ele.
 
 O [`bi/README.md`](bi/README.md) explica as camadas, o gate de qualidade, o
-agendamento e as decisões do dashboard.
+agendamento e as decisões do dashboard. As rotas dos dois serviços estão em
+[API e Integração](docs/08-API-e-Integracao.md).
 
 ---
 
@@ -123,6 +161,7 @@ corrija um dos dois e registre a decisão.
 | [Contrato de Eventos](docs/05-Contrato-de-Eventos.md) | o que o jogo envia, campo a campo |
 | [Catálogo de Fases](docs/06-Catalogo-de-Fases.md) | formato do `catalogo-fases.json`, blocos e progressão |
 | [Pendências e Riscos](docs/07-Pendencias-e-Riscos.md) | o que ainda não foi decidido, e o que pode dar errado |
+| [API e Integração](docs/08-API-e-Integracao.md) | **as rotas dos dois serviços** e o caminho completo de um evento |
 
 Dois documentos técnicos acompanham o código do BI:
 [arquitetura de referência](bi/docs/arquitetura-de-referencia.md) (conformidade
@@ -140,10 +179,18 @@ acima — é o que torna as decisões defensáveis na banca.
 | Parte | Situação |
 |---|---|
 | Jogo: Palette, Workspace, arrastar e soltar | em andamento |
+| Jogo: encaixe dos blocos (`nextBlock`, `inner`) | em andamento |
 | Jogo: fases | em construção. Falta combinar de onde sai o `fase_id` (PD-018) |
-| Jogo: envio de eventos | **não começou** |
-| Back-end: autenticação e ingestão | **não existe** |
+| Jogo: motor de execução (vida, vitória, derrota) | **não começou** — é o que trava o EV-05 |
+| Jogo: envio de eventos | **não começou** — não há chamada HTTP em `src/` |
+| Back-end: autenticação com bcrypt e JWT | **pronto e testado** |
+| Back-end: ingestão de eventos na bronze | **pronto e testado** |
 | BI: ETL, modelo dimensional, API, dashboards | pronto e rodando |
+
+**O caminho inteiro já foi percorrido de ponta a ponta** em 16/11/2026, com
+eventos montados à mão no formato do contrato: login → `POST /api/eventos` →
+bronze → ETL → silver → gate de qualidade → gold → dashboard, com as 10 regras
+de qualidade aprovadas. O que falta é o jogo fazer essa chamada.
 
 Enquanto o jogo não envia eventos, o dashboard roda com **dados sintéticos**,
 gerados conforme o Contrato de Eventos e marcados com `origem = 'sintetico'`.
@@ -163,7 +210,7 @@ são a **PD-006** (as fases oficiais), a **PD-003** (prazo e marcos), a
 |---|---|
 | Heloisa | Inteligência de Negócios: ETL, modelo dimensional, API de leitura e dashboards |
 | Lara | Back-end |
-| Mateo | Palette do jogo |
+| Mateo | Palette do jogo; back-end de autenticação e ingestão |
 
 A composição completa e quem responde por hospedagem, testes e documentação
 continua em aberto (**PD-002**).

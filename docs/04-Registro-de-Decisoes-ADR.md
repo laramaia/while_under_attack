@@ -64,9 +64,9 @@ Alternativa 3.
 
 ---
 
-## ADR-002 — Back-end em Python (FastAPI) servindo API e dashboard
+## ADR-002 — Back-end em Python (FastAPI), em dois serviços sobre o mesmo banco
 
-**Status:** Python aceito · FastAPI proposto (PD-011) · **Data:** 13/10/2026
+**Status:** **Aceito** · **Data:** 13/10/2026 · **Revisto em:** 16/11/2026
 
 ### Contexto
 
@@ -94,6 +94,43 @@ dashboard será feito em HTML e JavaScript sem etapa de build, servido em
 - (+) Um único serviço para hospedar.
 - (−) Jogo, back-end e dashboard dependem de um contrato de API estável. Se ele
   mudar sem aviso, os dois clientes quebram.
+
+### Revisão de 16/11/2026 — confirmado FastAPI, mas são dois serviços
+
+A **PD-011 está resolvida**: FastAPI, nos dois lados. O que mudou em relação ao
+texto de 13/10 é que **não é um único serviço**, e sim dois, no mesmo banco:
+
+| | Pasta | Porta | Responsabilidade |
+|---|---|---|---|
+| Back-end | `backend/` | 8001 | autentica e **escreve** na bronze |
+| BI | `bi/` | 8000 | **lê** a gold, serve a API analítica e o dashboard |
+
+A fronteira entre eles é o banco, não uma biblioteca: não há nenhum import de
+um no outro. Isso foi o que permitiu a fatia de BI ficar pronta meses antes do
+back-end existir, e é a razão de a decisão continuar valendo mesmo tendo
+mudado de forma.
+
+**A única exceção é o login**, que o BI **delega** por HTTP ao
+`POST /login` do back-end em vez de duplicar a conferência de senha. As regras
+de permissão (RN-004, RN-005) continuam num lugar só, no BI — ver ADR-001.
+
+- (+) Cada pessoa publica e reinicia o seu serviço sem derrubar o do outro.
+- (+) O back-end não precisa conhecer o catálogo de fases nem o modelo
+  dimensional para funcionar.
+- (−) **São dois serviços para hospedar**, não um. A PD-005 fica maior.
+- (−) **O `WUA_SEGREDO` tem de ser idêntico nos dois**, porque um assina o JWT
+  e o outro valida a assinatura. Se diferirem, o login responde `200` e todas as
+  chamadas seguintes respondem `401` — falha longe da causa. Ver
+  [`08-API-e-Integracao.md`](08-API-e-Integracao.md), seção 1.
+- (−) O dashboard não autentica com o back-end fora do ar. A leitura da gold
+  continua funcionando; só o login para.
+
+> Um desenho alternativo evitaria o segredo compartilhado: o BI chamaria o
+> `GET /eu` do back-end a cada requisição, ou a assinatura seria assimétrica
+> (RS256, com o back-end guardando a chave privada e o BI só a pública). Para
+> dois serviços da mesma equipe, HS256 com segredo compartilhado é o padrão
+> aceitável e foi o escolhido. Fica registrado como o caminho natural se algum
+> dia um terceiro serviço precisar validar tokens.
 
 ---
 
@@ -132,7 +169,7 @@ Alternativa 1.
 
 ## ADR-004 — Autenticação por usuário e senha com contas pré-criadas
 
-**Status:** Aceito · **Data:** 13/10/2026
+**Status:** Aceito · **Data:** 13/10/2026 · **Implementada em:** 16/11/2026
 
 ### Contexto
 
@@ -158,11 +195,35 @@ um dado pessoal coletado sem necessidade.
 - (+) Coleta mínima de dados pessoais.
 - (−) Abrir para escolas exigirá revisar esta decisão (ver Visão, seção 10).
 
-> **Situação em 16/11/2026:** a autenticação em uso é a provisória do BI
-> (`api/auth_provisoria.py`), com PBKDF2 da biblioteca padrão em vez de Argon2
-> ou bcrypt. Ela existe para o dashboard não ficar parado e **sai quando o
-> back-end assumir**. As permissões (RN-004, RN-005) **não** são provisórias e
-> ficam onde estão.
+### O que ficou implementado em 16/11/2026
+
+A autenticação provisória do BI **saiu**. O que existe agora:
+
+| Decisão de 13/10 | Como ficou |
+|---|---|
+| Contas por script de seed (RN-001) | `backend/src/wua_backend/seed.py`, lendo `backend/contas.json`, idempotente (`on conflict do nothing`) |
+| Login com usuário e senha (RN-002) | `POST /login` no back-end, porta 8001 |
+| Hash próprio para senhas: "ex.: Argon2 ou bcrypt" | **bcrypt, custo 12** |
+| Token com prazo, identidade vinda dele (RN-006) | **JWT HS256**, validade de 8 horas (`WUA_TOKEN_VALIDADE_HORAS`) |
+| Sem autocadastro, sem recuperação de senha | mantido: só o seed cria conta |
+
+Três detalhes que a decisão não previa e que foram resolvidos na
+implementação:
+
+- **Usuário inexistente e senha errada devolvem a mesma resposta**, e o
+  back-end confere um hash fictício quando o usuário não existe, para que o
+  tempo de resposta também não revele se a conta existe.
+- **O BI valida o JWT, mas não emite.** Ele delega o login ao back-end
+  (ADR-002) e valida a assinatura com o mesmo `WUA_SEGREDO`.
+- **O arquivo do BI continua chamado `auth_provisoria.py`** por ora, mas o
+  conteúdo já não é provisório: validação de token e as permissões RN-004 e
+  RN-005. O nome está errado e vale renomear.
+
+> **A troca de PBKDF2 para bcrypt não é retroativa.** Contas criadas pela
+> autenticação provisória têm hash PBKDF2, que o `bcrypt.checkpw` recusa — o
+> login falha sem erro visível. Como o seed não sobrescreve conta existente,
+> rodá-lo não corrige: é preciso trocar o hash no banco. Foi o que se fez com
+> as contas `teste` e `professor` em 16/11/2026.
 
 ---
 
@@ -261,6 +322,31 @@ distorce os indicadores. Reenviar sem controle os duplica.
 > `bronze.ingestao_lote`, com as contagens de recebidos, gravados, ignorados e
 > rejeitados, e `bronze.eventos.lote_id` liga cada evento ao lote. A coluna é
 > **anulável**: uma ingestão que não informe o lote funciona como antes.
+
+### O lado do servidor ficou pronto em 16/11/2026
+
+`POST /api/eventos` no back-end (porta 8001) implementa esta decisão, e foi
+verificado rodando:
+
+- **Corpo do lote:** `{"eventos": [ ... ]}`.
+- **Resposta `207`** com `gravados`, `ignorados` e `rejeitados`, cada rejeitado
+  com o motivo. **Um evento ruim não derruba o lote.**
+- **RN-015:** `event_id` repetido entra em `ignorados`, sem erro — o jogo
+  precisa tratar isso como sucesso, senão nunca tira o evento da fila.
+- **Lote aberto e fechado na mesma transação** da gravação dos eventos, com as
+  três contagens batendo com a resposta HTTP.
+
+**O lado do jogo não começou:** não há nenhuma chamada HTTP em `src/`. A fila
+local, o `event_id`, o `seq` e o reenvio continuam por fazer, e o mecanismo de
+armazenamento ainda depende da PD-004.
+
+Dois pontos que a implementação do servidor deixou em aberto:
+
+- **Não há limite de tamanho do lote.** Um lote muito grande é aceito inteiro.
+  Vale combinar um teto (a fila do jogo pode mandar em blocos de 50).
+- **Um erro no banco ainda perde o lote inteiro**, apesar da resposta `207`
+  prometer resultado por evento. Vale só para erros que a validação não pega,
+  mas contradiz a promessa do formato.
 
 ---
 
@@ -468,3 +554,4 @@ O comando `conferir` mudou de papel: passou a **ler** o boletim gravado em
 |---|---|
 | 13/10/2026 | Versão inicial, ADR-001 a ADR-007 |
 | 16/11/2026 | Acrescentadas ADR-008, ADR-009 e ADR-010. Notas de situação na ADR-003 (gatilho resolvido pela ADR-009), ADR-004 (autenticação provisória em uso), ADR-006 (o jogo ainda não lê o catálogo) e ADR-007 (controle de lote). Este documento substitui o `bi/docs/adr-complemento.md`, que foi removido |
+| 16/11/2026 | **O back-end passou a existir e três ADRs mudaram de estado.** ADR-002 vai a **Aceito**: PD-011 resolvida (FastAPI), mas em **dois serviços** sobre o mesmo banco, com o segredo do JWT compartilhado como consequência registrada. ADR-004 ganha o que foi implementado de fato — bcrypt custo 12, JWT HS256 de 8 h — e o aviso de que a troca de PBKDF2 não é retroativa. ADR-007 ganha o estado do servidor (pronto e testado) separado do estado do jogo (não começou) |

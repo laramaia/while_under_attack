@@ -20,17 +20,29 @@ modelo dimensional → dashboard, construído sobre uma fonte de dados própria.
 | **Endpoints de leitura do dashboard** | **BI** | **aqui** |
 | **Dashboard (Jogador e Professor)** | **BI** | **aqui** |
 
-Enquanto o back-end não existe, esta pasta traz dois substitutos **claramente
-marcados como provisórios**, para que o BI não fique parado (RS-01):
+Enquanto o back-end não existia, esta pasta trouxe dois substitutos
+**claramente marcados como provisórios**, para que o BI não ficasse parado
+(RS-01). **Em 16/11/2026 o back-end chegou** e um dos dois já saiu:
 
-- `src/wua_bi/gerador.py` — gera eventos sintéticos conformes ao Contrato de
-  Eventos e os grava na bronze com `origem = 'sintetico'`.
-- `src/wua_bi/api/auth_provisoria.py` — login e token. **As permissões (RN-004 e
-  RN-005) não são provisórias**: elas ficam na API, num lugar só, como decidido
-  na ADR-001.
+- `src/wua_bi/api/auth_provisoria.py` — **a parte provisória saiu.** O login
+  agora é **delegado** ao `POST /login` do back-end (porta 8001), e este
+  arquivo só valida o JWT que ele emite. **As permissões (RN-004 e RN-005)
+  nunca foram provisórias**: continuam aqui, num lugar só, como decidido na
+  ADR-001. O nome do arquivo ficou errado e vale renomear (PD-020).
+- `src/wua_bi/gerador.py` — **continua.** Gera eventos sintéticos conformes ao
+  Contrato de Eventos e os grava na bronze com `origem = 'sintetico'`. Sai
+  quando o jogo começar a enviar eventos de verdade, o que ainda não aconteceu.
+  Mudou uma coisa nele: as contas de teste que ele cria passaram a ter hash
+  **bcrypt custo 12**, o mesmo do seed do back-end. Com PBKDF2 elas deixariam
+  de conseguir entrar, porque quem confere a senha agora é o `bcrypt.checkpw`.
 
-Quando o back-end chegar, os dois saem e nada mais muda: o ETL, a gold, as
-consultas e o dashboard continuam iguais.
+O que a chegada do back-end mudou aqui dentro: nada no ETL, na gold, nas
+consultas nem no dashboard — exatamente o que se esperava de a fronteira ser o
+banco. Mudaram três coisas de configuração: o `WUA_BACKEND_URL`, o
+`WUA_SEGREDO` ter de ser **idêntico** ao do `backend/.env`, e o dashboard
+passar a **não autenticar com o back-end fora do ar**. As rotas dos dois
+serviços estão em
+[`docs/08-API-e-Integracao.md`](../docs/08-API-e-Integracao.md).
 
 ---
 
@@ -93,7 +105,13 @@ gerada pelo FastAPI, em <http://localhost:8000/docs>.
 
 Contas de teste criadas pelo `semear`: usuário e senha iguais — `ana`, `bruno`,
 `carla`, `diego`, `elisa`, `felipe`, `gabi`, `hugo`, `ines`, `joao` e
-`professor`.
+`professor`. No banco do projeto existem só `teste` e `professor`, criadas à
+parte.
+
+> **O login precisa do back-end no ar**, na porta 8001, porque a API o delega a
+> ele. A leitura da gold funciona sem. Como subir os dois está no
+> [README da raiz](../README.md) e em
+> [`docs/08-API-e-Integracao.md`](../docs/08-API-e-Integracao.md).
 
 ## Publicando de graça
 

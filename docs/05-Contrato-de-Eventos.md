@@ -4,14 +4,19 @@
 **Status:** Em revisão · **Versão do contrato:** `schema_version = 1`
 **Última atualização:** 16/11/2026
 
-Este documento define **o que o jogo envia**. O endpoint HTTP que recebe os
-eventos é do back-end; a especificação de integração está em
-[`bi/docs/arquitetura-de-referencia.md`](../bi/docs/arquitetura-de-referencia.md),
-seção 7.3, e a documentação da API de leitura é gerada pelo FastAPI em `/docs`.
+Este documento define **o que o jogo envia**. Para onde ele envia está em
+[`08-API-e-Integracao.md`](08-API-e-Integracao.md):
 
-> **Em 16/11/2026 o jogo ainda não envia nada.** Não há código de envio no
-> repositório. Este contrato é o que o jogo **deve** enviar; tudo o que existe
-> hoje na bronze vem do gerador sintético, com `origem = 'sintetico'`.
+> **`POST http://localhost:8001/api/eventos`**, com
+> `Authorization: Bearer <token>` e corpo `{"eventos": [ ... ]}`.
+>
+> A porta é a **8001**, do back-end. A 8000 é a API do BI e **não** recebe
+> eventos.
+
+> **Em 16/11/2026 quem recebe já existe; quem envia ainda não.** O back-end
+> implementa este contrato campo por campo e foi testado de ponta a ponta. Do
+> lado do jogo não há nenhuma chamada HTTP em `src/`. Tudo o que já esteve na
+> bronze veio do gerador sintético, com `origem = 'sintetico'`.
 
 ---
 
@@ -124,6 +129,19 @@ Os dois últimos campos permitem distinguir duas causas de derrota: o programa
 falhou num bloco específico, ou o programa era curto demais e o inimigo atacou
 depois (RN-008).
 
+> **O `tentativa_id` do EV-05 tem de ser o mesmo do EV-04.** É o único vínculo
+> entre o programa que o jogador montou e o resultado que ele obteve — sem ele,
+> a silver não consegue casar os dois e a tentativa não vira linha em
+> `gold.fato_tentativa`. Na prática: gerar o UUID no Play, **guardá-lo** na cena
+> e reusá-lo no fim da tentativa, nunca gerar um novo.
+>
+> O back-end **não** verifica isso, porque um lote pode trazer o EV-04 e o EV-05
+> separados, e exigir a ordem quebraria o reenvio. A conferência é da silver.
+
+O back-end recusa um EV-05 com `programa_concluido = true` e
+`bloco_em_execucao_id` preenchido, com o motivo na resposta `207`. É a única
+regra de coerência entre campos que ele aplica.
+
 ---
 
 ## 4. Formato do programa
@@ -196,8 +214,8 @@ revisões que faltam. Todas dependem do jogo.
 
 | | Situação | Pendência |
 |---|---|---|
-| **De onde vem o `fase_id`** | As fases estão sendo criadas no jogo. Falta combinar se os identificadores saem do `catalogo-fases.json` (o que a ADR-006 previa) ou do código do jogo. Um `fase_id` fora do catálogo da `catalog_version` informada vai para a quarentena da silver — nada se perde, mas só aparece no dashboard depois de reprocessar | **PD-018** |
-| **`corpo` × `inner`** | Este contrato usa `corpo` para o conteúdo dos blocos em C. O `BlockInstance` do jogo guarda em `inner`. Como o jogo ainda não serializa nada, dá para resolver dos dois lados: o jogo traduz na hora de enviar, ou mudamos o contrato. **Precisa ser decidido antes de o jogo começar a enviar** | **PD-014** |
+| **De onde vem o `fase_id`** | As fases estão sendo criadas no jogo. Falta combinar se os identificadores saem do `catalogo-fases.json` (o que a ADR-006 previa) ou do código do jogo. O back-end **não** confere isso: ele só valida que é string não vazia. Um `fase_id` fora do catálogo da `catalog_version` informada vai para a quarentena da silver — nada se perde, mas só aparece no dashboard depois de reprocessar | **PD-018** |
+| **`corpo` × `inner`** | **Resolvido em 16/11/2026: fica `corpo`, e o jogo traduz.** O back-end aceita `corpo`, como este contrato sempre disse, e isso foi verificado com um programa aninhado gravado e reprocessado. O `BlockInstance` do jogo continua com `inner`: a conversão é feita no jogo, ao serializar o programa | PD-014 ✔ |
 | **`condicao`** | O `BlockTemplate` do jogo tem só `id`, `label`, `color` e `shape`: não há condição para escolher, nem no `if-else`. O campo fica fora do contrato até existirem condições | PD-013 |
 | **`senao`** | O rótulo do bloco diz "Se / Senão", mas o `BlockInstance` tem um único `inner` — não há ramo senão no modelo de dados. O campo continua reservado | PD-013 |
 | **`params`** | Nenhum bloco tem parâmetro editável. O `repeat` é "Repetir 3x" fixo, registrado no catálogo como `vezes_fixas: 3`. Se virar parâmetro, passa a `params.vezes` | PD-013 |
@@ -215,9 +233,9 @@ revisões que faltam. Todas dependem do jogo.
 - Mudança incompatível neste contrato: incrementar `schema_version` e registrar
   no histórico abaixo.
 
-Sugestão para o lote, já que ele pode trazer um evento ruim no meio de bons:
-responder **`207`** com o resultado por evento, em vez de derrubar o lote
-inteiro.
+**Implementado em 16/11/2026.** O lote pode trazer um evento ruim no meio de
+bons, então o back-end responde sempre **`207`** com o resultado por evento, em
+vez de derrubar o lote inteiro:
 
 ```json
 { "gravados": 11, "ignorados": 2, "rejeitados": [
@@ -227,7 +245,14 @@ inteiro.
 - `ignorados` são os duplicados — o jogo trata como sucesso e tira da fila.
 - `rejeitados` o jogo também tira da fila, porque reenviar não vai consertar.
 
-As três contagens são as mesmas colunas de `bronze.ingestao_lote`.
+As três contagens são as mesmas colunas de `bronze.ingestao_lote`, e foi
+verificado que batem.
+
+> **Cuidado ao implementar o lado do jogo:** o back-end responde `207` mesmo
+> quando *todos* os eventos foram rejeitados. `207` significa "o lote foi
+> processado", não "deu tudo certo" — quem decide é o conteúdo da resposta. Um
+> `401` ou um erro `5xx`, ao contrário, não processaram nada: nesses o lote
+> deve **ficar** na fila.
 
 ---
 
@@ -238,3 +263,4 @@ As três contagens são as mesmas colunas de `bronze.ingestao_lote`.
 | 1 | 13/10/2026 | Versão inicial (rascunho) |
 | 1 | 13/10/2026 | Categorias de bloco confirmadas; campo `condicao` adicionado ao formato do programa |
 | 1 | 16/11/2026 | Identificadores de bloco do exemplo trocados pelos reais do jogo. Nova seção 6 com o que está em aberto. `condicao` e `params` marcados como não usados; `corpo` × `inner` registrado como **PD-014** e a origem do `fase_id` como **PD-018**. Acrescentados `origem` e `lote_id` aos campos que o jogo não envia, e o formato `207` à validação. **Sem mudança incompatível: `schema_version` continua 1** |
+| 1 | 16/11/2026 | **O back-end implementou este contrato e ele foi testado de ponta a ponta.** Acrescentado no topo para onde o jogo envia (porta **8001**, não 8000). **PD-014 resolvida:** fica `corpo`, o jogo traduz o `inner`. O `207` deixa de ser sugestão e passa a estar implementado, com o aviso de que ele não significa sucesso. Novo aviso sobre reusar o `tentativa_id` entre EV-04 e EV-05. Registrado o que o back-end **não** valida: `catalog_version`, `fase_id` e coerência entre eventos ficam para a silver. **Sem mudança incompatível: `schema_version` continua 1** |
