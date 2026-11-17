@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_H, GAME_W } from '../config';
+import { showLoadingBar } from '../ui/loadingBar';
 
 const HERO_ATTACK_FRAMES = 29;
 const CURSED_KNIGHT_MOVE_FRAMES = 29;
@@ -12,14 +12,14 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.showLoadingBar();
-    this.loadAssets();
     this.load.on('loaderror', (file: Phaser.Loader.File) => {
       console.error(
         `Falha ao carregar o recurso: ${file.key}`,
         file.src,
       );
     });
+    this.loadAssets();
+    showLoadingBar(this);
   }
 
   create(): void {
@@ -93,31 +93,5 @@ export class BootScene extends Phaser.Scene {
         frameRate: ANIMATION_FRAME_RATE,
       });
     }
-  }
-
-  private showLoadingBar(): void {
-    const width = 500;
-    const height = 24;
-    const x = (GAME_W - width) / 2;
-    const y = (GAME_H - height) / 2;
-    const frame = this.add.graphics()
-      .lineStyle(3, 0xffffff)
-      .strokeRect(x, y, width, height);
-    const fill = this.add.graphics();
-
-    this.load.on('progress', (progress: number) => {
-      fill.clear()
-        .fillStyle(0xffffff)
-        .fillRect(
-          x + 4,
-          y + 4,
-          (width - 8) * progress,
-          height - 8,
-        );
-    });
-    this.load.once('complete', () => {
-      frame.destroy();
-      fill.destroy();
-    });
   }
 }

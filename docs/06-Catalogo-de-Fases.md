@@ -28,9 +28,19 @@ Fonte: `src/model/defaultCatalog.ts`, commit `0127da5`.
 ### Três coisas que mudaram desde 13/10/2026
 
 **São dois blocos de evento, não um.** O documento dizia "Ao clicar em Play
-(único por enquanto)". O jogo tem `on-flag` e `on-start`. Isso torna a PD-009
-(o que acontece com várias pilhas executáveis) uma pergunta concreta, e não
-mais hipotética.
+(único por enquanto)". O jogo tem `on-flag` e `on-start`.
+
+> **E em 16/11/2026 o motor de execução respondeu o que acontece com eles: só
+> o `on-flag` executa.** O `ProgramRunner` filtra `roots` por
+> `template.id === 'on-flag'`; uma pilha encabeçada por `on-start` nunca roda.
+> O bloco continua na Palette desde a primeira fase. Como este catálogo marca
+> os dois com `inicia_pilha: true`, o ETL conta como executável uma pilha que o
+> jogo ignora — é a **PD-021**, aberta como [issue #4](https://github.com/laramaia/while_under_attack/issues/4), e ela mexe
+> na RN-014 e na RN-019.
+>
+> A outra metade da PD-009 ficou respondida: havendo várias pilhas com
+> `on-flag`, **todas executam, em sequência**, na ordem em que foram soltas no
+> Workspace. E pilhas sem bloco de evento são ignoradas, como a RN-018 previa.
 
 **Existe um bloco `defend` que nenhuma fase planejada usava.** Ele está na
 Palette desde a primeira fase. Não aparece em nenhuma solução de referência, o
@@ -199,6 +209,19 @@ programa ficou sem categoria") é a rede de proteção: se o jogo mandar um bloc
 que o catálogo não conhece, **a gold não é publicada** e o problema aparece na
 hora, em vez de virar número errado no dashboard.
 
+> **A segunda divergência já aconteceu, e em dois dias.** Em 16/11/2026 a
+> `main` trocou o campo `color` por `colorKey` no `BlockTemplate`. Os
+> identificadores, rótulos, categorias e formatos não mudaram — conferi os sete
+> blocos um a um e batem — mas ninguém avisou, e só se descobriu olhando. Na
+> mesma conferência apareceu que **os rótulos `Avançar` e `Se / Senão` estavam
+> sem acento neste catálogo**: erro meu ao transcrever, corrigido no mesmo dia.
+> O dashboard lê os rótulos daqui via `GET /api/catalogo`, então ele estava
+> escrevendo "Avancar" na tela enquanto o jogo escrevia "Avançar".
+>
+> Nenhum dos dois casos seria pego pelo `CAT-001`, porque o bloco existe e tem
+> categoria. **A rede de proteção cobre bloco desconhecido, não rótulo
+> divergente.**
+
 ---
 
 ## Histórico
@@ -207,3 +230,4 @@ hora, em vez de virar número errado no dashboard.
 |---|---|
 | 13/10/2026 | Versão inicial. Categorias de bloco confirmadas (PD-007) |
 | 16/11/2026 | Seção 1 reescrita com os blocos e identificadores reais do jogo. Formato do arquivo atualizado com `rotulo`, `inicia_pilha`, `tem_corpo` e `vezes_fixas`. Nova seção 3 documentando fases de introdução e reforço (RN-020), que antes só existiam no ETL. Progressão reduzida a quatro conceitos: **repetição com condição saiu por não haver bloco** (PD-017). Novas seções 5 e 6: de onde sai o `fase_id` das fases em construção (**PD-018**) e o catálogo e o jogo ainda serem duas listas |
+| 16/11/2026 | **O motor de execução entrou na `main`.** Seção 1 ganha o que ele faz de fato: só o `on-flag` executa (**PD-021**) e várias pilhas com `on-flag` rodam em sequência. Rótulos `Avançar` e `Se / Senão` corrigidos — estavam sem acento, divergindo do jogo. Seção 6 registra que a troca de `color` por `colorKey` passou sem aviso |

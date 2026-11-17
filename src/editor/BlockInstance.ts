@@ -6,8 +6,9 @@ import { BlockView } from './BlockView';
 export class BlockInstance extends BlockView {
   readonly id: string = Phaser.Utils.String.UUID();
 
-  next: BlockInstance | null = null;   
-  inner: BlockInstance[] = [];        
+  nextBlock: BlockInstance | null = null;
+  prevBlock: BlockInstance | null = null;
+  inner: BlockInstance[] = [];
 
   constructor(scene: Phaser.Scene, template: BlockTemplate, x = 0, y = 0) {
     super(scene, template, x, y);

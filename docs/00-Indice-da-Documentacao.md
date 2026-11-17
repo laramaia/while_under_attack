@@ -29,6 +29,12 @@ a decisão.
 | Contrato de eventos do jogo | `05-Contrato-de-Eventos.md` | **Em revisão** |
 | Catálogo de fases | `06-Catalogo-de-Fases.md` | Rascunho |
 | Pendências e riscos | `07-Pendencias-e-Riscos.md` | **Ativo** |
+| **API e integração** | **`08-API-e-Integracao.md`** | **Ativo** |
+
+O documento **08** é novo e nasceu de uma lacuna concreta: o Contrato de
+Eventos diz *o que* o jogo envia, mas não dizia *para onde*. Ele lista as rotas
+reais dos dois serviços, o caminho completo de um evento e o que cada parte
+valida.
 
 ### Documentos técnicos da fatia de BI
 
@@ -46,7 +52,7 @@ Vivem junto do código que descrevem, em `bi/`:
 | ID | Decisão | Status |
 |---|---|---|
 | ADR-001 | Dashboard web próprio em vez de Power BI | Aceito |
-| ADR-002 | Back-end em Python (FastAPI) servindo API e dashboard | Python aceito · FastAPI proposto |
+| ADR-002 | Back-end em Python (FastAPI), em dois serviços sobre o mesmo banco | **Aceito** |
 | ADR-003 | Arquitetura Medallion em schemas do PostgreSQL | Proposto |
 | ADR-004 | Autenticação por usuário e senha com contas pré-criadas | Aceito |
 | ADR-005 | Tentativa como unidade de análise, com snapshot do programa | Proposto |
@@ -66,7 +72,7 @@ O que ainda não existe, e o que saiu desta lista desde 13/10:
 |---|---|
 | Especificação de Requisitos (RF/RNF) e casos de uso | não existe |
 | Documento de Arquitetura com diagramas de contexto, componentes e implantação | **parcialmente coberto** por `bi/docs/arquitetura-de-referencia.md`, que mapeia o projeto contra a arquitetura corporativa. Faltam os diagramas |
-| Contrato da API (OpenAPI) | **existe, gerado**: o FastAPI publica em `/docs` e `/openapi.json`, com as rotas agrupadas em `acesso`, `jogador`, `professor` e `operacao` |
+| Contrato da API (OpenAPI) | **existe, gerado**: cada serviço publica o seu em `/docs` e `/openapi.json` — o back-end na porta 8001, o BI na 8000. As rotas dos dois estão escritas também em `08-API-e-Integracao.md`, que é o que se lê sem subir nada |
 | Modelo de dados das camadas bronze, silver e gold (DDL) | **existe**: `bi/db/01_bronze.sql`, `02_silver.sql`, `03_gold.sql`, comentados regra por regra |
 | Plano de testes e matriz de rastreabilidade | **parcialmente coberto**: as 10 regras do gate de qualidade (`bi/src/wua_bi/etl/qualidade.py`) citam a RN que cada uma verifica. Falta o plano formal |
 | Convenções de identificadores | abaixo |
@@ -98,3 +104,4 @@ verificam (`RN-014`), e as que não saem de nenhuma regra têm prefixo próprio:
 |---|---|
 | 13/10/2026 | Versão inicial dos oito documentos, em `.docx` |
 | 16/11/2026 | Convertidos para Markdown e movidos para `docs/` no repositório. Acrescentadas ADR-008, ADR-009 e ADR-010; atualizado o estado dos "próximos documentos"; registrados os documentos técnicos da fatia de BI |
+| 16/11/2026 | **O back-end passou a existir.** Novo documento **08 — API e Integração**, com as rotas dos dois serviços. ADR-002 passa a **Aceito** (PD-011 resolvida: FastAPI, em dois serviços). ADR-004 atualizada com o que foi implementado de verdade: bcrypt custo 12 e JWT HS256 |

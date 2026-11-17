@@ -31,7 +31,7 @@
     },
     { "tipo": "attack",  "categoria": "action", "rotulo": "Atacar" },
     { "tipo": "defend",  "categoria": "action", "rotulo": "Defender" },
-    { "tipo": "advance", "categoria": "action", "rotulo": "Avancar" },
+    { "tipo": "advance", "categoria": "action", "rotulo": "Avançar" },
     {
       "tipo": "repeat",
       "categoria": "repeat",
@@ -43,10 +43,10 @@
     {
       "tipo": "if-else",
       "categoria": "condition",
-      "rotulo": "Se / Senao",
+      "rotulo": "Se / Senão",
       "tem_corpo": true,
       "tem_condicao": false,
-      "_nota": "O rotulo diz 'Se / Senao', mas o BlockInstance do jogo tem um unico 'inner': nao ha ramo senao no modelo de dados, e nao ha condicao selecionavel. Quando a equipe implementar os dois, mudar aqui e no Contrato de Eventos."
+      "_nota": "O rotulo diz 'Se / Senão', mas o BlockInstance do jogo tem um unico 'inner': nao ha ramo senao no modelo de dados, e nao ha condicao selecionavel. Quando a equipe implementar os dois, mudar aqui e no Contrato de Eventos."
     }
   ],
 

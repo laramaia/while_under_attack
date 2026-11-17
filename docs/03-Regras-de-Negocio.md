@@ -19,15 +19,23 @@
 
 | ID | Regra | Status | Onde vive |
 |---|---|---|---|
-| RN-001 | Contas são criadas somente pela equipe. Não existe autocadastro. | Aceita | seed |
-| RN-002 | O login usa usuário e senha. O sistema não coleta e-mail. | Aceita | `app.jogador` |
-| RN-003 | O nome exibido de um jogador é o primeiro nome ou um apelido, nunca o nome completo. | Proposta | `app.jogador.nome_exibicao` |
-| RN-004 | O jogador acessa somente os próprios dados. | Aceita | `api/auth_provisoria.py` → `exigir_acesso_a` |
-| RN-005 | O professor acessa os dados de todos os jogadores do MVP. | Aceita | `api/auth_provisoria.py` → `exigir_professor` |
-| RN-006 | A identidade do jogador em um evento vem do token de autenticação, nunca do corpo da requisição. | Proposta | endpoint de ingestão (back-end) |
+| RN-001 | Contas são criadas somente pela equipe. Não existe autocadastro. | Aceita | `backend/src/wua_backend/seed.py` |
+| RN-002 | O login usa usuário e senha. O sistema não coleta e-mail. | Aceita | `backend/.../auth.py` → `autenticar`; `app.jogador` não tem coluna de e-mail |
+| RN-003 | O nome exibido de um jogador é o primeiro nome ou um apelido, nunca o nome completo. | **Aceita** | `backend/.../seed.py` → `validar_conta` recusa `nome_exibicao` com espaço |
+| RN-004 | O jogador acessa somente os próprios dados. | Aceita | `bi/.../api/auth_provisoria.py` → `exigir_acesso_a` |
+| RN-005 | O professor acessa os dados de todos os jogadores do MVP. | Aceita | `bi/.../api/auth_provisoria.py` → `exigir_professor` |
+| RN-006 | A identidade do jogador em um evento vem do token de autenticação, nunca do corpo da requisição. | **Aceita** | `backend/.../ingestao.py` → `ingerir_lote` usa o `jogador_id` do token |
 
-> **RN-003 é prioridade.** Envolve dado pessoal e há a PD-012 sobre menores de
-> idade. Deveria sair de "Proposta" antes de as contas reais serem criadas.
+> **A RN-003 saiu de "Proposta" em 16/11/2026** e passou a ser verificada em
+> código: o seed recusa a conta se o `nome_exibicao` tiver espaço, com a
+> mensagem citando a regra. Não é uma checagem perfeita — um nome composto sem
+> espaço passaria — mas impede o caso que importa, que é colar o nome completo.
+> A PD-012 (menores de idade) continua aberta.
+
+> **A RN-006 também foi verificada rodando**, e não só lida no código: um
+> evento enviado com `jogador_id: 999` no corpo foi gravado com o `jogador_id`
+> do token. O mesmo vale para `origem`, que o back-end ignora e o banco
+> preenche com `'jogo'` (RS-02).
 
 ---
 
@@ -43,10 +51,36 @@
 | RN-018 | Somente pilhas que começam com um bloco de evento são executadas. Blocos soltos no Workspace são ignorados na execução, mas continuam registrados no programa. | Proposta (PD-009) | `programa.py` → `pilha_executavel` |
 
 > **RN-018 mudou de significado em 16/11/2026.** O jogo tem **dois** blocos de
-> evento (`on-flag` e `on-start`), não um. Quais pilhas executam quando há mais
-> de um, e em que ordem, continua sendo a PD-009. O ETL hoje considera
-> executável qualquer pilha que comece por um bloco que o catálogo marque com
+> evento (`on-flag` e `on-start`), não um. O ETL hoje considera executável
+> qualquer pilha que comece por um bloco que o catálogo marque com
 > `inicia_pilha`.
+
+> ### ⚠️ O motor de execução discorda da RN-018 num ponto
+>
+> O `ProgramRunner` entrou na `main` em 16/11/2026 e respondeu boa parte da
+> PD-009. Testado rodando:
+>
+> | Caso | O jogo faz | A RN-018 diz |
+> |---|---|---|
+> | Pilha sem bloco de evento | ignora | ignora ✔ |
+> | Várias pilhas com `on-flag` | executa **todas, em sequência**, na ordem do `roots` | não dizia; agora está respondido |
+> | Pilha começando com **`on-start`** | **não executa nada** | considera executável ✘ |
+>
+> O runner filtra `roots.filter(b => b.template.id === 'on-flag')`. O
+> `on-start` está na Palette desde a primeira fase, o jogador pode arrastá-lo,
+> e a pilha que ele encabeça **nunca roda**.
+>
+> **Por que isso é problema do BI e não só do jogo:** o `pilha_executavel` da
+> silver marcaria essa pilha como executável, os blocos dela entrariam no
+> `qtd_blocos` e a eficiência da RN-014 compararia a solução de referência com
+> blocos que nunca rodaram. Pior, a RN-019 poderia dar ao jogador o crédito de
+> ter aplicado o conceito usando um `repeat` que o jogo nunca executou.
+>
+> Três saídas, e é decisão da equipe (**PD-021**, [issue #4](https://github.com/laramaia/while_under_attack/issues/4)): o jogo passa a executar
+> `on-start` também; ou `on-start` sai da Palette; ou ele perde o
+> `inicia_pilha` no `catalogo-fases.json` e a RN-018 passa a falar de um bloco
+> só. **Enquanto não se decidir, o indicador mente para qualquer jogador que
+> use o `on-start`.**
 
 ---
 
@@ -80,8 +114,8 @@ deixa de distinguir introdução de reforço nos destaques do professor.
 
 | ID | Regra | Status | Onde vive |
 |---|---|---|---|
-| RN-015 | Um evento com `event_id` já recebido é ignorado sem erro: o mesmo evento nunca é contado duas vezes. | Proposta | `db/01_bronze.sql` → `unique (event_id)` |
-| RN-016 | Eventos gravados na camada bronze nunca são alterados nem apagados. | Proposta | `db/01_bronze.sql` → gatilho `trg_eventos_imutavel` |
+| RN-015 | Um evento com `event_id` já recebido é ignorado sem erro: o mesmo evento nunca é contado duas vezes. | **Aceita** | `bi/db/01_bronze.sql` → `unique (event_id)`; `backend/.../ingestao.py` → `on conflict do nothing` e contagem em `ignorados` |
+| RN-016 | Eventos gravados na camada bronze nunca são alterados nem apagados. | Aceita | `bi/db/01_bronze.sql` → gatilho `trg_eventos_imutavel` |
 
 ---
 
@@ -102,3 +136,5 @@ deixa de distinguir introdução de reforço nos destaques do professor.
 |---|---|
 | 13/10/2026 | Versão inicial com RN-001 a RN-018 |
 | 16/11/2026 | Acrescentadas **RN-019** (conceito aplicado) e **RN-020** (introdução e reforço), ambas como Proposta, tirando do código definições que só viviam lá. Acrescentada a coluna *Onde vive* em todas as regras. Nota sobre a RN-018 passar a lidar com dois blocos de evento |
+| 16/11/2026 | **O back-end passou a existir e quatro regras saíram de "Proposta".** RN-003 e RN-006 vão a **Aceita** com o arquivo que as verifica; RN-015 ganha a implementação do lado do servidor. A coluna *Onde vive* passa a usar o caminho completo, porque agora há dois projetos Python no repositório e `api/` sozinho ficou ambíguo |
+| 16/11/2026 | **O motor de execução do jogo entrou na `main`.** A RN-018 ganha o resultado do teste: pilhas sem bloco de evento são ignoradas como a regra previa, várias pilhas com `on-flag` executam em sequência (parte da PD-009 respondida), mas uma pilha encabeçada por **`on-start` não executa** — divergência registrada como **PD-021** |
