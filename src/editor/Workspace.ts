@@ -74,21 +74,28 @@ export class Workspace extends Phaser.GameObjects.Container {
   }
 
   removeBlockInstance(inst: BlockInstance): void {
-    if (inst.prevBlock) {
-      inst.prevBlock.nextBlock = inst.nextBlock;
-      if (inst.nextBlock) inst.nextBlock.prevBlock = inst.prevBlock;
-      this.updateBlockPositions(inst.prevBlock);
-    }
+    const prev = inst.prevBlock;
+    const next = inst.nextBlock;
+    const parent = this.activeBlocks.find((b) => b.inner.includes(inst));
 
-    if (inst.parentContainer instanceof Workspace) {
-      for (const b of this.activeBlocks) {
-        const idx = b.inner.indexOf(inst);
-        if (idx >= 0) {
-          b.inner.splice(idx, 1);
-          this.updateBlockPositions(b);
-          break;
-        }
+    if (prev) {
+      prev.nextBlock = next;
+      if (next) next.prevBlock = prev;
+      this.updateBlockPositions(prev);
+    } else if (next) {
+      next.prevBlock = null;
+      const r = this.roots.indexOf(inst);
+      if (r >= 0) {
+        next.setPosition(inst.x, inst.y);
+        this.roots[r] = next;
+        this.updateBlockPositions(next);
+      } else if (parent) {
+        parent.inner[parent.inner.indexOf(inst)] = next;
+        this.updateBlockPositions(parent);
       }
+    } else if (parent) {
+      parent.inner.splice(parent.inner.indexOf(inst), 1);
+      this.updateBlockPositions(parent);
     }
 
     this.remove(inst, false);
@@ -129,8 +136,8 @@ export class Workspace extends Phaser.GameObjects.Container {
       }
 
       if (other.template.shape === 'c-block') {
-        const innerTargetX = localOtherX + 24; 
-        const innerTargetY = localOtherY + 45; 
+        const innerTargetX = localOtherX + 24;
+        const innerTargetY = localOtherY + 45;
 
         if (Math.abs(lx - innerTargetX) < SNAP_DIST_X && Math.abs(ly - innerTargetY) < SNAP_DIST_Y) {
           return { block: other, type: 'inner' };
