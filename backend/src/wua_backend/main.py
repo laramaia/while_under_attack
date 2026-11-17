@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from . import auth, db, ingestao
@@ -29,6 +30,15 @@ app = FastAPI(
         {"name": "ingestao", "description": "Recebimento de lotes de eventos do jogo na camada bronze (ADR-007, RN-006, RN-015, RN-016)."},
         {"name": "operacao", "description": "Verificacao de disponibilidade e conexao com o banco."},
     ],
+)
+
+# Libera CORS para o cliente do jogo (Vite em localhost:5173) e dashboard (localhost:8000).
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
