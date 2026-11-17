@@ -1,0 +1,24 @@
+# Postgres local para desenvolvimento do BI.
+# Onde o banco vai rodar de verdade ainda esta em aberto (PD-005); isto aqui
+# so garante que qualquer pessoa da equipe suba o ambiente com um comando.
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    container_name: wua_postgres
+    environment:
+      POSTGRES_DB: wua
+      POSTGRES_USER: wua
+      POSTGRES_PASSWORD: wua_dev
+    ports:
+      # 55432 no host para nao brigar com um Postgres ja instalado na maquina
+      - "55432:5432"
+    volumes:
+      - wua_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wua -d wua"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  wua_pgdata:

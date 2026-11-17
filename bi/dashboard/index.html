@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrar · while under_attack</title>
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <form class="login" id="form-login">
+    <h1>while under_attack</h1>
+    <p class="nota">Entre com a conta que a equipe criou para você.</p>
+
+    <label for="usuario">Usuário</label>
+    <input id="usuario" name="usuario" autocomplete="username" required autofocus>
+
+    <label for="senha">Senha</label>
+    <input id="senha" name="senha" type="password" autocomplete="current-password" required>
+
+    <p class="erro-login" id="erro" role="alert"></p>
+    <button class="acao" type="submit">Entrar</button>
+  </form>
+
+  <script type="module">
+    import { guardarSessao, aplicarTemaSalvo } from './app.js';
+
+    aplicarTemaSalvo();
+
+    const form = document.querySelector('#form-login');
+    const erro = document.querySelector('#erro');
+
+    form.addEventListener('submit', async (evento) => {
+      evento.preventDefault();
+      erro.textContent = '';
+
+      try {
+        const resposta = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            usuario: form.usuario.value.trim(),
+            senha: form.senha.value,
+          }),
+        });
+
+        if (!resposta.ok) {
+          erro.textContent = 'Usuário ou senha inválidos.';
+          return;
+        }
+
+        const dados = await resposta.json();
+        guardarSessao(dados);
+        // O professor cai direto na visão da turma (RN-005).
+        location.href = dados.perfil === 'professor' ? 'professor.html' : 'jogador.html';
+      } catch {
+        erro.textContent = 'Não foi possível falar com o servidor.';
+      }
+    });
+  </script>
+</body>
+</html>

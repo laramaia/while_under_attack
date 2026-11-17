@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Turma · while under_attack</title>
+  <link rel="stylesheet" href="estilo.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+  <header class="topo"></header>
+  <p class="aviso" id="procedencia"></p>
+
+  <main>
+    <!-- O4: visão consolidada de todos os jogadores (RN-005) -->
+
+    <div class="filtros">
+      <label for="f-periodo">Período</label>
+      <select class="discreto" id="f-periodo">
+        <option value="tudo">Tudo</option>
+        <option value="7">Últimos 7 dias</option>
+        <option value="14">Últimos 14 dias</option>
+        <option value="30">Últimos 30 dias</option>
+      </select>
+
+      <label for="f-conceito">Conceito</label>
+      <select class="discreto" id="f-conceito">
+        <option value="">Todos</option>
+      </select>
+
+      <span class="separador"></span>
+      <span class="resultado" id="aviso-filtro">
+        Os filtros valem para atividade e taxa de vitória.
+      </span>
+    </div>
+
+    <div class="numeros" id="numeros"></div>
+
+    <section class="cartao">
+      <h2>Destaques</h2>
+      <p class="nota">
+        Lidos dos indicadores da camada gold, com os limiares escritos no
+        código da API para poderem ser discutidos.
+      </p>
+      <div class="destaques" id="destaques"></div>
+    </section>
+
+    <section class="cartao">
+      <h2>Em que fases eles param</h2>
+      <p class="nota">
+        Quantos jogadores chegaram a cada fase e quantos conseguiram concluí-la.
+        A parte laranja é quem chegou e ficou pelo caminho.
+      </p>
+      <div class="tela alta"><canvas id="g-funil"></canvas></div>
+    </section>
+
+    <section class="cartao" id="c-atividade">
+      <div class="topo-cartao">
+        <div>
+          <h2>Atividade da turma</h2>
+          <p class="nota">Tentativas por dia, separadas pelo resultado.</p>
+        </div>
+        <button class="discreto ver-tabela">Ver tabela</button>
+      </div>
+      <div class="tela"><canvas id="g-atividade"></canvas></div>
+      <div class="tabela-apoio" hidden></div>
+    </section>
+
+    <div class="grade-cartoes">
+      <section class="cartao">
+        <h2>Quanto custa cada fase</h2>
+        <p class="nota">
+          Mediana de tentativas até vencer entre quem concluiu a fase (RN-012).
+        </p>
+        <div class="tela"><canvas id="g-dificuldade"></canvas></div>
+      </section>
+
+      <section class="cartao">
+        <h2>A turma aprende tentando?</h2>
+        <p class="nota">
+          Em que fração das vezes a enésima tentativa termina em vitória. Se a
+          linha sobe, as derrotas estão ensinando algo.
+        </p>
+        <div class="tela"><canvas id="g-aprendizado"></canvas></div>
+      </section>
+    </div>
+
+    <section class="cartao">
+      <h2>Venceram aplicando o conceito?</h2>
+      <p class="nota">
+        Cada conceito tem um bloco que o representa. Este gráfico mostra
+        quantos venceram usando esse bloco e quantos contornaram — por exemplo,
+        vencendo a fase de repetição empilhando o mesmo ataque várias vezes.
+        Vale também para as fases de reforço, que é onde mais interessa saber
+        se o conceito pegou. Conceito que não se resume a um bloco, como
+        combinação, fica de fora.
+      </p>
+      <div class="tela"><canvas id="g-conceito"></canvas></div>
+    </section>
+
+    <section class="cartao">
+      <h2>Jogador por fase</h2>
+      <p class="nota">
+        Tentativas que cada jogador precisou até vencer cada fase. Célula vazia
+        significa que o jogador ainda não chegou lá.
+      </p>
+      <div class="heatmap" id="heatmap"></div>
+      <div class="legenda-rampa" id="legenda-rampa"></div>
+    </section>
+
+    <section class="cartao">
+      <h2>Jogadores</h2>
+      <div style="overflow-x:auto"><table id="t-jogadores"></table></div>
+    </section>
+
+    <section class="cartao">
+      <h2>Onde a turma trava</h2>
+      <p class="nota">
+        Blocos em que a execução parou nas derrotas, somando todos os jogadores (RN-008).
+      </p>
+      <div style="overflow-x:auto"><table id="t-blocos"></table></div>
+    </section>
+  </main>
+
+  <script type="module" src="professor.js"></script>
+</body>
+</html>
