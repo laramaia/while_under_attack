@@ -77,6 +77,9 @@ select
     e.payload ->> 'fase_id'                     as fase_id,
     e.payload ->  'programa'                    as programa,
     (e.payload ->> 'tempo_edicao_ms')::int      as tempo_edicao_ms,
+    -- RN-021: campo opcional. Evento sem ele e Play do jogador, que era
+    -- o unico caso antes de existir tempo limite na fase.
+    coalesce(e.payload ->> 'disparo', 'jogador') as disparo,
     e.session_id, e.jogador_id, e.catalog_version, e.origem,
     e.occurred_at, e.received_at, e.seq, e.event_id
 from bronze.eventos e
@@ -174,6 +177,7 @@ def reconstruir(conexao: psycopg.Connection, cat: Catalogo | None = None) -> dic
             "finalizada_em": fim["finalizada_em"] if fim else None,
             "resultado": resultado,
             "tempo_edicao_ms": inicio["tempo_edicao_ms"],
+            "disparo": inicio["disparo"],
             "duracao_execucao_ms": fim["duracao_execucao_ms"] if fim else None,
             "vida_guerreiro_final": fim["vida_guerreiro_final"] if fim else None,
             "vida_inimigo_final": fim["vida_inimigo_final"] if fim else None,
@@ -214,7 +218,7 @@ def reconstruir(conexao: psycopg.Connection, cat: Catalogo | None = None) -> dic
                 tempo_edicao_ms, duracao_execucao_ms, vida_guerreiro_final,
                 vida_inimigo_final, programa_concluido, bloco_em_execucao_id,
                 programa, qtd_blocos, qtd_pilhas, qtd_pilhas_executaveis,
-                profundidade_max, causa_derrota, origem
+                profundidade_max, causa_derrota, origem, disparo
             ) values (
                 %(tentativa_id)s, %(session_id)s, %(jogador_id)s, %(fase_id)s,
                 %(catalog_version)s, %(numero_tentativa)s, %(iniciada_em)s,
@@ -223,7 +227,7 @@ def reconstruir(conexao: psycopg.Connection, cat: Catalogo | None = None) -> dic
                 %(vida_inimigo_final)s, %(programa_concluido)s,
                 %(bloco_em_execucao_id)s, %(programa)s, %(qtd_blocos)s,
                 %(qtd_pilhas)s, %(qtd_pilhas_executaveis)s, %(profundidade_max)s,
-                %(causa_derrota)s, %(origem)s
+                %(causa_derrota)s, %(origem)s, %(disparo)s
             )
             """,
             tentativas,

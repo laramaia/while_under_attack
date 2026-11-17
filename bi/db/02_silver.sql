@@ -73,6 +73,13 @@ create table silver.tentativa (
 
     origem                    text not null,
 
+    -- RN-021: quem apertou o Play. 'tempo_esgotado' e quando o jogo apertou
+    -- sozinho porque o tempo da fase acabou. Vem do campo opcional `disparo`
+    -- do EV-04; evento sem o campo e 'jogador', que era o unico caso ate
+    -- 17/11/2026 (Contrato de Eventos, EV-04).
+    disparo                   text not null default 'jogador'
+                              check (disparo in ('jogador', 'tempo_esgotado')),
+
     -- RN-007: tentativa sem EV-05 fica com resultado nulo (sessao caiu antes
     -- de enviar). Nao e erro, e dado incompleto, e o gold ignora.
     constraint tentativa_finalizada_coerente

@@ -95,12 +95,45 @@ proposto). Este evento é um complemento, não a única fonte.
 
 Enviado quando o jogador aperta Play.
 
-| Campo | Tipo | Regra |
+| Campo | Tipo | Obrigatório | Regra |
+|---|---|---|---|
+| `tentativa_id` | string (UUID v4) | sim | Gerado no Play. Liga este evento ao EV-05. |
+| `fase_id` | string | sim | |
+| `programa` | objeto | sim | Formato na seção 4. |
+| `tempo_edicao_ms` | inteiro ≥ 0 | sim | Tempo desde o início da fase ou o fim da tentativa anterior até este Play. |
+| `disparo` | `"jogador"` \| `"tempo_esgotado"` | **não** | Quem apertou o Play. Ausente significa `"jogador"`. Ver abaixo. |
+
+#### O campo `disparo` (RN-021)
+
+**Acrescentado em 17/11/2026, a pedido do lado do jogo.** A fase vai ter tempo
+limite: se o jogador não apertar Play em 15 s, **o jogo aperta sozinho** e
+manda o programa que estiver no Workspace — que pode estar vazio, ou pela
+metade.
+
+Sem distinguir os dois casos, essa tentativa entra nos indicadores como se
+fosse uma tentativa do jogador. Medido com dois jogadores que montaram
+**exatamente o mesmo programa vencedor**, um deles depois de dois Play
+automáticos:
+
+| Indicador | Sem Play automático | Com dois, sem o campo |
 |---|---|---|
-| `tentativa_id` | string (UUID v4) | Gerado no Play. Liga este evento ao EV-05. |
-| `fase_id` | string | |
-| `programa` | objeto | Formato na seção 4. |
-| `tempo_edicao_ms` | inteiro ≥ 0 | Tempo desde o início da fase ou o fim da tentativa anterior até este Play. |
+| Tentativas até vencer (RN-012) | 1 | **3** |
+| Derrotas por programa curto (RN-008) | 0 | **2** |
+| Tempo montando | 21 s | **51 s** |
+
+Com o campo preenchido, os três voltam a 1, 0 e 21 s — iguais a quem não
+estourou o tempo. A tentativa **continua registrada** em
+`gold.fato_tentativa` e no `total_tentativas`: ela aconteceu, só não conta
+como aprendizagem.
+
+**É campo opcional e aditivo: `schema_version` continua 1.** Evento sem ele é
+tratado como `"jogador"`, que era o único caso antes de existir tempo limite.
+
+> **Por que não dá para deduzir sem o campo.** Um Workspace vazio se reconhece
+> por `qtd_blocos = 0`. Mas o tempo pode estourar com o jogador no meio da
+> montagem, e aí o programa tem blocos e fica **indistinguível** de uma
+> tentativa deliberada. O `tempo_edicao_ms` perto de 15000 também não serve:
+> um jogador pode genuinamente levar 15 s. Só o jogo sabe quem apertou o botão.
 
 **Não enviar** o número da tentativa nem a quantidade de blocos. Os dois são
 calculados na silver a partir dos dados acima, para não existirem duas versões
@@ -137,6 +170,15 @@ depois (RN-008).
 >
 > O back-end **não** verifica isso, porque um lote pode trazer o EV-04 e o EV-05
 > separados, e exigir a ordem quebraria o reenvio. A conferência é da silver.
+
+> **Programa vazio.** Quando o Play automático dispara com o Workspace vazio,
+> o EV-05 sai com `programa_concluido = true` e `bloco_em_execucao_id = null`
+> — não havia bloco para executar. Isso é coerente com o contrato e o ETL
+> trata sem erro: `qtd_blocos`, `qtd_pilhas_executaveis` e `profundidade_max`
+> ficam em zero, `causa_derrota` fica `programa_curto`, e nenhuma das 10
+> regras do gate reclama (testado em 17/11/2026 injetando os eventos na
+> bronze). Não há divisão por zero: a eficiência da RN-014 só é calculada
+> quando o programa da primeira vitória tem pelo menos um bloco.
 
 O back-end recusa um EV-05 com `programa_concluido = true` e
 `bloco_em_execucao_id` preenchido, com o motivo na resposta `207`. É a única
@@ -264,3 +306,4 @@ verificado que batem.
 | 1 | 13/10/2026 | Categorias de bloco confirmadas; campo `condicao` adicionado ao formato do programa |
 | 1 | 16/11/2026 | Identificadores de bloco do exemplo trocados pelos reais do jogo. Nova seção 6 com o que está em aberto. `condicao` e `params` marcados como não usados; `corpo` × `inner` registrado como **PD-014** e a origem do `fase_id` como **PD-018**. Acrescentados `origem` e `lote_id` aos campos que o jogo não envia, e o formato `207` à validação. **Sem mudança incompatível: `schema_version` continua 1** |
 | 1 | 16/11/2026 | **O back-end implementou este contrato e ele foi testado de ponta a ponta.** Acrescentado no topo para onde o jogo envia (porta **8001**, não 8000). **PD-014 resolvida:** fica `corpo`, o jogo traduz o `inner`. O `207` deixa de ser sugestão e passa a estar implementado, com o aviso de que ele não significa sucesso. Novo aviso sobre reusar o `tentativa_id` entre EV-04 e EV-05. Registrado o que o back-end **não** valida: `catalog_version`, `fase_id` e coerência entre eventos ficam para a silver. **Sem mudança incompatível: `schema_version` continua 1** |
+| 1 | 17/11/2026 | **Campo opcional `disparo` no EV-04** (`"jogador"` ou `"tempo_esgotado"`), para o tempo limite da fase: sem ele, o Play que o jogo dá sozinho conta como tentativa do jogador e triplica o indicador de tentativas até vencer. Registrado o que acontece com programa vazio, testado de ponta a ponta. **Aditivo e opcional: `schema_version` continua 1** |
