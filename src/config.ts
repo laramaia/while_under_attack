@@ -5,6 +5,13 @@ export const GAME_H = 720;
 // Geral 
 export const HOVER_SCALE = 1.08;
 
+// Telemetria
+export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8001';
+export const GAME_VERSION = '0.3.0';
+export const CATALOG_VERSION = '2026.11.1-rascunho';
+export const SCHEMA_VERSION = 1;
+export const CURRENT_PHASE_ID = 'F01';
+
 // Escala da arte dos painéis
 export const PANEL_SCALE = GAME_H / 768;
 const s = (px: number) => px * PANEL_SCALE;
@@ -66,3 +73,7 @@ export const WORKSPACE_TITLE_COLOR = '#4a4242';
 export const WORKSPACE_TITLE_FONT = 'Georgia, serif';
 export const RESTART_H = 64;
 export const RESTART_GAP = 26;
+
+export const HERO_MAX_HP = 100;
+export const ENEMY_MAX_HP = 100;
+export const ATTACK_DAMAGE = 100;
