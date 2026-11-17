@@ -5,9 +5,11 @@ import { GameArea } from '../game/GameArea';
 import { createDefaultCatalog } from '../model/defaultCatalog';
 import { BlockTemplate } from '../model/BlockTemplate';
 import { AddBackground } from '../game/AddBackground';
-import { ProgramRunner } from '../model/ProgramRunner';
+import { FimDeExecucao, ProgramRunner } from '../model/ProgramRunner';
 import { getVisibleArea } from '../utils/viewport';
-import { GAME_H, GAME_W } from '../config';
+import { GAME_H, GAME_W, CURRENT_PHASE_ID } from '../config';
+import { telemetry } from '../telemetry/telemetry';
+import { serializarPrograma } from '../telemetry/programa';
 
 interface DragState { inst: BlockInstance; ox: number; oy: number }
 
@@ -15,6 +17,11 @@ export class BattleScene extends Phaser.Scene {
   private editor!: EditorPanel;
   private background!: Phaser.GameObjects.Image;
   private drag: DragState | null = null;
+
+  private tentativaId: string | null = null;
+  private ids = new Map<BlockInstance, string>();
+  private editStart = 0;
+  private execStart = 0;
 
   constructor() {
     super('BattleScene');
@@ -55,26 +62,28 @@ export class BattleScene extends Phaser.Scene {
     const gameArea = new GameArea(this);
     const runner = new ProgramRunner(gameArea);
 
-    gameArea.on('play', () => {
-      console.log('[play] executando programa:', this.editor.workspace.roots);
-      runner.run(this.editor.workspace.roots);
-    });
-
     const catalog = createDefaultCatalog();
     this.editor = new EditorPanel(this, catalog);
     this.editor.setDepth(500);
     this.add.existing(this.editor);
 
-    this.scale.on('resize', () => {
+    const onResize = () => {
       this.adjustCameraToScreen();
       this.editor.onResize();
+    };
+    this.scale.on('resize', onResize);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off('resize', onResize);
     });
 
     this.adjustCameraToScreen();
 
+    gameArea.on('play', () => this.onPlay(gameArea, runner));
+    runner.on('finished', (fim: FimDeExecucao) => this.onFinished(gameArea, fim));
+    this.editor.workspace.on('restart', () => runner.stop());
+
     this.editor.palette.on('template-pressed',
       (template: BlockTemplate, wx: number, wy: number, p: Phaser.Input.Pointer) => {
-        console.log('[2] template-pressed:', template.id, { wx, wy });
         this.startDrag(new BlockInstance(this, template, wx, wy), p.worldX - wx, p.worldY - wy);
       });
 
@@ -91,6 +100,62 @@ export class BattleScene extends Phaser.Scene {
 
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.endDrag(p));
     this.input.on('pointerupoutside', (p: Phaser.Input.Pointer) => this.endDrag(p));
+
+    telemetry.registrar('fase_iniciada', { fase_id: CURRENT_PHASE_ID });
+    this.editStart = performance.now();
+  }
+
+  private onPlay(gameArea: GameArea, runner: ProgramRunner): void {
+    const roots = this.editor.workspace.roots;
+    if (runner.running || !runner.canRun(roots)) return;
+
+    const { programa, ids } = serializarPrograma(roots);
+    this.tentativaId = crypto.randomUUID();
+    this.ids = ids;
+    this.execStart = performance.now();
+    gameArea.resetHp();
+
+    telemetry.registrar('tentativa_executada', {
+      tentativa_id: this.tentativaId,
+      fase_id: CURRENT_PHASE_ID,
+      programa,
+      tempo_edicao_ms: Math.round(this.execStart - this.editStart),
+    });
+
+    runner.run(roots);
+  }
+
+  private onFinished(gameArea: GameArea, fim: FimDeExecucao): void {
+    const tentativaId = this.tentativaId;
+    this.tentativaId = null;
+    this.editStart = performance.now();
+    if (!tentativaId) return;
+
+    const resultado = fim.interrompida
+      ? 'interrompida'
+      : gameArea.enemyHp <= 0
+        ? 'vitoria'
+        : gameArea.heroHp <= 0
+          ? 'derrota'
+          : null;
+
+    if (!resultado) {
+      console.warn('[telemetria] programa acabou com o inimigo vivo: falta a regra RN-008');
+      return;
+    }
+
+    telemetry.registrar('tentativa_finalizada', {
+      tentativa_id: tentativaId,
+      fase_id: CURRENT_PHASE_ID,
+      resultado,
+      duracao_execucao_ms: Math.max(0, Math.round(performance.now() - this.execStart)),
+      vida_guerreiro_final: Math.max(0, Math.round(gameArea.heroHp)),
+      vida_inimigo_final: Math.max(0, Math.round(gameArea.enemyHp)),
+      programa_concluido: fim.programaConcluido,
+      bloco_em_execucao_id: fim.programaConcluido
+        ? null
+        : (fim.blocoEmExecucao ? this.ids.get(fim.blocoEmExecucao) ?? null : null),
+    });
   }
 
   private adjustCameraToScreen(): void {
@@ -112,7 +177,6 @@ export class BattleScene extends Phaser.Scene {
     inst.setDepth(1000).setAlpha(0.9);
     if (wx !== undefined && wy !== undefined) inst.setPosition(wx, wy);
     this.drag = { inst, ox, oy };
-    console.log('[3] startDrag:', { x: inst.x, y: inst.y, visible: inst.visible, w: inst.width, h: inst.height });
   }
 
   private endDrag(p: Phaser.Input.Pointer): void {
@@ -120,15 +184,7 @@ export class BattleScene extends Phaser.Scene {
     const { inst, ox, oy } = this.drag;
     this.drag = null;
 
-    const inside = this.editor.workspace.containsWorldPoint(p.worldX, p.worldY);
-    console.log('[drop]', {
-      mouse: { x: p.worldX, y: p.worldY },
-      area: this.editor.workspace,
-      inside,
-      blockSize: { w: inst.width, h: inst.height },
-    });
-
-    if (inside) {
+    if (this.editor.workspace.containsWorldPoint(p.worldX, p.worldY)) {
       this.editor.workspace.addBlockInstance(inst, p.worldX - ox, p.worldY - oy);
     } else {
       inst.destroy();

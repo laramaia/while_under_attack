@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { ENEMY_MAX_HP, HERO_MAX_HP, HOVER_SCALE } from '../config';
 
 const HERO_X = 280;
 const HERO_Y = 700;
@@ -10,6 +11,9 @@ const ENEMY_IDLE = 'enemy_idle';
 export class GameArea extends Phaser.GameObjects.Container {
   private hero: Phaser.GameObjects.Sprite;
   private enemy: Phaser.GameObjects.Sprite;
+
+  heroHp = HERO_MAX_HP;
+  enemyHp = ENEMY_MAX_HP;
 
   constructor(scene: Phaser.Scene) {
     super(scene, 0, 0);
@@ -35,6 +39,15 @@ export class GameArea extends Phaser.GameObjects.Container {
     this.hero.once('animationcomplete', () => this.hero.setTexture(HERO_IDLE));
   }
 
+  resetHp(): void {
+    this.heroHp = HERO_MAX_HP;
+    this.enemyHp = ENEMY_MAX_HP;
+  }
+
+  damageEnemy(amount: number): void {
+    this.enemyHp = Math.max(0, this.enemyHp - amount);
+  }
+
   private createButton(
     key: string,
     x: number,
@@ -47,7 +60,7 @@ export class GameArea extends Phaser.GameObjects.Container {
     btn.setScale(baseScale);
     btn.setInteractive({ useHandCursor: true });
 
-    btn.on('pointerover', () => btn.setScale(baseScale * 1.08));
+    btn.on('pointerover', () => btn.setScale(baseScale * HOVER_SCALE));
     btn.on('pointerout', () => btn.setScale(baseScale));
     btn.on('pointerdown', () => this.emit(eventName));
 

@@ -37,14 +37,15 @@ export const ARROW_X_OFFSET = 40;
 export const ARROW_Y_OFFSET = 270;
 
 // PaletteTab
-export const PLATE_X = 10;
-export const PLATE_Y = -35;
+export const PLATE_X = 1;
+export const PLATE_Y = -10;
 export const PLATE_W = 130;
-export const PLATE_H = 380;
+export const PLATE_H = 500;
 
 export const TAB_ICON_SIZE = 40;
-export const TAB_GAP = 12;
-export const TAB_PAD_Y = 40;
+export const TAB_X_OFFSET = -14;
+export const TAB_GAP = 28;
+export const TAB_PAD_Y = 70;
 export const TAB_LABEL_GAP = 4;
 export const TAB_LABEL_H = 14;
 export const TAB_ITEM_H = TAB_ICON_SIZE + TAB_LABEL_GAP + TAB_LABEL_H;

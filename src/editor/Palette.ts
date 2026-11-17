@@ -25,6 +25,12 @@ import {
   TAB_LABEL_SIZE,
   TAB_PAD_Y,
   TAB_SELECTED_SCALE,
+  TAB_X_OFFSET,
+  WORKSPACE_TITLE_COLOR,
+  WORKSPACE_TITLE_FONT,
+  WORKSPACE_TITLE_SIZE,
+  WORKSPACE_TITLE_X,
+  WORKSPACE_TITLE_Y,
 } from '../config';
 
 interface TabButton {
@@ -37,7 +43,7 @@ interface TabButton {
 export class Palette extends Phaser.GameObjects.Container {
   private currentGroup: BlockGroup;
   private contentContainer: Phaser.GameObjects.Container;
-  private plate!: Phaser.GameObjects.Image;
+  public plate!: Phaser.GameObjects.Image;
   private tabButtons: TabButton[] = [];
 
   constructor(scene: Phaser.Scene, x: number, y: number, catalog: BlockCatalog) {
@@ -45,6 +51,7 @@ export class Palette extends Phaser.GameObjects.Container {
     this.setSize(PALETTE_CONTENT_W, GAME_H);
     const groups = catalog.groups;
     this.currentGroup = groups[0] ?? new BlockGroup('default', 'Padrão', 0xffffff);
+    this.buildTitle();
     this.buildPlate();
     this.contentContainer = scene.add.container(0, 0);
     this.add(this.contentContainer);
@@ -57,11 +64,10 @@ export class Palette extends Phaser.GameObjects.Container {
       .image(PLATE_X, PLATE_Y, 'palette_tab_background')
       .setOrigin(0, 0)
       .setDisplaySize(PLATE_W, PLATE_H);
-    this.add(this.plate);
   }
 
   private buildTabs(groups: BlockGroup[]): void {
-    const cx = this.plate.x + this.plate.displayWidth / 2;
+    const cx = this.plate.x + this.plate.displayWidth / 2 + TAB_X_OFFSET;
     const startY = this.plate.y + TAB_PAD_Y;
 
     groups.forEach((group, i) => {
@@ -129,5 +135,18 @@ export class Palette extends Phaser.GameObjects.Container {
   private onPressed(view: BlockView, template: BlockTemplate, pointer: Phaser.Input.Pointer): void {
     const m = view.getWorldTransformMatrix();
     this.emit('template-pressed', template, m.tx, m.ty, pointer);
+  }
+
+  private buildTitle(): Phaser.GameObjects.Text {
+    const title = this.scene.add
+      .text(PALETTE_CONTENT_X + PALETTE_CONTENT_W / 2, WORKSPACE_TITLE_Y, 'Blocos', {
+        fontFamily: WORKSPACE_TITLE_FONT,
+        fontSize: WORKSPACE_TITLE_SIZE,
+        color: WORKSPACE_TITLE_COLOR,
+      })
+      .setOrigin(0.5, 0.5);
+
+    this.add(title);
+    return title;
   }
 }

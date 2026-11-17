@@ -41,11 +41,11 @@ export class EditorPanel extends Phaser.GameObjects.Container {
 
     this.paletteArt = scene.add.image(0, 0, 'panel_palette').setOrigin(0, 0);
     this.workspaceArt = scene.add.image(SEAM_X, 0, 'panel_workspace').setOrigin(0, 0);
-    this.add([this.paletteArt, this.workspaceArt]);
-    this.layoutArt();
     this.palette = new Palette(scene, 0, 0, catalog);
     this.workspace = new Workspace(scene, WORKSPACE_CONTENT_X, 0, WORKSPACE_CONTENT_W);
-    this.add([this.palette, this.workspace]);
+
+    this.add([this.palette.plate, this.paletteArt, this.workspaceArt, this.palette, this.workspace]);
+    this.layoutArt();
     this.buildArrows();
     this.setSize(PANEL_W, GAME_H);
 

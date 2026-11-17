@@ -1,61 +1,106 @@
+import Phaser from 'phaser';
+import { ATTACK_DAMAGE } from '../config';
 import { BlockInstance } from '../editor/BlockInstance';
 import { GameArea } from '../game/GameArea';
 
-export class ProgramRunner {
-  private isRunning = false;
+export interface FimDeExecucao {
+  interrompida: boolean;
+  programaConcluido: boolean;
+  blocoEmExecucao: BlockInstance | null;
+}
 
-  constructor(private gameArea: GameArea) {}
+class Abort {
+  constructor(readonly interrompida: boolean) {}
+}
+
+export class ProgramRunner extends Phaser.Events.EventEmitter {
+  private isRunning = false;
+  private stopRequested = false;
+  private current: BlockInstance | null = null;
+
+  constructor(private gameArea: GameArea) {
+    super();
+  }
+
+  get running(): boolean {
+    return this.isRunning;
+  }
+
+  canRun(roots: BlockInstance[]): boolean {
+    return roots.some((b) => b.template.id === 'on-flag');
+  }
+
+  stop(): void {
+    if (this.isRunning) this.stopRequested = true;
+  }
 
   async run(roots: BlockInstance[]): Promise<void> {
-    if (this.isRunning) return;
+    if (this.isRunning || !this.canRun(roots)) return;
+
     this.isRunning = true;
+    this.stopRequested = false;
+    this.current = null;
+
+    let interrompida = false;
+    let concluido = true;
 
     try {
-      const startBlocks = roots.filter((block) => block.template.id === 'on-flag');
-
-      if (startBlocks.length === 0) {
-        console.log('Nenhum bloco "Ao clicar em play" encontrado no Workspace!');
-        return;
+      for (const start of roots.filter((b) => b.template.id === 'on-flag')) {
+        await this.executeChain(start.nextBlock);
       }
-
-      for (const startBlock of startBlocks) {
-        await this.executeChain(startBlock.nextBlock);
+    } catch (e) {
+      if (!(e instanceof Abort)) {
+        this.isRunning = false;
+        throw e;
       }
-    } finally {
-      this.isRunning = false;
+      interrompida = e.interrompida;
+      concluido = false;
     }
+
+    this.isRunning = false;
+    const fim: FimDeExecucao = {
+      interrompida,
+      programaConcluido: concluido,
+      blocoEmExecucao: concluido ? null : this.current,
+    };
+    this.emit('finished', fim);
   }
 
   private async executeChain(block: BlockInstance | null): Promise<void> {
     let current = block;
 
     while (current) {
+      this.checkAbort();
+      this.current = current;
       await this.executeSingleBlock(current);
       current = current.nextBlock;
     }
+  }
+
+  private checkAbort(): void {
+    if (this.stopRequested) throw new Abort(true);
+    if (this.gameArea.enemyHp <= 0 || this.gameArea.heroHp <= 0) throw new Abort(false);
   }
 
   private async executeSingleBlock(block: BlockInstance): Promise<void> {
     switch (block.template.id) {
       case 'attack':
         this.gameArea.heroAttack();
+        this.gameArea.damageEnemy(ATTACK_DAMAGE);
         await this.wait(800);
         break;
 
       case 'defend':
-        // this.gameArea.heroDefend(); 
         console.log('Executando: Defender');
         await this.wait(600);
         break;
 
       case 'advance':
-        // this.gameArea.heroAdvance(); 
         console.log('Executando: Avançar');
         await this.wait(600);
         break;
 
       case 'repeat':
-        // Executa os blocos que estão dentro do C-block 3 vezes!
         for (let i = 0; i < 3; i++) {
           for (const innerRoot of block.inner) {
             await this.executeChain(innerRoot);
@@ -64,7 +109,6 @@ export class ProgramRunner {
         break;
 
       case 'if-else':
-        // Lógica futura da condicional
         break;
     }
   }

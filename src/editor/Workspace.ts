@@ -118,8 +118,8 @@ export class Workspace extends Phaser.GameObjects.Container {
   }
 
   private findSnapTarget(inst: BlockInstance, lx: number, ly: number): { block: BlockInstance; type: 'next' | 'inner' } | null {
-    const SNAP_DIST_Y = 25;
-    const SNAP_DIST_X = 30;
+    const SNAP_DIST_Y = 50;
+    const SNAP_DIST_X = 50;
 
     for (const other of this.activeBlocks) {
       if (other === inst) continue;
@@ -129,7 +129,8 @@ export class Workspace extends Phaser.GameObjects.Container {
       const localOtherX = otherWorldPos.tx - thisWorldPos.tx;
       const localOtherY = otherWorldPos.ty - thisWorldPos.ty;
       const expectedX = localOtherX;
-      const expectedY = localOtherY + other.height;
+      const GAP = -22;
+      const expectedY = localOtherY + other.height + GAP;
 
       if (Math.abs(lx - expectedX) < SNAP_DIST_X && Math.abs(ly - expectedY) < SNAP_DIST_Y) {
         return { block: other, type: 'next' };
@@ -167,11 +168,12 @@ export class Workspace extends Phaser.GameObjects.Container {
     }
 
     let next = curr.nextBlock;
-    let accumulatedY = curr.y + curr.height;
+    const GAP = -22;
+    let accumulatedY = curr.y + curr.height + GAP;
 
     while (next) {
       next.setPosition(curr.x, accumulatedY);
-      accumulatedY += next.height;
+      accumulatedY += next.height + GAP;
       next = next.nextBlock;
     }
   }
