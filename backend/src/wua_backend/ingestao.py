@@ -88,6 +88,7 @@ class PayloadTentativaExecutada(BaseModel):
     fase_id: str = Field(min_length=1)
     programa: Programa
     tempo_edicao_ms: int = Field(ge=0)
+    disparo: Literal["jogador", "tempo_esgotado"] | None = None
 
 
 class PayloadTentativaFinalizada(BaseModel):

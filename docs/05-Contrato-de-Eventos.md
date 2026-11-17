@@ -101,6 +101,7 @@ Enviado quando o jogador aperta Play.
 | `fase_id` | string | |
 | `programa` | objeto | Formato na seção 4. |
 | `tempo_edicao_ms` | inteiro ≥ 0 | Tempo desde o início da fase ou o fim da tentativa anterior até este Play. |
+| `disparo` | `"jogador"` \| `"tempo_esgotado"` \| null | Opcional. Indica quem disparou a execução da tentativa (Play do jogador ou tempo de edição esgotado). |
 
 **Não enviar** o número da tentativa nem a quantidade de blocos. Os dois são
 calculados na silver a partir dos dados acima, para não existirem duas versões
