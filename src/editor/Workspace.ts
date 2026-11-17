@@ -16,7 +16,6 @@ import { BlockInstance } from './BlockInstance';
 export class Workspace extends Phaser.GameObjects.Container {
   readonly activeBlocks: BlockInstance[] = [];
   readonly roots: BlockInstance[] = [];
-
   private readonly areaW: number;
   private readonly areaH = GAME_H;
 
@@ -40,18 +39,58 @@ export class Workspace extends Phaser.GameObjects.Container {
     const ly = Phaser.Math.Clamp(wy - m.ty, WORKSPACE_DROP_MIN_Y, this.areaH - inst.height);
 
     this.add(inst);
-    inst.setPosition(lx, ly).setDepth(0).setAlpha(1);
+    inst.setDepth(0).setAlpha(1);
 
     if (!inst.input) inst.enableHit();
     inst.removeAllListeners('pointerdown');
     inst.on('pointerdown', (p: Phaser.Input.Pointer) => this.emit('block-pressed', inst, p));
 
     this.activeBlocks.push(inst);
-    this.roots.push(inst);
+
+    const target = this.findSnapTarget(inst, lx, ly);
+
+    if (target) {
+      if (target.type === 'next') {
+        const parent = target.block;
+        inst.prevBlock = parent;
+        inst.nextBlock = parent.nextBlock;
+        if (inst.nextBlock) inst.nextBlock.prevBlock = inst;
+        parent.nextBlock = inst;
+
+        this.updateBlockPositions(parent);
+      } else if (target.type === 'inner') {
+        const cBlock = target.block;
+        inst.prevBlock = null;
+        cBlock.inner.push(inst);
+
+        this.updateBlockPositions(cBlock);
+      }
+    } else {
+      inst.setPosition(lx, ly);
+      this.roots.push(inst);
+    }
+
     this.emit('block-dropped', inst);
   }
 
   removeBlockInstance(inst: BlockInstance): void {
+    if (inst.prevBlock) {
+      inst.prevBlock.nextBlock = inst.nextBlock;
+      if (inst.nextBlock) inst.nextBlock.prevBlock = inst.prevBlock;
+      this.updateBlockPositions(inst.prevBlock);
+    }
+
+    if (inst.parentContainer instanceof Workspace) {
+      for (const b of this.activeBlocks) {
+        const idx = b.inner.indexOf(inst);
+        if (idx >= 0) {
+          b.inner.splice(idx, 1);
+          this.updateBlockPositions(b);
+          break;
+        }
+      }
+    }
+
     this.remove(inst, false);
 
     const a = this.activeBlocks.indexOf(inst);
@@ -59,6 +98,9 @@ export class Workspace extends Phaser.GameObjects.Container {
 
     const r = this.roots.indexOf(inst);
     if (r >= 0) this.roots.splice(r, 1);
+
+    inst.nextBlock = null;
+    inst.prevBlock = null;
   }
 
   clearBlocks(): void {
@@ -66,6 +108,75 @@ export class Workspace extends Phaser.GameObjects.Container {
     this.activeBlocks.length = 0;
     this.roots.length = 0;
     this.emit('blocks-cleared');
+  }
+
+  private findSnapTarget(inst: BlockInstance, lx: number, ly: number): { block: BlockInstance; type: 'next' | 'inner' } | null {
+    const SNAP_DIST_Y = 25;
+    const SNAP_DIST_X = 30;
+
+    for (const other of this.activeBlocks) {
+      if (other === inst) continue;
+
+      const otherWorldPos = other.getWorldTransformMatrix();
+      const thisWorldPos = this.getWorldTransformMatrix();
+      const localOtherX = otherWorldPos.tx - thisWorldPos.tx;
+      const localOtherY = otherWorldPos.ty - thisWorldPos.ty;
+      const expectedX = localOtherX;
+      const expectedY = localOtherY + other.height;
+
+      if (Math.abs(lx - expectedX) < SNAP_DIST_X && Math.abs(ly - expectedY) < SNAP_DIST_Y) {
+        return { block: other, type: 'next' };
+      }
+
+      if (other.template.shape === 'c-block') {
+        const innerTargetX = localOtherX + 24; 
+        const innerTargetY = localOtherY + 45; 
+
+        if (Math.abs(lx - innerTargetX) < SNAP_DIST_X && Math.abs(ly - innerTargetY) < SNAP_DIST_Y) {
+          return { block: other, type: 'inner' };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private updateBlockPositions(rootOrParent: BlockInstance): void {
+    let curr: BlockInstance | null = rootOrParent;
+    while (curr.prevBlock) {
+      curr = curr.prevBlock;
+    }
+
+    for (const b of this.activeBlocks) {
+      if (b.inner.includes(curr) || b.inner.includes(rootOrParent)) {
+        let totalInnerH = 10;
+        for (const innerBlock of b.inner) {
+          totalInnerH += this.getTotalChainHeight(innerBlock);
+        }
+        b.updateCBlockLayout(totalInnerH);
+        this.updateBlockPositions(b);
+        return;
+      }
+    }
+
+    let next = curr.nextBlock;
+    let accumulatedY = curr.y + curr.height;
+
+    while (next) {
+      next.setPosition(curr.x, accumulatedY);
+      accumulatedY += next.height;
+      next = next.nextBlock;
+    }
+  }
+
+  private getTotalChainHeight(block: BlockInstance): number {
+    let h = 0;
+    let curr: BlockInstance | null = block;
+    while (curr) {
+      h += curr.height;
+      curr = curr.nextBlock;
+    }
+    return h;
   }
 
   private buildTitle(): Phaser.GameObjects.Text {
@@ -90,7 +201,6 @@ export class Workspace extends Phaser.GameObjects.Container {
     btn.setScale(baseScale);
     btn.setX(title.x + title.width + RESTART_GAP + btn.displayWidth / 2);
     btn.setInteractive({ useHandCursor: true });
-
     btn.on('pointerover', () => btn.setScale(baseScale * HOVER_SCALE));
     btn.on('pointerout', () => btn.setScale(baseScale));
     btn.on('pointerdown', () => {

@@ -2,47 +2,79 @@ import Phaser from 'phaser';
 import { BLOCK_W } from '../config';
 import { BlockTemplate } from '../model/BlockTemplate';
 
-const HEIGHTS = { hat: 50, stack: 46, 'c-block': 110 } as const;
-
 export class BlockView extends Phaser.GameObjects.Container {
   readonly template: BlockTemplate;
+
+  private topSprite?: Phaser.GameObjects.Image;
+  private middleSprite?: Phaser.GameObjects.Image;
+  private bottomSprite?: Phaser.GameObjects.Image;
+  private labelText!: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene, template: BlockTemplate, x = 0, y = 0) {
     super(scene, x, y);
     this.template = template;
-    this.setSize(BLOCK_W, HEIGHTS[template.shape]);
     this.draw();
   }
 
   private draw(): void {
-    const { color, shape, label } = this.template;
-    const w = BLOCK_W;
-    const h = HEIGHTS[shape];
-    const border = Phaser.Display.Color.IntegerToColor(color).darken(35).color;
-    const g = this.scene.add.graphics();
-
-    g.fillStyle(color, 1).lineStyle(4, border, 1);
+    const { colorKey, shape, label } = this.template;
 
     if (shape === 'c-block') {
-      const bar = 40;
-      g.fillRoundedRect(0, 0, w, bar, 8).strokeRoundedRect(0, 0, w, bar, 8);
-      g.fillRoundedRect(0, 0, 28, h, 8).strokeRoundedRect(0, 0, 28, h, 8);
-      g.fillRoundedRect(0, h - 30, w, 30, 8).strokeRoundedRect(0, h - 30, w, 30, 8);
+      this.topSprite = this.scene.add.image(0, 0, `${colorKey}_block_top`).setOrigin(0, 0);
+      this.middleSprite = this.scene.add.image(0, 0, `${colorKey}_block_middle`).setOrigin(0, 0);
+      this.bottomSprite = this.scene.add.image(0, 0, `${colorKey}_block_bottom`).setOrigin(0, 0);
+
+      const scale = BLOCK_W / this.topSprite.width;
+
+      this.topSprite.setScale(scale);
+      this.middleSprite.setScale(scale * 0.14, scale);
+      this.bottomSprite.setScale(scale);
+      this.add([this.topSprite, this.middleSprite, this.bottomSprite]);
+
+      this.updateCBlockLayout(30);
     } else {
-      g.fillRoundedRect(0, 0, w, h, 10).strokeRoundedRect(0, 0, w, h, 10);
+      const sprite = this.scene.add.image(0, 0, `${colorKey}_block_${shape}`).setOrigin(0, 0);
+      const scale = BLOCK_W / sprite.width;
+      sprite.setScale(scale);
+
+      this.add(sprite);
+      this.setSize(BLOCK_W, sprite.displayHeight);
     }
 
-    const text = this.scene.add.text(16, shape === 'c-block' ? 8 : h / 2, label, {
+    this.labelText = this.scene.add.text(24, shape === 'c-block' ? 16 : this.height / 2, label, {
       fontFamily: 'Arial, sans-serif',
-      fontSize: '22px',
+      fontSize: '20px',
+      fontStyle: 'bold',
       color: '#2b2118',
     });
-    
-    if (shape !== 'c-block') text.setOrigin(0, 0.5);
 
-    this.add([g, text]);
+    if (shape !== 'c-block') {
+      this.labelText.setOrigin(0, 0.5);
+    }
+
+    this.add(this.labelText);
   }
-    
+
+  public updateCBlockLayout(innerHeight: number): void {
+    if (!this.topSprite || !this.middleSprite || !this.bottomSprite) return;
+
+    const minInner = 30;
+    const finalInnerH = Math.max(minInner, innerHeight);
+    const topH = this.topSprite.displayHeight;
+
+    this.middleSprite.setPosition(0, topH);
+    this.middleSprite.displayHeight = finalInnerH;
+
+    this.bottomSprite.setPosition(0, topH + finalInnerH);
+
+    const totalHeight = topH + finalInnerH + this.bottomSprite.displayHeight;
+    this.setSize(BLOCK_W, totalHeight);
+
+    if (this.input) {
+      this.input.hitArea.setSize(BLOCK_W, totalHeight);
+    }
+  }
+
   enableHit(): this {
     this.setInteractive(new Phaser.Geom.Rectangle(0, 0, this.width, this.height), Phaser.Geom.Rectangle.Contains);
     return this;

@@ -5,6 +5,7 @@ import { GameArea } from '../game/GameArea';
 import { createDefaultCatalog } from '../model/defaultCatalog';
 import { BlockTemplate } from '../model/BlockTemplate';
 import { AddBackground } from '../game/AddBackground';
+import { ProgramRunner } from '../model/ProgramRunner';
 import { getVisibleArea } from '../utils/viewport';
 import { GAME_H, GAME_W } from '../config';
 
@@ -34,15 +35,29 @@ export class BattleScene extends Phaser.Scene {
     this.load.image('tab_action', 'assets/ui/panel/tab_action.png');
     this.load.image('tab_repeat', 'assets/ui/panel/tab_repeat.png');
     this.load.image('tab_condition', 'assets/ui/panel/tab_condition.png');
+    this.load.image('yellow_block_hat', 'assets/ui/panel/blocks/yellow_block_hat.png');
+    this.load.image('blue_block_stack', 'assets/ui/panel/blocks/blue_block_stack.png');
+
+    const blockColors = ['orange', 'purple'];
+    const cParts = ['top', 'middle', 'bottom'];
+
+    blockColors.forEach((color) => {
+      cParts.forEach((part) => {
+        const key = `${color}_block_${part}`;
+        this.load.image(key, `assets/ui/panel/blocks/${key}.png`);
+      });
+    });
   }
 
   create(): void {
     this.background = AddBackground(this);
 
     const gameArea = new GameArea(this);
+    const runner = new ProgramRunner(gameArea);
+
     gameArea.on('play', () => {
-      gameArea.heroAttack();
-      console.log('[play] programa:', this.editor.workspace.roots);
+      console.log('[play] executando programa:', this.editor.workspace.roots);
+      runner.run(this.editor.workspace.roots);
     });
 
     const catalog = createDefaultCatalog();
