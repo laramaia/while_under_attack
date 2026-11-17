@@ -15,12 +15,13 @@ mudar, este arquivo quebra junto com o ETL, que e o comportamento desejado.
 from __future__ import annotations
 
 import copy
-import hashlib
 import json
 import random
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterator
+
+import bcrypt
 
 from . import config, db
 from .catalogo import Catalogo, Fase, catalogo_padrao
@@ -46,14 +47,19 @@ NOMES = [
 
 
 def _hash_senha(senha: str) -> str:
-    """Hash provisorio das contas de teste.
+    """Hash das contas de teste, no mesmo formato que o back-end confere.
 
-    A ADR-004 pede Argon2 ou bcrypt. Aqui vale PBKDF2 da biblioteca padrao
-    porque sao contas de desenvolvimento e nao queremos uma dependencia a mais
-    so para isso. Quando o back-end assumir a autenticacao, isto sai.
+    Tem de ser bcrypt (ADR-004). Ate 16/11/2026 isto usava PBKDF2 da biblioteca
+    padrao, para nao acrescentar dependencia, e funcionava porque a autenticacao
+    provisoria do BI conferia com a mesma funcao. Agora quem confere e o
+    `bcrypt.checkpw` do back-end, que **recusa** qualquer hash que nao seja
+    bcrypt: uma conta criada aqui com PBKDF2 nao consegue mais entrar, e o login
+    falha sem erro visivel.
+
+    O custo 12 e o mesmo do seed do back-end (`wua_backend.seed`), para que as
+    contas sejam indistinguiveis de quem as criou.
     """
-    sal = b"wua-dev"
-    return hashlib.pbkdf2_hmac("sha256", senha.encode(), sal, 100_000).hex()
+    return bcrypt.hashpw(senha.encode("utf-8"), bcrypt.gensalt(rounds=12)).decode("utf-8")
 
 
 # ---------------------------------------------------------------------------
