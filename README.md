@@ -178,10 +178,11 @@ acima — é o que torna as decisões defensáveis na banca.
 
 | Parte | Situação |
 |---|---|
-| Jogo: Palette, Workspace, arrastar e soltar | em andamento |
-| Jogo: encaixe dos blocos (`nextBlock`, `inner`) | em andamento |
+| Jogo: Palette, Workspace, arrastar e soltar | pronto |
+| Jogo: encaixe dos blocos (`nextBlock`, `inner`) | **pronto** — encaixa em sequência e dentro dos blocos em C |
+| Jogo: execução do programa | **parcial** — percorre as pilhas e repete 3x; só o `on-flag` dispara (PD-021) e o `if-else` não executa o corpo |
 | Jogo: fases | em construção. Falta combinar de onde sai o `fase_id` (PD-018) |
-| Jogo: motor de execução (vida, vitória, derrota) | **não começou** — é o que trava o EV-05 |
+| Jogo: vida, vitória e derrota | **não começou** — é o que trava o EV-05 |
 | Jogo: envio de eventos | **não começou** — não há chamada HTTP em `src/` |
 | Back-end: autenticação com bcrypt e JWT | **pronto e testado** |
 | Back-end: ingestão de eventos na bronze | **pronto e testado** |

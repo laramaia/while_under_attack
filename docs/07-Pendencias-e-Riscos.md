@@ -20,7 +20,6 @@ status Resolvida, com o link.
 | PD-005 | Onde hospedar **os dois serviços**; existe orçamento? *(o banco já foi resolvido — ver abaixo)* | Implantação | **Alto** |
 | PD-006 | Lista oficial de conceitos, fases e soluções de referência | Catálogo, RN-014 | **Alto** |
 | PD-008 | Editar o programa durante a pausa encerra a tentativa? | RN-009, EV-05 | Médio |
-| PD-009 | Com várias pilhas executáveis, todas executam? Em paralelo ou em sequência? Pilhas sem bloco de evento são ignoradas, como propõe a RN-018? | Contrato de eventos, RN-018 | Médio |
 | PD-010 | Fases são liberadas em ordem ou ficam todas abertas? | RN-017 | Médio |
 | PD-012 | Se algum testador for menor de idade: termo de consentimento dos responsáveis | LGPD | **Alto se houver** |
 | **PD-015** | **Base legal e tempo de retenção dos eventos.** Por quanto tempo os dados ficam guardados e com que fundamento são coletados | LGPD | **Alto** |
@@ -29,6 +28,7 @@ status Resolvida, com o link.
 | **PD-018** | **De onde o jogo vai tirar o `fase_id`?** As fases estão sendo criadas no jogo; falta combinar se os identificadores saem do `catalogo-fases.json` ou são definidos no código | Contrato de eventos, ADR-006 | Médio |
 | **PD-019** | **Qual o teto de eventos por lote?** Hoje não há limite: um lote de qualquer tamanho é aceito inteiro | ADR-007, ingestão | Médio |
 | **PD-020** | **Quem renomeia o `auth_provisoria.py`?** O conteúdo já não é provisório — valida o JWT e aplica RN-004 e RN-005 — mas o nome diz o contrário | ADR-004, legibilidade | Baixo |
+| **PD-021** | **O bloco `on-start` está na Palette e nunca executa.** O motor do jogo só dispara pilhas que começam com `on-flag`. Ou o jogo passa a executá-lo, ou ele sai da Palette, ou perde o `inicia_pilha` no catálogo | RN-018, RN-014, RN-019 | **Alto** |
 
 ### Resolvidas
 
@@ -37,6 +37,7 @@ status Resolvida, com o link.
 | PD-001 | Confirmar com o professor da disciplina que dashboard sem Power BI e sem DAX atende à avaliação | **Resolvida em 13/10/2026:** Power BI não é obrigatório; Python ou outra ferramenta são aceitos (ADR-001) |
 | PD-007 | Lista oficial de categorias de bloco | **Resolvida em 13/10/2026:** Evento, Ação, Condicional e Repetição |
 | PD-011 | Lara confirma FastAPI ou prefere Flask ou Django? | **Resolvida em 16/11/2026:** FastAPI nos dois lados, em **dois serviços** sobre o mesmo banco — `backend/` na porta 8001 e `bi/` na 8000. Ver ADR-002 |
+| PD-009 | Com várias pilhas executáveis, todas executam? Em paralelo ou em sequência? Pilhas sem bloco de evento são ignoradas? | **Parcialmente resolvida em 16/11/2026, pelo código:** todas as pilhas com `on-flag` executam, **em sequência**, na ordem do `roots`; pilhas sem bloco de evento são ignoradas, como a RN-018 previa. Ficou de fora o `on-start` — ver **PD-021** |
 | PD-013 | Quais condições existem para os blocos condicionais, se haverá "senão", e quais os identificadores técnicos dos blocos e parâmetros no código | **Parcialmente resolvida em 16/11/2026:** os identificadores e as categorias do `catalogo-fases.json` passaram a ser os do jogo. Ver abaixo o que falta |
 | **PD-014** | **`corpo` × `inner`** | **Resolvida em 16/11/2026:** fica **`corpo`**, como o contrato sempre disse, e **o jogo traduz** o `inner` ao serializar o programa. O back-end já aceita `corpo`, verificado com programa aninhado |
 
@@ -205,6 +206,68 @@ provisórios.
 
 ---
 
+### PD-021 — o `on-start` está na Palette e nunca executa
+
+Levantada em 16/11/2026, ao rodar o `ProgramRunner` que entrou na `main`.
+
+O motor de execução do jogo faz:
+
+```typescript
+const startBlocks = roots.filter((block) => block.template.id === 'on-flag');
+```
+
+Só `on-flag`. O `on-start` ("Ao iniciar fase") continua na Palette, o jogador
+pode arrastá-lo para o Workspace e empilhar blocos debaixo dele — e **nada
+acontece ao apertar Play**. Testado: uma pilha só com `on-start` imprime
+"Nenhum bloco 'Ao clicar em play' encontrado no Workspace!".
+
+**Por que isso é caro para os indicadores.** O `catalogo-fases.json` marca os
+dois com `inicia_pilha: true`, então a silver considera a pilha executável:
+
+| Indicador | O que aconteceria |
+|---|---|
+| `qtd_blocos` (RN-014) | conta blocos que nunca rodaram |
+| Eficiência (RN-014) | compara a solução de referência com um programa que não executou |
+| Conceito aplicado (RN-019) | dá crédito por um `repeat` que o jogo ignorou |
+| `qtd_pilhas_executaveis` | conta uma pilha a mais |
+
+**O gate de qualidade não pega isso**, porque o dado é internamente
+consistente: não há regra que saiba o que o jogo decidiu executar. É o tipo de
+erro que só aparece olhando o jogo e o ETL lado a lado.
+
+Três saídas, nenhuma difícil, mas é decisão da equipe:
+
+1. **O jogo passa a executar `on-start` também.** Coerente com os dois blocos
+   existirem, mas aí qual a diferença entre eles?
+2. **`on-start` sai da Palette.** Se não tem função, não devia estar lá.
+3. **`on-start` perde o `inicia_pilha`** no catálogo, e a RN-018 passa a falar
+   de um bloco só. Alinha o BI ao jogo sem mexer no jogo.
+
+A terceira é a mais barata e eu posso fazê-la sozinha, mas é a que silencia a
+pergunta em vez de respondê-la: o bloco continuaria na Palette sem fazer nada.
+
+### Um defeito no Workspace, que não é pendência de decisão
+
+Não é decisão de ninguém, é bug, mas afeta os dados e por isso fica
+registrado aqui. Em `Workspace.removeBlockInstance`, apagar o **primeiro**
+bloco de uma pilha some com o resto dela:
+
+| O que se apaga | O que acontece |
+|---|---|
+| bloco do meio | a pilha se religa certo ✔ |
+| último bloco | certo ✔ |
+| **primeiro bloco (o `on-flag`)** | o `roots` fica **vazio**; os blocos de baixo continuam na tela e no `activeBlocks`, mas somem do programa ✘ |
+
+Testado no jogo rodando. O `prevBlock` dos blocos restantes continua apontando
+para o bloco removido, e nenhum deles é promovido a raiz.
+
+**Para o BI isso é pior do que parecer um bug de tela:** quem serializa o
+programa lê o `roots`, então o evento registraria um programa **vazio**
+enquanto o jogador vê blocos no Workspace. Número errado, sem nada que o
+denuncie.
+
+---
+
 ## Riscos
 
 | ID | Risco | Mitigação | Situação |
@@ -236,3 +299,4 @@ melhor decidir isso antes da banca do que durante.
 | 16/11/2026 | PD-013 passa a **parcialmente resolvida**. Acrescentadas **PD-014** (`corpo` × `inner`), **PD-015** (base legal e retenção), **PD-016** (produtos ou capacidades) e **PD-017** (bloco de repetição com condição). Acrescentado o risco **RS-06** (backup nunca testado, ambiente único). Coluna *Situação* nos riscos, com o estado real de cada mitigação |
 | 16/11/2026 | **PD-005** passa a parcialmente resolvida: o banco do projeto está no Neon e o BI está conectado nele. Acrescentada a **PD-018** (de onde o jogo tira o `fase_id`), levantada enquanto as fases estavam sendo criadas no jogo |
 | 16/11/2026 | **O back-end passou a existir** (branch `mateo/backend-ingestao`), foi rodado de ponta a ponta e duas pendências fecharam: **PD-011** (FastAPI, em dois serviços) e **PD-014** (`corpo`, com o jogo traduzindo). Acrescentadas **PD-019** (teto do lote) e **PD-020** (renomear o `auth_provisoria.py`). A **PD-005** cresceu: são dois serviços para hospedar, e vieram com ela a troca das senhas de teste e o CORS aberto |
+| 16/11/2026 | **O motor de execução dos blocos entrou na `main`.** A **PD-009** passa a parcialmente resolvida pelo próprio código: pilhas com `on-flag` executam todas, em sequência; pilhas sem bloco de evento são ignoradas. Acrescentada a **PD-021**: o `on-start` está na Palette e nunca executa, e isso faz os indicadores contarem blocos que não rodaram. Registrado também o defeito do `Workspace.removeBlockInstance` |

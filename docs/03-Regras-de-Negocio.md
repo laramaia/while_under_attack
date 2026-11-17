@@ -51,10 +51,36 @@
 | RN-018 | Somente pilhas que começam com um bloco de evento são executadas. Blocos soltos no Workspace são ignorados na execução, mas continuam registrados no programa. | Proposta (PD-009) | `programa.py` → `pilha_executavel` |
 
 > **RN-018 mudou de significado em 16/11/2026.** O jogo tem **dois** blocos de
-> evento (`on-flag` e `on-start`), não um. Quais pilhas executam quando há mais
-> de um, e em que ordem, continua sendo a PD-009. O ETL hoje considera
-> executável qualquer pilha que comece por um bloco que o catálogo marque com
+> evento (`on-flag` e `on-start`), não um. O ETL hoje considera executável
+> qualquer pilha que comece por um bloco que o catálogo marque com
 > `inicia_pilha`.
+
+> ### ⚠️ O motor de execução discorda da RN-018 num ponto
+>
+> O `ProgramRunner` entrou na `main` em 16/11/2026 e respondeu boa parte da
+> PD-009. Testado rodando:
+>
+> | Caso | O jogo faz | A RN-018 diz |
+> |---|---|---|
+> | Pilha sem bloco de evento | ignora | ignora ✔ |
+> | Várias pilhas com `on-flag` | executa **todas, em sequência**, na ordem do `roots` | não dizia; agora está respondido |
+> | Pilha começando com **`on-start`** | **não executa nada** | considera executável ✘ |
+>
+> O runner filtra `roots.filter(b => b.template.id === 'on-flag')`. O
+> `on-start` está na Palette desde a primeira fase, o jogador pode arrastá-lo,
+> e a pilha que ele encabeça **nunca roda**.
+>
+> **Por que isso é problema do BI e não só do jogo:** o `pilha_executavel` da
+> silver marcaria essa pilha como executável, os blocos dela entrariam no
+> `qtd_blocos` e a eficiência da RN-014 compararia a solução de referência com
+> blocos que nunca rodaram. Pior, a RN-019 poderia dar ao jogador o crédito de
+> ter aplicado o conceito usando um `repeat` que o jogo nunca executou.
+>
+> Três saídas, e é decisão da equipe (**PD-021**): o jogo passa a executar
+> `on-start` também; ou `on-start` sai da Palette; ou ele perde o
+> `inicia_pilha` no `catalogo-fases.json` e a RN-018 passa a falar de um bloco
+> só. **Enquanto não se decidir, o indicador mente para qualquer jogador que
+> use o `on-start`.**
 
 ---
 
@@ -111,3 +137,4 @@ deixa de distinguir introdução de reforço nos destaques do professor.
 | 13/10/2026 | Versão inicial com RN-001 a RN-018 |
 | 16/11/2026 | Acrescentadas **RN-019** (conceito aplicado) e **RN-020** (introdução e reforço), ambas como Proposta, tirando do código definições que só viviam lá. Acrescentada a coluna *Onde vive* em todas as regras. Nota sobre a RN-018 passar a lidar com dois blocos de evento |
 | 16/11/2026 | **O back-end passou a existir e quatro regras saíram de "Proposta".** RN-003 e RN-006 vão a **Aceita** com o arquivo que as verifica; RN-015 ganha a implementação do lado do servidor. A coluna *Onde vive* passa a usar o caminho completo, porque agora há dois projetos Python no repositório e `api/` sozinho ficou ambíguo |
+| 16/11/2026 | **O motor de execução do jogo entrou na `main`.** A RN-018 ganha o resultado do teste: pilhas sem bloco de evento são ignoradas como a regra previa, várias pilhas com `on-flag` executam em sequência (parte da PD-009 respondida), mas uma pilha encabeçada por **`on-start` não executa** — divergência registrada como **PD-021** |
