@@ -468,6 +468,10 @@ regra, que até então só tinha sido testada com dado sintético.
 
 | O que falta | Issue | Decisão em aberto |
 |---|---|---|
+| Ligar o `src/model/level.ts`: fase, tempo, vida do inimigo e blocos ainda vêm de constante global | [#13](https://github.com/laramaia/while_under_attack/issues/13) | PD-018 |
+| `tempo_limite_s` no catálogo e a coluna em `dim_fase` | [#14](https://github.com/laramaia/while_under_attack/issues/14) | PD-022 |
+| Depois da vitória o jogo para, sem tela e sem para onde ir | [#15](https://github.com/laramaia/while_under_attack/issues/15) | — |
+| Token expirado trava a telemetria em silêncio (`401`) | [#16](https://github.com/laramaia/while_under_attack/issues/16) | PD-023 |
 | Trocar as senhas de teste antes do deploy | [#10](https://github.com/laramaia/while_under_attack/issues/10) | PD-005 |
 | `on-start` na Palette sem executar | [#4](https://github.com/laramaia/while_under_attack/issues/4) | PD-021 |
 | Bloco de repetição com condição | [#2](https://github.com/laramaia/while_under_attack/issues/2) | PD-017 |
@@ -477,22 +481,16 @@ que já está pronto do outro lado e como conferir que funcionou. **Quem for
 mexer deve ler a issue antes**, porque várias dessas coisas já foram decididas
 e testadas, e refazê-las de outro jeito quebra o que já passa no gate.
 
-Além das issues, três coisas pequenas que o teste de 18/11 mostrou e que não
-têm issue própria:
+As quatro primeiras saíram do teste de 18/11/2026 e são pequenas, mas três
+delas afetam o dado:
 
-1. **O `src/model/level.ts` ainda não é usado por ninguém.** As cinco fases
-   estão definidas lá, e conferem com o `catalogo-fases.json` — os blocos
-   disponíveis são idênticos e a vida do inimigo de cada fase é exatamente o
-   número de ataques da solução de referência. Mas o `BattleScene` continua
-   lendo `CURRENT_PHASE_ID` e `PLAN_TIME_MS` do `config.ts`. Enquanto for
-   constante global, trocar de fase é editar o `config.ts`, e esquecer disso
-   manda todas as tentativas para a fase errada **sem erro nenhum** (PD-018).
-2. **O `planTimeMs` por fase não chega ao BI.** Hoje as cinco usam o mesmo
-   valor, então nada diverge. Quando variarem, falta `tempo_limite_s` no
-   catálogo e a coluna em `gold.dim_fase` (PD-022).
-3. **O `401` continua segurando os eventos na fila.** Certo para queda de
-   rede; com o token de 8 h expirado, a fila cresce no `localStorage` para
-   sempre e nada mais é enviado, em silêncio (PD-023, ponto 3).
+- **#13** é a mais séria. Enquanto o `fase_id` for constante global, esquecer
+  de trocá-la manda todas as tentativas para a fase errada **sem erro nenhum**,
+  porque a fase existe no catálogo. O gate não tem como pegar: o dado é
+  válido, só não é verdade.
+- **#14** só começa a importar quando as fases tiverem tempos diferentes, e
+  depende da PD-022 fechar em "por fase".
+- **#16** é silenciosa: os eventos param de chegar e nada na tela muda.
 
 ### Como era antes, e por que ficou registrado
 

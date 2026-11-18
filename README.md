@@ -220,7 +220,11 @@ refazê-las de outro jeito quebra o que hoje passa no gate de qualidade.
 
 | O que falta | Issue |
 |---|---|
-| Trocar as senhas de teste antes do deploy | [#10](https://github.com/laramaia/while_under_attack/issues/10) |
+| Ligar o `src/model/level.ts` — fase, tempo, vida do inimigo e blocos ainda vêm de constante global (PD-018) | [#13](https://github.com/laramaia/while_under_attack/issues/13) |
+| `tempo_limite_s` no catálogo e a coluna em `dim_fase` (PD-022) | [#14](https://github.com/laramaia/while_under_attack/issues/14) |
+| Depois da vitória o jogo para, sem tela e sem para onde ir | [#15](https://github.com/laramaia/while_under_attack/issues/15) |
+| Token expirado trava a telemetria em silêncio (PD-023) | [#16](https://github.com/laramaia/while_under_attack/issues/16) |
+| Trocar as senhas de teste antes do deploy (PD-005) | [#10](https://github.com/laramaia/while_under_attack/issues/10) |
 | `on-start` na Palette sem executar (PD-021) | [#4](https://github.com/laramaia/while_under_attack/issues/4) |
 | Bloco de repetição com condição (PD-017) | [#2](https://github.com/laramaia/while_under_attack/issues/2) |
 
