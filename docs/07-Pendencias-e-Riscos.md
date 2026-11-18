@@ -29,6 +29,8 @@ status Resolvida, com o link.
 | **PD-019** | **Qual o teto de eventos por lote?** Hoje não há limite: um lote de qualquer tamanho é aceito inteiro | ADR-007, ingestão | Médio |
 | **PD-020** | **Quem renomeia o `auth_provisoria.py`?** O conteúdo já não é provisório — valida o JWT e aplica RN-004 e RN-005 — mas o nome diz o contrário | ADR-004, legibilidade | Baixo |
 | **PD-021** | **O bloco `on-start` está na Palette e nunca executa.** O motor do jogo só dispara pilhas que começam com `on-flag`. Ou o jogo passa a executá-lo, ou ele sai da Palette, ou perde o `inicia_pilha` no catálogo. Aberta como [issue #4](https://github.com/laramaia/while_under_attack/issues/4) | RN-018, RN-014, RN-019 | **Alto** |
+| **PD-022** | **O tempo limite da fase é o mesmo para todas ou é por fase?** Se for por fase, o número tem que morar no `catalogo-fases.json` e virar coluna em `gold.dim_fase`. Ver abaixo. Aberta como [issue #8](https://github.com/laramaia/while_under_attack/issues/8) | RN-021, catálogo, `dim_fase` | **Alto** |
+| **PD-023** | **Dá para jogar sem login?** Hoje não existe tela de login e o jogo começa direto. Enquanto não se decidir isso, ninguém sabe o que o jogo deve fazer quando o back-end estiver fora do ar. Ver abaixo. Aberta como [issue #7](https://github.com/laramaia/while_under_attack/issues/7) | RN-001, ADR-004, telemetria | **Alto** |
 
 ### Resolvidas
 
@@ -197,6 +199,27 @@ não repetir com as fases.
 
 Qual das duas primeiras não importa tanto quanto **ser só uma**.
 
+#### Atualização de 17/11/2026: o jogo escolheu a opção 1, de fato
+
+A telemetria que entrou na `main` manda `fase_id` lido de uma constante:
+
+```typescript
+// src/config.ts
+export const CURRENT_PHASE_ID = 'F01';
+```
+
+`F01` é exatamente o primeiro identificador do `catalogo-fases.json`, então na
+prática **a opção 1 foi escolhida** e as duas listas batem. Testado: o evento
+atravessa a silver sem cair na quarentena.
+
+Mas a pendência **continua aberta**, porque a constante é uma só e o jogo tem
+cinco fases pela frente. Falta a parte que importa: a `BattleScene` receber o
+`fase_id` de quem a abriu, em vez de ler uma constante global. Enquanto for
+constante, trocar de fase significa editar o `config.ts` — e no dia em que
+alguém esquecer, todas as tentativas vão para a fase errada **sem erro
+nenhum**, porque `F01` existe no catálogo. Esse é o tipo de divergência que o
+dashboard não consegue detectar.
+
 #### Relação com a PD-006
 
 Quais fases existem, com que conceito e que solução de referência, continua
@@ -268,6 +291,89 @@ programa lê o `roots`, então o evento registraria um programa **vazio**
 enquanto o jogador vê blocos no Workspace. Número errado, sem nada que o
 denuncie.
 
+> **Corrigido em 17/11/2026** pela Lara, em `bab601a`, e verificado com o jogo
+> rodando: apagar o primeiro bloco promove o seguinte a raiz, e o `prevBlock`
+> dele vai para `null`. A correção trata também o bloco que está dentro de um
+> C-block, caso que a issue não tinha previsto. Issue #5 fechada.
+
+---
+
+### PD-022 — o tempo limite é o mesmo para todas as fases?
+
+Aberta como [issue #8](https://github.com/laramaia/while_under_attack/issues/8).
+
+**Levantada em 17/11/2026**, junto com a RN-021. O lado do jogo falou em
+**15 s**, e a RN-021 já está implementada nas três camadas esperando o campo
+`disparo`. O que **não** está combinado é de onde sai esse número.
+
+#### Por que não é detalhe de interface
+
+Se o tempo for **por fase**, ele é propriedade da fase, igual ao
+`tamanho_referencia`. Então:
+
+- precisa de um campo novo no `catalogo-fases.json` (`tempo_limite_s`),
+- precisa virar coluna em `gold.dim_fase`,
+- e a `catalog_version` sobe, porque o formato do catálogo mudou.
+
+Se for **global**, nada disso acontece: é uma constante no `config.ts` do jogo
+e o BI não fica sabendo — nem precisa.
+
+A diferença some se ninguém decidir agora e alguém **codificar 15 s no jogo**:
+o número fica enterrado no código, e no dia em que a fase 5 precisar de 40 s
+não há lugar para dizer isso.
+
+#### Recomendação
+
+**Por fase, no catálogo.** O custo hoje é uma linha por fase no JSON e uma
+coluna em `dim_fase`; depois custa uma migração e um reprocessamento. E a
+pergunta "a fase que mais estoura o tempo é a mais difícil?" só tem resposta se
+o tempo de cada fase for um dado, não uma constante.
+
+Enquanto não se decide, **o jogo pode usar 15 s para todas** — é o mesmo
+comportamento nos dois casos enquanto o número não variar. O que não dá é
+mandar o `disparo` sem combinar isto, porque aí o indicador nasce sem contexto.
+
+#### O que não depende desta decisão
+
+O campo `disparo` do EV-04 **já está pronto e testado** nas três camadas,
+qualquer que seja a resposta. Ver Contrato de Eventos, EV-04.
+
+---
+
+### PD-023 — dá para jogar sem login?
+
+Aberta como [issue #7](https://github.com/laramaia/while_under_attack/issues/7).
+
+**Levantada em 17/11/2026**, ao conferir por que nenhum evento chega ao
+back-end. Não existe tela de login: a `StartScene` tem um botão "Jogar" que vai
+direto para a `BattleScene`. Como `telemetry.iniciarSessao(token)` nunca é
+chamado, **todo evento que o jogo monta é descartado na hora** — ver
+API e Integração, seção 8.
+
+#### As três perguntas que ninguém respondeu ainda
+
+1. **O login é obrigatório para jogar?** A RN-001 diz que não há autocadastro,
+   mas não diz que não se joga sem conta.
+2. **E se o back-end estiver fora do ar?** No Render o serviço hiberna depois
+   de 15 min parado e a primeira chamada demora. O jogo trava na tela de login,
+   deixa jogar sem telemetria, ou espera?
+3. **O token vale 8 h (ADR-004). E quando expira no meio da partida?** Hoje o
+   `flush()` trata `401` como "tentar de novo depois" e **mantém os eventos na
+   fila**. Isso está certo para queda de rede, mas com token expirado a fila
+   cresce no `localStorage` para sempre e nada mais é enviado, em silêncio.
+
+#### Recomendação
+
+**Login obrigatório, e o jogo não começa sem ele.** É o mais simples de
+explicar na banca e o único que garante que todo evento tem dono — sem
+`jogador_id` não existe RN-004 ("cada um só vê os próprios dados") nem nenhum
+indicador por jogador.
+
+Para o `401`: tratar como "sessão acabou", mandar de volta para o login e
+chamar `iniciarSessao` de novo com o token novo. A fila sobrevive no
+`localStorage` e é enviada na sequência — o desenho da telemetria já aguenta
+isso, só falta quem decida.
+
 ---
 
 ## Riscos
@@ -302,3 +408,4 @@ melhor decidir isso antes da banca do que durante.
 | 16/11/2026 | **PD-005** passa a parcialmente resolvida: o banco do projeto está no Neon e o BI está conectado nele. Acrescentada a **PD-018** (de onde o jogo tira o `fase_id`), levantada enquanto as fases estavam sendo criadas no jogo |
 | 16/11/2026 | **O back-end passou a existir** (branch `mateo/backend-ingestao`), foi rodado de ponta a ponta e duas pendências fecharam: **PD-011** (FastAPI, em dois serviços) e **PD-014** (`corpo`, com o jogo traduzindo). Acrescentadas **PD-019** (teto do lote) e **PD-020** (renomear o `auth_provisoria.py`). A **PD-005** cresceu: são dois serviços para hospedar, e vieram com ela a troca das senhas de teste e o CORS aberto |
 | 16/11/2026 | **O motor de execução dos blocos entrou na `main`.** A **PD-009** passa a parcialmente resolvida pelo próprio código: pilhas com `on-flag` executam todas, em sequência; pilhas sem bloco de evento são ignoradas. Acrescentada a **PD-021**: o `on-start` está na Palette e nunca executa, e isso faz os indicadores contarem blocos que não rodaram. Registrado também o defeito do `Workspace.removeBlockInstance` |
+| 17/11/2026 | **PD-022** (o tempo limite é global ou por fase?) e **PD-023** (dá para jogar sem login?) acrescentadas, as duas com recomendação e abertas como issues [#8](https://github.com/laramaia/while_under_attack/issues/8) e [#7](https://github.com/laramaia/while_under_attack/issues/7). PD-018 atualizada: o jogo escolheu de fato o `fase_id` do catálogo (`CURRENT_PHASE_ID = 'F01'`), mas continua aberta porque é constante global e o jogo tem cinco fases pela frente. O defeito do Workspace foi corrigido pela Lara em `bab601a` e verificado |

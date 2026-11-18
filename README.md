@@ -183,9 +183,10 @@ acima — é o que torna as decisões defensáveis na banca.
 | Jogo: execução do programa | **parcial** — percorre as pilhas e repete 3x; só o `on-flag` dispara (PD-021) e o `if-else` não executa o corpo |
 | Jogo: vida, vitória e derrota | **pronto** — `HERO_MAX_HP`, `ENEMY_MAX_HP`, e o EV-05 já sai com resultado |
 | Jogo: módulo de telemetria | **pronto** — fila local, lote, 207, `corpo` e reuso do `tentativa_id` |
-| Jogo: enviar de verdade | **falta ligar o login** — `telemetry.iniciarSessao()` não é chamado em lugar nenhum, então nada sai da fila |
-| Jogo: fases | em construção. Falta combinar de onde sai o `fase_id` (PD-018) |
-| Jogo: tempo limite da fase | em construção (RN-021) |
+| Jogo: enviar de verdade | **falta ligar o login** — `telemetry.iniciarSessao()` não é chamado em lugar nenhum, então nada sai da fila ([#7](https://github.com/laramaia/while_under_attack/issues/7)) |
+| Jogo: fases | em construção. O `fase_id` já sai do catálogo, mas é constante global — uma fase só (PD-018) |
+| Jogo: tempo limite da fase | **falta no jogo** (RN-021, [#8](https://github.com/laramaia/while_under_attack/issues/8)). O campo `disparo` já está pronto e testado nas três camadas |
+| Jogo: RN-008, derrota quando o programa acaba curto | **falta** — sem ela a tentativa não gera EV-05 e some do dashboard ([#9](https://github.com/laramaia/while_under_attack/issues/9)) |
 | Back-end: autenticação com bcrypt e JWT | **pronto e testado** |
 | Back-end: ingestão de eventos na bronze | **pronto e testado** |
 | BI: ETL, modelo dimensional, API, dashboards | pronto e rodando |
@@ -198,7 +199,23 @@ de qualidade aprovadas.
 Em 17/11/2026 o jogo ganhou o módulo de telemetria, que monta o envelope, mantém
 fila local e envia em lote para a porta 8001. **Falta um fio:** ninguém chama
 `telemetry.iniciarSessao(token)`, e sem sessão o módulo não registra nem envia
-nada. Esse fio é o login do jogo, que está sendo feito.
+nada. Esse fio é o login do jogo ([#7](https://github.com/laramaia/while_under_attack/issues/7)).
+
+### O que falta, com o detalhe de como fazer
+
+Cada lacuna tem uma issue que diz o que mandar, em que formato, o que já está
+pronto do outro lado e como conferir que funcionou. **Quem for implementar deve
+ler a issue antes:** várias dessas coisas já foram decididas e testadas, e
+refazê-las de outro jeito quebra o que hoje passa no gate de qualidade.
+
+| O que falta | Issue |
+|---|---|
+| Tela de login e `iniciarSessao` — **destrava as outras duas** | [#7](https://github.com/laramaia/while_under_attack/issues/7) |
+| Tempo limite da fase e campo `disparo` (RN-021) | [#8](https://github.com/laramaia/while_under_attack/issues/8) |
+| EV-05 quando o programa acaba com o inimigo vivo (RN-008) | [#9](https://github.com/laramaia/while_under_attack/issues/9) |
+| Trocar as senhas de teste antes do deploy | [#10](https://github.com/laramaia/while_under_attack/issues/10) |
+| `on-start` na Palette sem executar (PD-021) | [#4](https://github.com/laramaia/while_under_attack/issues/4) |
+| Bloco de repetição com condição (PD-017) | [#2](https://github.com/laramaia/while_under_attack/issues/2) |
 
 Enquanto o jogo não envia eventos, o dashboard roda com **dados sintéticos**,
 gerados conforme o Contrato de Eventos e marcados com `origem = 'sintetico'`.
@@ -207,8 +224,8 @@ A tela mostra uma faixa amarela avisando disso.
 As pendências que mais seguram o projeto estão em
 [Pendências e Riscos](docs/07-Pendencias-e-Riscos.md); as de impacto alto hoje
 são a **PD-006** (as fases oficiais), a **PD-003** (prazo e marcos), a
-**PD-017** (se vai existir o bloco de repetição com condição) e a **PD-018**
-(de onde o jogo tira o `fase_id`).
+**PD-017** (se vai existir o bloco de repetição com condição), a **PD-022** (o
+tempo limite é global ou por fase?) e a **PD-023** (dá para jogar sem login?).
 
 ---
 

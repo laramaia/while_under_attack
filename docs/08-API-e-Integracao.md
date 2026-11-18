@@ -416,19 +416,46 @@ registrado como pendência de implantação (PD-005).
 
 ## 8. O que falta para o caminho ficar completo
 
-Atualizado em 17/11/2026, depois de o jogo ganhar o módulo de telemetria.
+Atualizado em 17/11/2026, depois de o jogo ganhar o módulo de telemetria e de o
+back-end aceitar o campo `disparo`.
 
 | | Situação |
 |---|---|
 | Rotas de login e ingestão | **prontas e testadas** |
 | Gravação na bronze com controle de lote | **pronta e testada** |
+| Campo `disparo` do EV-04 (RN-021), nas três camadas | **pronto e testado** |
 | ETL, gate de qualidade, gold e dashboards | **prontos e testados** |
 | Jogo: montar o envelope, fila local, envio em lote | **pronto** (`src/telemetry/telemetry.ts`) |
 | Jogo: serializar o programa em `pilhas` com `corpo` | **pronto** (`src/telemetry/programa.ts`) |
 | Jogo: disparar os cinco eventos | **pronto** (`BattleScene`) |
 | Jogo: **enviar de verdade** | **falta ligar o login** — ver abaixo |
+| Jogo: tempo limite da fase e `disparo` | **falta** |
+| Jogo: RN-008, derrota quando o programa acaba curto | **falta** |
+
+### Onde está escrito o que falta
+
+Cada lacuna abaixo tem uma issue com o detalhe de implementação — o que mandar,
+em que formato, o que já está pronto do outro lado e como conferir que
+funcionou. **Quem for mexer deve ler a issue antes**, porque várias dessas
+coisas já foram decididas e testadas, e refazê-las de outro jeito quebra o que
+já passa no gate.
+
+| O que falta | Issue | Decisão em aberto |
+|---|---|---|
+| Tela de login e `iniciarSessao` | [#7](https://github.com/laramaia/while_under_attack/issues/7) | PD-023 |
+| Tempo limite da fase e campo `disparo` | [#8](https://github.com/laramaia/while_under_attack/issues/8) | PD-022 |
+| EV-05 quando o programa acaba com o inimigo vivo | [#9](https://github.com/laramaia/while_under_attack/issues/9) | — |
+| Trocar as senhas de teste antes do deploy | [#10](https://github.com/laramaia/while_under_attack/issues/10) | PD-005 |
+| `on-start` na Palette sem executar | [#4](https://github.com/laramaia/while_under_attack/issues/4) | PD-021 |
+| Bloco de repetição com condição | [#2](https://github.com/laramaia/while_under_attack/issues/2) | PD-017 |
+
+A ordem importa: **a #7 destrava as outras duas do jogo**. Enquanto a sessão
+não abre, nem o tempo limite nem a RN-008 dão para verificar com dado real —
+dá para escrever o código, não dá para saber se chegou.
 
 ### O fio que falta: ninguém abre a sessão
+
+Issue [#7](https://github.com/laramaia/while_under_attack/issues/7).
 
 `telemetry.registrar()` sai cedo quando não há `session_id`, e `flush()` sai
 cedo quando não há token. Os dois só existem depois de
@@ -442,6 +469,8 @@ devolve. Enquanto isso não existir, não dá para ver nenhum número real no
 dashboard.
 
 ### Dois buracos no que o jogo emite
+
+Issues [#8](https://github.com/laramaia/while_under_attack/issues/8) e [#9](https://github.com/laramaia/while_under_attack/issues/9).
 
 **1. Play sem bloco de evento não gera nenhum evento.** O `BattleScene` faz:
 
@@ -492,3 +521,4 @@ O serializador também devolve um `Map` de bloco para id, que é como o
 |---|---|
 | 16/11/2026 | Versão inicial, escrita depois de rodar o back-end da branch `mateo/backend-ingestao` de ponta a ponta contra o BI. Rotas dos dois serviços, caminho completo do evento, divisão de validação entre back-end e silver, exigência do `WUA_SEGREDO` compartilhado, e a seção 7 com os três erros de informação que circularam na equipe |
 | 17/11/2026 | **O jogo ganhou telemetria e a PR #1 entrou na `main`.** Seção 8 reescrita: o módulo monta e serializa certo, usa a porta 8001 e reusa o `tentativa_id`, mas **ninguém chama `iniciarSessao`**, então nada é enviado. Registrados dois buracos no que o jogo emite — Play sem bloco de evento não gera evento nenhum, e programa que acaba com o inimigo vivo não gera EV-05 — com o que cada um faz no ETL, testado |
+| 17/11/2026 | **O back-end passou a aceitar o campo `disparo`** (PR #3, commit `947580a`), e a cadeia inteira foi testada junta: jogo → back-end → bronze → silver → gold, com as 10 regras do gate aprovando. Campo ausente e `null` explícito chegam os dois como `jogador`; valor fora dos dois é recusado na ingestão. Seção 8 ganhou a tabela do que falta, **com uma issue por lacuna**: quem for implementar deve ler a issue antes, porque o outro lado já está pronto e testado |
