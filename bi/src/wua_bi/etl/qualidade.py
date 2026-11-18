@@ -122,13 +122,19 @@ REGRAS_GOLD: list[Regra] = [
     ),
     Regra(
         "RN-012b",
-        "interrompidas nao somam em tentativas ate vencer",
+        "tentativas ate vencer exclui interrompida e Play do jogo",
+        # Recalcula o numero a partir do fato, por um caminho diferente do que
+        # o gold usou para monta-lo. Tem que cair nas mesmas tres exclusoes:
+        # resultado nao conclusivo (RN-012), o que veio depois da primeira
+        # vitoria (RN-013) e o Play que o jogo deu sozinho (RN-021) -- este
+        # ultimo exceto quando foi a propria vitoria.
         """select count(*) from gold.fato_progresso_fase p
            where p.concluida and p.tentativas_ate_vencer <> (
                select count(*) from gold.fato_tentativa t
                join gold.dim_resultado r on r.resultado_sk = t.resultado_sk
                where t.jogador_sk = p.jogador_sk and t.fase_sk = p.fase_sk
                  and r.e_conclusiva
+                 and (t.disparo = 'jogador' or t.e_primeira_vitoria)
                  and t.numero_tentativa <= (
                      select min(t2.numero_tentativa) from gold.fato_tentativa t2
                      where t2.jogador_sk = p.jogador_sk and t2.fase_sk = p.fase_sk

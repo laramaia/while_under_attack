@@ -416,31 +416,73 @@ registrado como pendência de implantação (PD-005).
 
 ## 8. O que falta para o caminho ficar completo
 
-O back-end está pronto e esperando. O que falta é do lado do jogo:
+Atualizado em 17/11/2026, depois de o jogo ganhar o módulo de telemetria.
 
 | | Situação |
 |---|---|
 | Rotas de login e ingestão | **prontas e testadas** |
 | Gravação na bronze com controle de lote | **pronta e testada** |
 | ETL, gate de qualidade, gold e dashboards | **prontos e testados** |
-| Jogo: enviar qualquer evento | **não começou** — não há nenhuma chamada HTTP em `src/` |
-| Jogo: serializar o programa em `pilhas` | não começou (ver PD-014 abaixo) |
-| Jogo: encaixe dos blocos (`nextBlock`, `inner`) | em andamento |
-| Jogo: motor de execução (vida, vitória, derrota) | não começou — **é o que trava o EV-05** |
+| Jogo: montar o envelope, fila local, envio em lote | **pronto** (`src/telemetry/telemetry.ts`) |
+| Jogo: serializar o programa em `pilhas` com `corpo` | **pronto** (`src/telemetry/programa.ts`) |
+| Jogo: disparar os cinco eventos | **pronto** (`BattleScene`) |
+| Jogo: **enviar de verdade** | **falta ligar o login** — ver abaixo |
 
-O EV-05 (`tentativa_finalizada`) exige `resultado`, `vida_guerreiro_final`,
-`vida_inimigo_final`, `duracao_execucao_ms`, `programa_concluido` e
-`bloco_em_execucao_id`. Sem motor de execução nenhum desses valores existe.
-Enquanto isso, os eventos EV-01, EV-03 e EV-04 já podem ser enviados — e são
-eles que alimentam o indicador de conceito aplicado (RN-019), que é o que o
-projeto tem de mais próprio.
+### O fio que falta: ninguém abre a sessão
 
-### A PD-014 foi decidida de um lado só
+`telemetry.registrar()` sai cedo quando não há `session_id`, e `flush()` sai
+cedo quando não há token. Os dois só existem depois de
+`telemetry.iniciarSessao(token)` — **que não é chamado em lugar nenhum**
+(`git grep iniciarSessao` só acha a própria definição).
+
+Na prática: o jogo monta os eventos certinhos e **descarta todos**. Nada entra
+na fila, nada é enviado, a bronze continua vazia. O que destrava é a tela de
+login do jogo, chamando `iniciarSessao` com o token que o `POST /login`
+devolve. Enquanto isso não existir, não dá para ver nenhum número real no
+dashboard.
+
+### Dois buracos no que o jogo emite
+
+**1. Play sem bloco de evento não gera nenhum evento.** O `BattleScene` faz:
+
+```typescript
+if (runner.running || !runner.canRun(roots)) return;
+```
+
+e `canRun` exige um `on-flag`. Então, com o Workspace vazio, **não sai EV-04
+nem EV-05**. Isso importa para o tempo limite da fase (RN-021): a tentativa que
+o jogo dispara sozinho com o Workspace vazio é justamente a que precisa ser
+registrada, e hoje ela não seria. Para a derrota por tempo esgotado aparecer no
+dashboard, o `onPlay` precisa emitir os eventos mesmo quando não há nada para
+executar.
+
+**2. Programa que acaba com o inimigo vivo não gera EV-05.** O `onFinished`
+tem:
+
+```typescript
+if (!resultado) {
+  console.warn('[telemetria] programa acabou com o inimigo vivo: falta a regra RN-008');
+  return;
+}
+```
+
+A RN-008 diz que, nesse caso, a execução continua até o guerreiro morrer — e
+aí há derrota. Sem isso, a tentativa fica com EV-04 e sem EV-05.
+
+**O ETL aguenta**, e isso foi testado: a tentativa entra na silver com
+`resultado` nulo, **não** entra em `gold.fato_tentativa`, e a reconciliação
+`REC-001` continua passando, porque ela conta tentativa na silver, não no
+gold. Nenhuma das 10 regras reclama. Mas o jogador fez uma tentativa que não
+aparece em lugar nenhum do dashboard, e o `numero_tentativa` das seguintes
+pula um — o que desloca a curva de vitória por número da tentativa.
+
+### A PD-014 foi decidida de um lado só, e o jogo seguiu
 
 O back-end aceita **`corpo`** para o conteúdo dos blocos em C, como o Contrato
-de Eventos sempre disse. O `BlockInstance` do jogo guarda em `inner`. Com a
-ingestão pronta e o contrato publicado, **a tradução fica no jogo**, na hora de
-serializar o programa. O back-end não vai aprender `inner`.
+de Eventos sempre disse. O `BlockInstance` do jogo guarda em `inner`, e o
+`serializarPrograma` traduz na hora de enviar — que é exatamente o combinado.
+O serializador também devolve um `Map` de bloco para id, que é como o
+`bloco_em_execucao_id` do EV-05 aponta para o bloco certo.
 
 ---
 
@@ -449,3 +491,4 @@ serializar o programa. O back-end não vai aprender `inner`.
 | Data | Mudança |
 |---|---|
 | 16/11/2026 | Versão inicial, escrita depois de rodar o back-end da branch `mateo/backend-ingestao` de ponta a ponta contra o BI. Rotas dos dois serviços, caminho completo do evento, divisão de validação entre back-end e silver, exigência do `WUA_SEGREDO` compartilhado, e a seção 7 com os três erros de informação que circularam na equipe |
+| 17/11/2026 | **O jogo ganhou telemetria e a PR #1 entrou na `main`.** Seção 8 reescrita: o módulo monta e serializa certo, usa a porta 8001 e reusa o `tentativa_id`, mas **ninguém chama `iniciarSessao`**, então nada é enviado. Registrados dois buracos no que o jogo emite — Play sem bloco de evento não gera evento nenhum, e programa que acaba com o inimigo vivo não gera EV-05 — com o que cada um faz no ETL, testado |

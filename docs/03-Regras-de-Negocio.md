@@ -93,6 +93,35 @@
 | RN-014 | Eficiência do código = blocos da solução de referência ÷ blocos do programa da primeira vitória. Contam todas as instâncias, inclusive as aninhadas e o bloco de evento, da mesma forma na referência e no programa. | Proposta | `etl/gold.py`, `programa.py` |
 | **RN-019** | **O jogador aplicou o conceito de uma fase quando o programa da primeira vitória usa o bloco que representa aquele conceito.** O bloco do conceito é o que a fase de introdução acrescenta à Palette em relação à fase anterior. Numa fase de reforço, é o bloco da fase que introduziu o conceito. Quando o conceito não se resume a um bloco — "combinação" é usar um bloco dentro do outro — o indicador não se aplica. | **Proposta** | `catalogo.py` → `bloco_do_conceito`; `gold.dim_fase.bloco_conceito` |
 | **RN-020** | **Uma fase cujo `conceito_id` já apareceu numa fase anterior é fase de reforço; a primeira a usar aquele conceito é fase de introdução.** Espera-se que um reforço custe *menos* tentativas que a introdução; quando custa mais, ou o reforço está difícil demais, ou o conceito não pegou na introdução. | **Proposta** | `catalogo.py` → `papel`; `gold.dim_fase.papel` |
+| **RN-021** | **A tentativa disparada pelo tempo limite da fase, e não pelo jogador, não conta nos indicadores de aprendizagem.** Estourar o tempo não é uma solução errada: é não ter tentado a tempo. A tentativa continua registrada no fato e no `total_tentativas` — ela aconteceu —, mas fica fora de "tentativas até vencer" (RN-012), das causas de derrota (RN-008) e do tempo montando. **Exceção:** se a própria vitória veio de um Play do jogo, ela conta: o programa estava certo, só faltou apertar o botão. O jogo informa isso no campo opcional `disparo` do EV-04. | **Proposta** | `etl/silver.py`, `etl/gold.py` → filtro `ate_vencer`; `silver.tentativa.disparo` |
+
+### Sobre a RN-021, e o que ela custou medir
+
+A RN-021 nasceu de uma pergunta do lado do jogo em 17/11/2026: a fase vai ter
+tempo limite de 15 s e, esgotado, **o jogo aperta Play sozinho** com o que
+estiver no Workspace.
+
+Medi a distorção antes de decidir, com dois jogadores sintéticos que montaram
+**exatamente o mesmo programa vencedor**, um deles depois de dois Play
+automáticos com o Workspace vazio:
+
+| Indicador | Sem Play automático | Com dois |
+|---|---|---|
+| Tentativas até vencer (RN-012) | 1 | **3** |
+| Derrotas por programa curto (RN-008) | 0 | **2** |
+| Tempo montando | 21 s | **51 s** |
+| Eficiência (RN-014) | 1,000 | 1,000 — não afetada |
+
+Três vezes pior, para o mesmo aprendizado. E as duas derrotas falsas alimentam
+o alerta que o painel do professor mostra quando os programas terminam cedo
+demais — um aviso que mandaria o professor explicar melhor a fase, quando o
+problema era o relógio.
+
+Com o campo `disparo` preenchido, os três indicadores voltam aos valores de
+quem não estourou o tempo.
+
+> **A RN-013 já protegia parte disso.** O que vem depois da primeira vitória é
+> rejogo e nunca contou. A RN-021 cobre o que vem **antes**, que era o buraco.
 
 ### Sobre a RN-019 e a RN-020
 
@@ -138,3 +167,4 @@ deixa de distinguir introdução de reforço nos destaques do professor.
 | 16/11/2026 | Acrescentadas **RN-019** (conceito aplicado) e **RN-020** (introdução e reforço), ambas como Proposta, tirando do código definições que só viviam lá. Acrescentada a coluna *Onde vive* em todas as regras. Nota sobre a RN-018 passar a lidar com dois blocos de evento |
 | 16/11/2026 | **O back-end passou a existir e quatro regras saíram de "Proposta".** RN-003 e RN-006 vão a **Aceita** com o arquivo que as verifica; RN-015 ganha a implementação do lado do servidor. A coluna *Onde vive* passa a usar o caminho completo, porque agora há dois projetos Python no repositório e `api/` sozinho ficou ambíguo |
 | 16/11/2026 | **O motor de execução do jogo entrou na `main`.** A RN-018 ganha o resultado do teste: pilhas sem bloco de evento são ignoradas como a regra previa, várias pilhas com `on-flag` executam em sequência (parte da PD-009 respondida), mas uma pilha encabeçada por **`on-start` não executa** — divergência registrada como **PD-021** |
+| 17/11/2026 | **Acrescentada a RN-021**: a tentativa que o tempo limite dispara não conta nos indicadores de aprendizagem. Veio de uma pergunta do lado do jogo, e a distorção foi medida antes de decidir. A regra de qualidade **RN-012b** foi reescrita para verificar a definição nova — ela barrou a primeira versão da mudança, que era o esperado |

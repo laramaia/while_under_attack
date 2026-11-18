@@ -179,11 +179,13 @@ acima — é o que torna as decisões defensáveis na banca.
 | Parte | Situação |
 |---|---|
 | Jogo: Palette, Workspace, arrastar e soltar | pronto |
-| Jogo: encaixe dos blocos (`nextBlock`, `inner`) | **pronto** — encaixa em sequência e dentro dos blocos em C |
+| Jogo: encaixe dos blocos (`nextBlock`, `inner`) | pronto |
 | Jogo: execução do programa | **parcial** — percorre as pilhas e repete 3x; só o `on-flag` dispara (PD-021) e o `if-else` não executa o corpo |
+| Jogo: vida, vitória e derrota | **pronto** — `HERO_MAX_HP`, `ENEMY_MAX_HP`, e o EV-05 já sai com resultado |
+| Jogo: módulo de telemetria | **pronto** — fila local, lote, 207, `corpo` e reuso do `tentativa_id` |
+| Jogo: enviar de verdade | **falta ligar o login** — `telemetry.iniciarSessao()` não é chamado em lugar nenhum, então nada sai da fila |
 | Jogo: fases | em construção. Falta combinar de onde sai o `fase_id` (PD-018) |
-| Jogo: vida, vitória e derrota | **não começou** — é o que trava o EV-05 |
-| Jogo: envio de eventos | **não começou** — não há chamada HTTP em `src/` |
+| Jogo: tempo limite da fase | em construção (RN-021) |
 | Back-end: autenticação com bcrypt e JWT | **pronto e testado** |
 | Back-end: ingestão de eventos na bronze | **pronto e testado** |
 | BI: ETL, modelo dimensional, API, dashboards | pronto e rodando |
@@ -191,7 +193,12 @@ acima — é o que torna as decisões defensáveis na banca.
 **O caminho inteiro já foi percorrido de ponta a ponta** em 16/11/2026, com
 eventos montados à mão no formato do contrato: login → `POST /api/eventos` →
 bronze → ETL → silver → gate de qualidade → gold → dashboard, com as 10 regras
-de qualidade aprovadas. O que falta é o jogo fazer essa chamada.
+de qualidade aprovadas.
+
+Em 17/11/2026 o jogo ganhou o módulo de telemetria, que monta o envelope, mantém
+fila local e envia em lote para a porta 8001. **Falta um fio:** ninguém chama
+`telemetry.iniciarSessao(token)`, e sem sessão o módulo não registra nem envia
+nada. Esse fio é o login do jogo, que está sendo feito.
 
 Enquanto o jogo não envia eventos, o dashboard roda com **dados sintéticos**,
 gerados conforme o Contrato de Eventos e marcados com `origem = 'sintetico'`.

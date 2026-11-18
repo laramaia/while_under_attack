@@ -121,6 +121,10 @@ create table gold.fato_tentativa (
     bloco_em_execucao_tipo  text,
     causa_derrota           text,
 
+    -- RN-021: quem apertou o Play. 'tempo_esgotado' nao conta nos indicadores
+    -- de aprendizagem, mas a tentativa continua aqui: ela aconteceu.
+    disparo                 text not null default 'jogador',
+
     -- marca a tentativa que define os indicadores de aprendizagem da fase
     -- (RN-011: a fase e concluida na primeira vitoria)
     e_primeira_vitoria      boolean not null default false,

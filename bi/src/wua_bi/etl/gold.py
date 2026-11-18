@@ -64,8 +64,15 @@ select
     c.*,
     -- RN-013: o que vier depois da primeira vitoria e rejogo e nao conta nos
     -- indicadores de aprendizagem.
+    -- RN-021: o Play que o jogo deu sozinho por tempo esgotado tambem nao
+    -- conta. Estourar o tempo nao e uma solucao errada, e nao ter tentado a
+    -- tempo; contar isso faria o jogador parecer pior do que foi.
     (c.num_primeira_vitoria is not null
-     and c.numero_tentativa <= c.num_primeira_vitoria)        as ate_vencer,
+     and c.numero_tentativa <= c.num_primeira_vitoria
+     -- a propria vitoria sempre conta, mesmo se o Play foi do jogo: o
+     -- programa estava certo, so faltou apertar o botao.
+     and (c.disparo = 'jogador'
+          or c.numero_tentativa = c.num_primeira_vitoria))     as ate_vencer,
     (c.numero_tentativa = c.num_primeira_vitoria)             as e_primeira_vitoria
 from conclusivas c
 """
@@ -76,7 +83,7 @@ insert into gold.fato_tentativa (
     numero_tentativa, tempo_edicao_ms, duracao_execucao_ms, qtd_blocos,
     qtd_pilhas_executaveis, profundidade_max, tamanho_referencia,
     programa_concluido, bloco_em_execucao_id, bloco_em_execucao_tipo,
-    causa_derrota, e_primeira_vitoria, usou_bloco_conceito, origem
+    causa_derrota, disparo, e_primeira_vitoria, usou_bloco_conceito, origem
 )
 with base as ({SQL_BASE})
 select
@@ -97,6 +104,7 @@ select
     b.bloco_em_execucao_id,
     pb.tipo,
     b.causa_derrota,
+    b.disparo,
     coalesce(b.e_primeira_vitoria, false),
     -- o programa usou o bloco que representa o conceito da fase? Nulo
     -- quando o conceito nao se resume a um bloco, porque ai a pergunta nao
