@@ -1,0 +1,20 @@
+[
+  {
+    "usuario": "mateo",
+    "senha": "troque-esta-senha-mateo",
+    "nome_exibicao": "Mateo",
+    "perfil": "jogador"
+  },
+  {
+    "usuario": "lara",
+    "senha": "troque-esta-senha-lara",
+    "nome_exibicao": "Lara",
+    "perfil": "jogador"
+  },
+  {
+    "usuario": "prof_teste",
+    "senha": "troque-esta-senha-prof",
+    "nome_exibicao": "Prof",
+    "perfil": "professor"
+  }
+]

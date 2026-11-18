@@ -1,33 +1,30 @@
-"""Autenticacao PROVISORIA do dashboard.
+"""Integracao de autenticacao do dashboard com o back-end e permissoes (ADR-001, ADR-004).
 
-A autenticacao e do back-end (ADR-002, ADR-004): contas pre-criadas, senha com
-hash, token com prazo. Este arquivo existe so para o dashboard nao ficar parado
-esperando, e deve ser trocado pelo login de verdade assim que ele existir.
+A autenticacao (conferencia de senha bcrypt e emissao do JWT) agora e feita
+pelo servico de back-end em `POST /login` (ADR-002, ADR-004). Este modulo:
+- Repassa o pedido de login do dashboard para o back-end (`autenticar`).
+- Valida o token JWT emitido pelo back-end usando `WUA_SEGREDO` (`_ler_token`,
+  `usuario_atual`).
 
-O que NAO e provisorio e a aplicacao das permissoes:
+As regras de permissao continuam vivendo num lugar so, aqui (ADR-001):
 
     RN-004  o jogador acessa somente os proprios dados
     RN-005  o professor acessa os dados de todos os jogadores
-
-Isso e verificado em `exigir_acesso_a`, na API, que e exatamente o que a
-ADR-001 queria: uma unica regra de permissao, num lugar so.
 """
 
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
-import json
-import time
 from dataclasses import dataclass
+from typing import Any
 
+import httpx
+import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from .. import config, db
 
-VALIDADE_SEGUNDOS = 8 * 3600
+ALGORITMO_JWT = "HS256"
 
 _esquema = HTTPBearer(auto_error=False)
 
@@ -44,58 +41,44 @@ class Usuario:
         return self.perfil == "professor"
 
 
-def _hash_senha(senha: str) -> str:
-    # Mesma funcao do gerador, que cria as contas de teste. A ADR-004 pede
-    # Argon2 ou bcrypt no sistema de verdade.
-    return hashlib.pbkdf2_hmac("sha256", senha.encode(), b"wua-dev", 100_000).hex()
-
-
-def _assinar(dados: bytes) -> str:
-    assinatura = hmac.new(config.SEGREDO.encode(), dados, hashlib.sha256).digest()
-    return base64.urlsafe_b64encode(assinatura).decode().rstrip("=")
-
-
-def emitir_token(usuario: Usuario) -> str:
-    corpo = json.dumps({
-        "jogador_id": usuario.jogador_id,
-        "usuario": usuario.usuario,
-        "expira_em": int(time.time()) + VALIDADE_SEGUNDOS,
-    }, separators=(",", ":")).encode()
-    parte = base64.urlsafe_b64encode(corpo).decode().rstrip("=")
-    return f"{parte}.{_assinar(corpo)}"
-
-
-def _ler_token(token: str) -> dict:
+def _ler_token(token: str) -> dict[str, Any]:
+    """Valida a assinatura e o prazo do JWT emitido pelo back-end (ADR-004, RN-006)."""
     try:
-        parte, assinatura = token.split(".", 1)
-        corpo = base64.urlsafe_b64decode(parte + "=" * (-len(parte) % 4))
-    except (ValueError, Exception):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "token invalido")
-
-    if not hmac.compare_digest(_assinar(corpo), assinatura):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "token invalido")
-
-    dados = json.loads(corpo)
-    if dados["expira_em"] < time.time():
+        return jwt.decode(token, config.SEGREDO, algorithms=[ALGORITMO_JWT])
+    except jwt.ExpiredSignatureError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "token expirado")
-    return dados
+    except jwt.InvalidTokenError:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "token invalido")
 
 
-def autenticar(usuario: str, senha: str) -> Usuario | None:
-    linhas = db.consultar(
-        "select jogador_id, usuario, nome_exibicao, perfil, senha_hash "
-        "from app.jogador where usuario = %(usuario)s",
-        {"usuario": usuario},
-    )
-    if not linhas:
+def autenticar(usuario: str, senha: str) -> dict[str, Any] | None:
+    """Delega o login ao back-end em POST /login (ADR-002, ADR-004).
+
+    Devolve o dicionario {"token", "jogador_id", "nome_exibicao", "perfil"}
+    quando as credenciais sao validas, ou None quando o back-end responde 401.
+    """
+    try:
+        resposta = httpx.post(
+            f"{config.BACKEND_URL}/login",
+            json={"usuario": usuario, "senha": senha},
+            timeout=5.0,
+        )
+    except httpx.RequestError:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "servico de autenticacao indisponivel",
+        )
+
+    if resposta.status_code == status.HTTP_401_UNAUTHORIZED:
         return None
 
-    linha = linhas[0]
-    if not hmac.compare_digest(linha["senha_hash"], _hash_senha(senha)):
-        return None
+    if resposta.status_code != status.HTTP_200_OK:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            "erro ao consultar servico de autenticacao",
+        )
 
-    return Usuario(linha["jogador_id"], linha["usuario"],
-                   linha["nome_exibicao"], linha["perfil"])
+    return resposta.json()
 
 
 def usuario_atual(
@@ -105,10 +88,14 @@ def usuario_atual(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "faca login")
 
     dados = _ler_token(credencial.credentials)
+    jogador_id = dados.get("jogador_id")
+    if not isinstance(jogador_id, int):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "token invalido")
+
     linhas = db.consultar(
         "select jogador_id, usuario, nome_exibicao, perfil from app.jogador "
         "where jogador_id = %(id)s",
-        {"id": dados["jogador_id"]},
+        {"id": jogador_id},
     )
     if not linhas:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "conta nao existe mais")
