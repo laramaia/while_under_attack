@@ -160,6 +160,39 @@ REGRAS_GOLD: list[Regra] = [
            join gold.dim_resultado r on r.resultado_sk = t.resultado_sk
            where r.resultado = 'derrota' and t.causa_derrota is null""",
     ),
+    # Reconciliacao silver -> gold, irma da REC-001. Toda tentativa analisada
+    # na silver tem que ter chegado ao fato.
+    #
+    # Esta regra nasceu de um buraco real, achado em 18/11/2026 ao subir a
+    # catalog_version do catalogo. O fato_tentativa junta com dim_fase por
+    # (fase_id, catalog_version); quando o jogo manda uma catalog_version que
+    # o catalogo do BI nao tem mais, o join nao acha par e a tentativa some --
+    # sem erro, sem quarentena, sem nada.
+    #
+    # O teste: silver com 199 tentativas, gold com ZERO, e as seis regras
+    # desta porta aprovadas, porque todas perguntam "quantas linhas da gold
+    # violam X?" e numa gold vazia a resposta e sempre zero. A porta deixou
+    # passar uma gold vazia e o ETL imprimiu "gold publicada". O dashboard
+    # mostraria zero em tudo, e o gate -- que existe exatamente para isso --
+    # teria dito que estava tudo bem.
+    #
+    # Uma regra que conta o que FALTA, em vez de conferir o que esta la,
+    # e a unica que nao passa de graca quando nao ha nada.
+    #
+    # O filtro `resultado is not null` nao e detalhe: uma tentativa que ficou
+    # sem EV-05 (a aba fechou no meio, por exemplo) entra na silver e NAO vai
+    # para o fato, de proposito -- e o SQL_BASE da gold que decide isso. Sem
+    # este filtro a regra reprovaria a gold inteira por causa de uma tentativa
+    # inacabada, que e comportamento esperado e nao defeito.
+    Regra(
+        "REC-003",
+        "reconciliacao: toda tentativa conclusiva da silver chegou ao fato",
+        """select abs(
+               (select count(*) from silver.tentativa
+                 where resultado is not null)
+             - (select count(*) from gold.fato_tentativa)
+           )""",
+    ),
 ]
 
 
