@@ -13,10 +13,12 @@ Este documento define **o que o jogo envia**. Para onde ele envia está em
 > A porta é a **8001**, do back-end. A 8000 é a API do BI e **não** recebe
 > eventos.
 
-> **Em 16/11/2026 quem recebe já existe; quem envia ainda não.** O back-end
-> implementa este contrato campo por campo e foi testado de ponta a ponta. Do
-> lado do jogo não há nenhuma chamada HTTP em `src/`. Tudo o que já esteve na
-> bronze veio do gerador sintético, com `origem = 'sintetico'`.
+> **Em 18/11/2026 as duas pontas existem e conversam.** O back-end implementa
+> este contrato campo por campo, o jogo envia a partir de
+> `src/telemetry/telemetry.ts`, e uma partida jogada no navegador percorreu
+> EV-01 a EV-05 até a gold, sem evento rejeitado. Esse teste rodou num Postgres
+> local: no banco do projeto a bronze ainda só tem o que o gerador sintético
+> pôs lá, com `origem = 'sintetico'` (RS-02).
 
 ---
 
@@ -312,3 +314,4 @@ verificado que batem.
 | 1 | 16/11/2026 | Identificadores de bloco do exemplo trocados pelos reais do jogo. Nova seção 6 com o que está em aberto. `condicao` e `params` marcados como não usados; `corpo` × `inner` registrado como **PD-014** e a origem do `fase_id` como **PD-018**. Acrescentados `origem` e `lote_id` aos campos que o jogo não envia, e o formato `207` à validação. **Sem mudança incompatível: `schema_version` continua 1** |
 | 1 | 16/11/2026 | **O back-end implementou este contrato e ele foi testado de ponta a ponta.** Acrescentado no topo para onde o jogo envia (porta **8001**, não 8000). **PD-014 resolvida:** fica `corpo`, o jogo traduz o `inner`. O `207` deixa de ser sugestão e passa a estar implementado, com o aviso de que ele não significa sucesso. Novo aviso sobre reusar o `tentativa_id` entre EV-04 e EV-05. Registrado o que o back-end **não** valida: `catalog_version`, `fase_id` e coerência entre eventos ficam para a silver. **Sem mudança incompatível: `schema_version` continua 1** |
 | 1 | 17/11/2026 | **Campo opcional `disparo` no EV-04** (`"jogador"` ou `"tempo_esgotado"`), para o tempo limite da fase: sem ele, o Play que o jogo dá sozinho conta como tentativa do jogador e triplica o indicador de tentativas até vencer. Registrado o que acontece com programa vazio, testado de ponta a ponta. **Aditivo e opcional: `schema_version` continua 1** |
+| 1 | 18/11/2026 | Aviso do topo atualizado: as duas pontas existem e conversam, e uma partida jogada no navegador chegou à gold. O que falta é partida jogada no banco do projeto, não código — ver RS-02 |

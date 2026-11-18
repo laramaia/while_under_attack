@@ -245,10 +245,10 @@ Mais três tabelas de controle, que não são dado de jogo:
 
 - `bronze.ingestao_lote` — **um lote de ingestão por linha** (ADR-007), com as
   contagens de recebidos, gravados, ignorados e rejeitados. Quem escreve é o
-  **back-end**; o BI só lê. Enquanto o endpoint não existe, o gerador sintético
-  escreve, para o caminho ficar exercitado. `bronze.eventos.lote_id` liga cada
-  evento ao lote que o trouxe — é anulável, então não quebra o contrato já
-  combinado com o back-end.
+  **back-end**; o BI só lê. O gerador sintético também escreve aqui, para que
+  rodar sem o back-end no ar continue exercitando o mesmo caminho.
+  `bronze.eventos.lote_id` liga cada evento ao lote que o trouxe — é anulável,
+  então não quebra o contrato combinado com o back-end.
 - `bronze.etl_execucao` — log das execuções: etapa, gatilho (`manual` ou
   `agendado`), duração e erro.
 - `bronze.etl_qualidade` — uma linha por regra por execução. É o boletim que o

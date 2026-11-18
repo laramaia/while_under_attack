@@ -68,7 +68,8 @@ bi/                    a fatia de Inteligência de Negócios
   src/wua_bi/
     etl/               bronze → silver → gold, gate de qualidade, agendador
     api/               API de leitura + permissões por perfil
-    gerador.py         eventos sintéticos, enquanto o jogo não envia
+    gerador.py         eventos sintéticos, para desenvolver sem depender de
+                       partida jogada (RS-02)
   dashboard/           telas do Jogador e do Professor
   docs/                conformidade com a arquitetura corporativa
 ```
