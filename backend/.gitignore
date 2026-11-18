@@ -1,0 +1,6 @@
+.venv/
+.env
+contas.json
+__pycache__/
+*.egg-info/
+*.pyc

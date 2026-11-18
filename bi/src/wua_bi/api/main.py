@@ -55,16 +55,16 @@ class PedidoLogin(BaseModel):
 
 @app.post("/api/login", tags=["acesso"])
 def login(pedido: PedidoLogin) -> dict[str, Any]:
-    usuario = auth.autenticar(pedido.usuario, pedido.senha)
-    if usuario is None:
+    dados_login = auth.autenticar(pedido.usuario, pedido.senha)
+    if dados_login is None:
         # Mensagem unica de proposito: nao revela se o usuario existe.
         raise HTTPException(401, "usuario ou senha invalidos")
 
     return {
-        "token": auth.emitir_token(usuario),
-        "jogador_id": usuario.jogador_id,
-        "nome_exibicao": usuario.nome_exibicao,
-        "perfil": usuario.perfil,
+        "token": dados_login["token"],
+        "jogador_id": dados_login["jogador_id"],
+        "nome_exibicao": dados_login["nome_exibicao"],
+        "perfil": dados_login["perfil"],
     }
 
 

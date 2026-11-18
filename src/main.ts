@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene';
 import { StartScene } from './scenes/StartScene';
 import { BattleScene } from './scenes/BattleScene';
+import { LoginScene } from './scenes/LoginScene';
 
 new Phaser.Game({
   type: Phaser.AUTO,
@@ -14,5 +15,5 @@ new Phaser.Game({
     height: '100%',
   },
   input: { activePointers: 2 },
-  scene: [BootScene, StartScene, BattleScene],
+  scene: [BootScene, StartScene, BattleScene, LoginScene],
 });
