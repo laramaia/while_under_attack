@@ -46,8 +46,8 @@ export class BootScene extends Phaser.Scene {
       HERO_ATTACK_FRAMES,
     );
     this.loadFrames(
-      'cursed_knight_move',
-      'assets/characters/enemies/cursed_knight/move',
+      'cursed_knight',
+      'assets/characters/enemies/move',
       CURSED_KNIGHT_MOVE_FRAMES,
     );
   }
@@ -87,7 +87,7 @@ export class BootScene extends Phaser.Scene {
         frames: Array.from(
           { length: CURSED_KNIGHT_MOVE_FRAMES },
           (_, i) => ({
-            key: `cursed_knight_move_${pad(i + 1)}`,
+            key: `cursed_knight_${pad(i + 1)}`,
           }),
         ),
         frameRate: ANIMATION_FRAME_RATE,

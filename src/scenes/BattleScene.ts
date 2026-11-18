@@ -1,22 +1,21 @@
 import Phaser from 'phaser';
 import { EditorPanel } from '../editor/EditorPanel';
+import { BlockDragger } from '../editor/BlockDragger';
 import { BlockInstance } from '../editor/BlockInstance';
 import { GameArea } from '../game/GameArea';
 import { createDefaultCatalog } from '../model/defaultCatalog';
-import { BlockTemplate } from '../model/BlockTemplate';
 import { AddBackground } from '../game/AddBackground';
 import { FimDeExecucao, ProgramRunner } from '../model/ProgramRunner';
+import { PlanTimer } from '../ui/PlanTimer';
 import { getVisibleArea } from '../utils/viewport';
-import { GAME_H, GAME_W, CURRENT_PHASE_ID } from '../config';
+import { GAME_H, GAME_W, CURRENT_PHASE_ID, PLAN_TIME_MS } from '../config';
 import { telemetry } from '../telemetry/telemetry';
 import { serializarPrograma } from '../telemetry/programa';
-
-interface DragState { inst: BlockInstance; ox: number; oy: number }
 
 export class BattleScene extends Phaser.Scene {
   private editor!: EditorPanel;
   private background!: Phaser.GameObjects.Image;
-  private drag: DragState | null = null;
+  private timer!: PlanTimer;
 
   private tentativaId: string | null = null;
   private ids = new Map<BlockInstance, string>();
@@ -62,14 +61,17 @@ export class BattleScene extends Phaser.Scene {
     const gameArea = new GameArea(this);
     const runner = new ProgramRunner(gameArea);
 
-    const catalog = createDefaultCatalog();
-    this.editor = new EditorPanel(this, catalog);
+    this.editor = new EditorPanel(this, createDefaultCatalog());
     this.editor.setDepth(500);
     this.add.existing(this.editor);
+
+    this.timer = new PlanTimer(this);
+    new BlockDragger(this, this.editor);
 
     const onResize = () => {
       this.adjustCameraToScreen();
       this.editor.onResize();
+      this.timer.layout();
     };
     this.scale.on('resize', onResize);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -78,71 +80,81 @@ export class BattleScene extends Phaser.Scene {
 
     this.adjustCameraToScreen();
 
-    gameArea.on('play', () => this.onPlay(gameArea, runner));
-    runner.on('finished', (fim: FimDeExecucao) => this.onFinished(gameArea, fim));
+    gameArea.on('play', () => this.onPlay(gameArea, runner, 'jogador'));
+    runner.on('finished', (fim: FimDeExecucao) => void this.onFinished(gameArea, runner, fim));
     this.editor.workspace.on('restart', () => runner.stop());
 
-    this.editor.palette.on('template-pressed',
-      (template: BlockTemplate, wx: number, wy: number, p: Phaser.Input.Pointer) => {
-        this.startDrag(new BlockInstance(this, template, wx, wy), p.worldX - wx, p.worldY - wy);
-      });
-
-    this.editor.workspace.on('block-pressed', (inst: BlockInstance, p: Phaser.Input.Pointer) => {
-      const m = inst.getWorldTransformMatrix();
-      const wx = m.tx, wy = m.ty;
-      this.editor.workspace.removeBlockInstance(inst);
-      this.startDrag(inst, p.worldX - wx, p.worldY - wy, wx, wy);
-    });
-
-    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
-      if (this.drag) this.drag.inst.setPosition(p.worldX - this.drag.ox, p.worldY - this.drag.oy);
-    });
-
-    this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.endDrag(p));
-    this.input.on('pointerupoutside', (p: Phaser.Input.Pointer) => this.endDrag(p));
-
     telemetry.registrar('fase_iniciada', { fase_id: CURRENT_PHASE_ID });
-    this.editStart = performance.now();
+    this.startRound(gameArea, runner).catch((e) => console.error('[startRound]', e));
   }
 
-  private onPlay(gameArea: GameArea, runner: ProgramRunner): void {
+  private async startRound(gameArea: GameArea, runner: ProgramRunner): Promise<void> {
+    this.timer.stop();
+
+    gameArea.resetHp();
+    this.editor.close();
+    await gameArea.enemyApproach();
+
+    this.editor.open();
+    this.editStart = performance.now();
+    this.timer.start(PLAN_TIME_MS, () => this.onPlay(gameArea, runner, 'tempo_esgotado'));
+  }
+
+  private onPlay(
+    gameArea: GameArea,
+    runner: ProgramRunner,
+    disparo: 'jogador' | 'tempo_esgotado',
+  ): void {
+    if (runner.running || this.tentativaId) return;
+
     const roots = this.editor.workspace.roots;
-    if (runner.running || !runner.canRun(roots)) return;
+    const executavel = runner.canRun(roots);
+    if (!executavel && disparo === 'jogador') return;
+
+    if (disparo === 'jogador') this.timer.stop();
+    this.editor.close();
 
     const { programa, ids } = serializarPrograma(roots);
     this.tentativaId = crypto.randomUUID();
     this.ids = ids;
     this.execStart = performance.now();
-    gameArea.resetHp();
 
     telemetry.registrar('tentativa_executada', {
       tentativa_id: this.tentativaId,
       fase_id: CURRENT_PHASE_ID,
       programa,
+      disparo,
       tempo_edicao_ms: Math.round(this.execStart - this.editStart),
     });
 
-    runner.run(roots);
+    if (executavel) {
+      runner.run(roots);
+    } else {
+      void this.onFinished(gameArea, runner, {
+        interrompida: false,
+        programaConcluido: true,
+        blocoEmExecucao: null,
+      });
+    }
   }
 
-  private onFinished(gameArea: GameArea, fim: FimDeExecucao): void {
+  private async onFinished(
+    gameArea: GameArea,
+    runner: ProgramRunner,
+    fim: FimDeExecucao,
+  ): Promise<void> {
     const tentativaId = this.tentativaId;
-    this.tentativaId = null;
-    this.editStart = performance.now();
     if (!tentativaId) return;
+
+    if (!fim.interrompida && gameArea.enemyHp > 0 && gameArea.heroHp > 0) {
+      await gameArea.enemyAttacksUntilHeroDies();
+    }
 
     const resultado = fim.interrompida
       ? 'interrompida'
       : gameArea.enemyHp <= 0
         ? 'vitoria'
-        : gameArea.heroHp <= 0
-          ? 'derrota'
-          : null;
-
-    if (!resultado) {
-      console.warn('[telemetria] programa acabou com o inimigo vivo: falta a regra RN-008');
-      return;
-    }
+        : 'derrota';
 
     telemetry.registrar('tentativa_finalizada', {
       tentativa_id: tentativaId,
@@ -156,6 +168,12 @@ export class BattleScene extends Phaser.Scene {
         ? null
         : (fim.blocoEmExecucao ? this.ids.get(fim.blocoEmExecucao) ?? null : null),
     });
+
+    this.tentativaId = null;
+    this.timer.stop();
+    if (resultado !== 'vitoria') {
+      this.startRound(gameArea, runner).catch((e) => console.error('[startRound]', e));
+    }
   }
 
   private adjustCameraToScreen(): void {
@@ -169,25 +187,6 @@ export class BattleScene extends Phaser.Scene {
       this.background.setScale(
         Math.max(width / this.background.width, height / this.background.height),
       );
-    }
-  }
-
-  private startDrag(inst: BlockInstance, ox: number, oy: number, wx?: number, wy?: number): void {
-    this.add.existing(inst);
-    inst.setDepth(1000).setAlpha(0.9);
-    if (wx !== undefined && wy !== undefined) inst.setPosition(wx, wy);
-    this.drag = { inst, ox, oy };
-  }
-
-  private endDrag(p: Phaser.Input.Pointer): void {
-    if (!this.drag) return;
-    const { inst, ox, oy } = this.drag;
-    this.drag = null;
-
-    if (this.editor.workspace.containsWorldPoint(p.worldX, p.worldY)) {
-      this.editor.workspace.addBlockInstance(inst, p.worldX - ox, p.worldY - oy);
-    } else {
-      inst.destroy();
     }
   }
 }
