@@ -95,13 +95,23 @@ proposto). Este evento é um complemento, não a única fonte.
 
 Enviado quando o jogador aperta Play.
 
-| Campo | Tipo | Obrigatório | Regra |
-|---|---|---|---|
-| `tentativa_id` | string (UUID v4) | sim | Gerado no Play. Liga este evento ao EV-05. |
-| `fase_id` | string | sim | |
-| `programa` | objeto | sim | Formato na seção 4. |
-| `tempo_edicao_ms` | inteiro ≥ 0 | sim | Tempo desde o início da fase ou o fim da tentativa anterior até este Play. |
-| `disparo` | `"jogador"` \| `"tempo_esgotado"` | **não** | Quem apertou o Play. Ausente significa `"jogador"`. Ver abaixo. |
+| Campo | Tipo | Regra |
+|---|---|---|
+| `tentativa_id` | string (UUID v4) | Gerado no Play. Liga este evento ao EV-05. |
+| `fase_id` | string | |
+| `programa` | objeto | Formato na seção 4. |
+| `tempo_edicao_ms` | inteiro ≥ 0 | Tempo desde o início da fase ou o fim da tentativa anterior até este Play. |
+| `disparo` | `"jogador"` \| `"tempo_esgotado"` \| null | Opcional. Indica quem disparou a execução da tentativa (Play do jogador ou tempo de edição esgotado). |
+
+**Não enviar** o número da tentativa nem a quantidade de blocos. Os dois são
+calculados na silver a partir dos dados acima, para não existirem duas versões
+do mesmo número.
+
+> **O `programa` é o campo mais importante do contrato.** É dele que saem a
+> contagem da RN-014, a tabela `silver.programa_bloco` e o indicador de
+> conceito aplicado (RN-019). Deve ser gravado **exatamente como veio**, sem
+> achatar nem reordenar: é por guardá-lo inteiro que qualquer indicador novo
+> pode ser calculado sobre o passado (ADR-005).
 
 #### O campo `disparo` (RN-021)
 
@@ -126,24 +136,19 @@ estourou o tempo. A tentativa **continua registrada** em
 `gold.fato_tentativa` e no `total_tentativas`: ela aconteceu, só não conta
 como aprendizagem.
 
-**É campo opcional e aditivo: `schema_version` continua 1.** Evento sem ele é
-tratado como `"jogador"`, que era o único caso antes de existir tempo limite.
+**É campo opcional e aditivo: `schema_version` continua 1.** Evento **sem o
+campo**, ou com ele em **`null`**, é tratado como `"jogador"` — que era o único
+caso antes de existir tempo limite. Os dois caminhos foram testados contra o
+back-end e chegam na silver como `jogador`. Qualquer outro valor é **recusado
+na ingestão** (`Input should be 'jogador' or 'tempo_esgotado'`), e não entra na
+bronze: o valor é validado na porta justamente porque a bronze é imutável
+(RN-016) e não dá para corrigir depois.
 
 > **Por que não dá para deduzir sem o campo.** Um Workspace vazio se reconhece
 > por `qtd_blocos = 0`. Mas o tempo pode estourar com o jogador no meio da
 > montagem, e aí o programa tem blocos e fica **indistinguível** de uma
 > tentativa deliberada. O `tempo_edicao_ms` perto de 15000 também não serve:
 > um jogador pode genuinamente levar 15 s. Só o jogo sabe quem apertou o botão.
-
-**Não enviar** o número da tentativa nem a quantidade de blocos. Os dois são
-calculados na silver a partir dos dados acima, para não existirem duas versões
-do mesmo número.
-
-> **O `programa` é o campo mais importante do contrato.** É dele que saem a
-> contagem da RN-014, a tabela `silver.programa_bloco` e o indicador de
-> conceito aplicado (RN-019). Deve ser gravado **exatamente como veio**, sem
-> achatar nem reordenar: é por guardá-lo inteiro que qualquer indicador novo
-> pode ser calculado sobre o passado (ADR-005).
 
 ### EV-05 `tentativa_finalizada`
 
