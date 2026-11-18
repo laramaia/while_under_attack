@@ -236,11 +236,11 @@ regra de coerência entre campos que ele aplica.
   "event_id": "7f3c2a10-4b8e-4d2a-9c1f-2e6b8a9d0c11",
   "event_type": "tentativa_finalizada",
   "schema_version": 1,
-  "catalog_version": "2026.11.1-rascunho",
+  "catalog_version": "2026.11.2-rascunho",
   "game_version": "0.3.0",
   "session_id": "c0a8e7d2-1f4b-4e6a-8d3c-5b9f2a7e1d40",
   "seq": 14,
-  "occurred_at": "2026-11-16T18:22:31Z",
+  "occurred_at": "2026-11-18T18:22:31Z",
   "payload": {
     "tentativa_id": "a91d4f62-3c7e-4b18-b5a0-6e2c8d1f9b73",
     "fase_id": "F04",

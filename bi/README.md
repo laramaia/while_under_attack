@@ -175,7 +175,7 @@ dentro dele**.
 silver → PORTA DA SILVER → gold → PORTA DA GOLD → commit
 ```
 
-As duas rodam na mesma transação. Se qualquer uma das **10 regras** reprovar, a
+As duas rodam na mesma transação. Se qualquer uma das **11 regras** reprovar, a
 transação inteira volta atrás: nada é publicado e a gold continua sendo a
 última versão aprovada. É isso que autoriza chamá-la de *certificada*.
 
@@ -183,9 +183,19 @@ Cada regra fica na porta mais cedo em que consegue rodar — as que leem bronze 
 silver barram antes de montar a gold; as que leem a gold rodam depois dela e
 antes do `commit`.
 
-Duas das dez são de **reconciliação**: `REC-001` confere que todo EV-04 da
-bronze virou tentativa ou foi para a quarentena, e `REC-002` que as contagens
-dos lotes de ingestão batem com a bronze.
+Três das onze são de **reconciliação**: `REC-001` confere que todo EV-04 da
+bronze virou tentativa ou foi para a quarentena, `REC-002` que as contagens
+dos lotes de ingestão batem com a bronze, e `REC-003` que toda tentativa
+conclusiva da silver chegou ao fato da gold.
+
+> **A REC-003 existe por causa de um buraco real.** As outras regras da porta
+> da gold perguntam *"quantas linhas da gold violam X?"*. Numa gold **vazia** a
+> resposta é sempre zero, então todas aprovam — e o gate publica o nada. Foi o
+> que aconteceu em 18/11/2026 ao subir a `catalog_version`: o fato junta com
+> `dim_fase` por `(fase_id, catalog_version)`, a versão do catálogo não batia
+> com a dos eventos, o join não achou par e as 199 tentativas sumiram. Silver
+> com 199, gold com 0, seis regras aprovadas, *"gold publicada"*. Uma regra que
+> conta o que **falta** é a única que não passa de graça quando não há nada.
 
 Para ver o gate barrando (é o roteiro de demonstração na banca): injete na
 bronze um programa com um bloco fora do catálogo e rode `etl rodar`. A silver
@@ -394,8 +404,12 @@ usou esse bloco (`gold.dim_fase.bloco_conceito`).
 
 Serve para uma pergunta que a eficiência do código sozinha não responde: dá para
 vencer a fase de repetição empilhando o mesmo ataque três vezes, e aí o jogador
-passou sem ter aprendido o conceito. Nos dados sintéticos isso aparece em F04,
-onde parte da turma venceu o "enquanto" desenrolando o laço na mão.
+passou sem ter aprendido o conceito. Nos dados sintéticos isso aparece nas fases
+em que dá para contornar o bloco, com parte da turma desenrolando o laço na mão.
+
+> O indicador só diz alguma coisa quando **dá para contornar**. Na F02 não dá:
+> sem `advance` o golpe não alcança, então "aplicou o conceito" vai dar 100%
+> sempre — não porque a turma aprendeu, mas porque não havia outro caminho.
 
 Numa fase de reforço o indicador usa o bloco da fase que introduziu o conceito —
 que é justamente onde mais interessa saber se o conceito pegou. Conceito que não
@@ -479,9 +493,10 @@ mantém o sufixo `-rascunho`. O que deixou de ser hipótese foram os blocos.
   **provisória**, montada a partir da hipótese de progressão do Catálogo de
   Fases. As seis fases, os conceitos e as soluções de referência precisam ser
   confirmados. A `catalog_version` termina em `-rascunho` justamente para isso.
-  A F05 está ali como exemplo de **fase de reforço**, para o indicador ter o que
-  mostrar; o Catálogo de Fases ainda não descreve esse tipo de fase, e vale
-  acrescentar essa ideia ao documento.
+  A F04 está ali como exemplo de **fase de reforço**, para o indicador ter o que
+  mostrar. **A F01 e a F02 deixaram de ser hipótese em 18/11/2026**: são as duas
+  fases que o jogo tem, descritas pela equipe do jogo, e o catálogo passou a
+  segui-las — da F03 em diante continua proposta.
 - **PD-013** — **parcialmente resolvida.** O `catalogo-fases.json` passou a usar
   os identificadores e as categorias do `src/model/defaultCatalog.ts`, o
   catálogo real do jogo. Veja a seção "O catálogo e o jogo" abaixo para o que

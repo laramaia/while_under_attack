@@ -18,7 +18,7 @@ status Resolvida, com o link.
 | PD-003 | Prazo final e marcos (banca, Feira dos PEIs) | Plano | **Alto** |
 | PD-004 | Forma de distribuição do jogo: navegador, PWA ou APK | ADR-007, login | Médio |
 | PD-005 | Onde hospedar **os dois serviços**; existe orçamento? *(o banco já foi resolvido — ver abaixo)* | Implantação | **Alto** |
-| PD-006 | Lista oficial de conceitos, fases e soluções de referência | Catálogo, RN-014 | **Alto** |
+| PD-006 | Lista oficial de conceitos, fases e soluções de referência. **Parcial:** a F01 e a F02 deixaram de ser hipótese em 18/11/2026 — são as do jogo. Da F03 à F06 continua proposta | Catálogo, RN-014 | **Alto** |
 | PD-008 | Editar o programa durante a pausa encerra a tentativa? | RN-009, EV-05 | Médio |
 | PD-010 | Fases são liberadas em ordem ou ficam todas abertas? | RN-017 | Médio |
 | PD-012 | Se algum testador for menor de idade: termo de consentimento dos responsáveis | LGPD | **Alto se houver** |
@@ -51,7 +51,7 @@ status Resolvida, com o link.
 
 ### PD-013 — o que foi resolvido e o que falta
 
-**Resolvido.** O `catalogo-fases.json` (versão `2026.11.1-rascunho`) usa os
+**Resolvido.** O `catalogo-fases.json` (versão `2026.11.2-rascunho`) usa os
 identificadores e as categorias de `src/model/defaultCatalog.ts`. Antes usava
 nomes propostos (`ao_clicar_em_play`, `andar`, `atacar`, `se`, `repetir`,
 `enquanto`) que nunca existiram no código.
@@ -387,7 +387,7 @@ isso, só falta quem decida.
 |---|---|---|---|
 | RS-01 | Jogo e back-end concentrados na mesma pessoa viram gargalo | Fechar o contrato de eventos cedo, para que jogo e dashboard possam avançar em paralelo, com dados simulados | **Funcionou.** O BI ficou pronto antes do back-end existir, alimentado pelo gerador sintético |
 | RS-02 | Com ~10 jogadores, os gráficos ficam pouco expressivos | Dados sintéticos apenas em desenvolvimento, claramente marcados e separados. **A demonstração usa dados reais** | **Deixou de ser risco de código.** A separação existe (coluna `origem` e faixa amarela no dashboard) e o caminho do dado real foi percorrido ponta a ponta em 18/11/2026. Falta rodar isso no banco do projeto, que ainda não tem partida nenhuma — ver abaixo |
-| RS-03 | Mudar uma fase depois de coletar dados invalida comparações | `catalog_version` em todo evento (ADR-006) | Em uso: o catálogo foi de `2026.10.1-rascunho` para `2026.11.1-rascunho` |
+| RS-03 | Mudar uma fase depois de coletar dados invalida comparações | `catalog_version` em todo evento (ADR-006) | Em uso: o catálogo foi de `2026.10.1-rascunho` para `2026.11.1-rascunho` e, em 18/11, para `2026.11.2-rascunho`. **A mitigação mordeu:** a versão nova fez o fato não achar par em `dim_fase` e zerou a gold, e o gate só pegou depois de ganhar a `REC-003` — ver ADR-010 |
 | RS-04 | Dashboard escrito com ajuda de IA sem dono na equipe fica difícil de defender na banca | Uma pessoa da equipe revisa e consegue explicar cada parte antes do merge | **Em curso.** O trabalho está no PR #1, em dois commits separados por assunto justamente para a revisão ser possível. O código cita as regras pelo número |
 | RS-05 | Relógio do celular errado bagunça a ordem dos eventos | `seq` por sessão e `received_at` no servidor (ADR-007) | Implementado no ETL |
 | **RS-06** | **Backup nunca testado.** O plano é o histórico de 7 dias do Neon, mas ninguém tentou restaurar. Há um ambiente só: não existe separação entre dev e produção | Testar uma restauração antes da banca; ao publicar, criar dois bancos no mesmo projeto Neon (`wua_dev` e `wua_prod`), mudando só a `WUA_DB_URL`. Custo zero | **Aberto.** Depende da PD-005 |
@@ -427,3 +427,4 @@ faixa amarela visível. Só que agora ele é escolha, não necessidade.
 | 17/11/2026 | **PD-022** (o tempo limite é global ou por fase?) e **PD-023** (dá para jogar sem login?) acrescentadas, as duas com recomendação e abertas como issues [#8](https://github.com/laramaia/while_under_attack/issues/8) e [#7](https://github.com/laramaia/while_under_attack/issues/7). PD-018 atualizada: o jogo escolheu de fato o `fase_id` do catálogo (`CURRENT_PHASE_ID = 'F01'`), mas continua aberta porque é constante global e o jogo tem cinco fases pela frente. O defeito do Workspace foi corrigido pela Lara em `bab601a` e verificado |
 | 18/11/2026 | **A tela de login entrou** ([PR #12](https://github.com/laramaia/while_under_attack/pull/12)) e com ela a primeira pergunta da **PD-023** se respondeu na prática: o login é obrigatório. Sobraram o back-end fora do ar e o token expirado, este aberto como [issue #16](https://github.com/laramaia/while_under_attack/issues/16). As quatro observações do teste de ponta a ponta viraram issues [#13](https://github.com/laramaia/while_under_attack/issues/13), [#14](https://github.com/laramaia/while_under_attack/issues/14), [#15](https://github.com/laramaia/while_under_attack/issues/15) e [#16](https://github.com/laramaia/while_under_attack/issues/16). A **PD-018** ganhou o estado novo: as cinco fases existem em `src/model/level.ts` e conferem com o catálogo, mas o arquivo não é usado por ninguém |
 | 18/11/2026 | **RS-02 deixou de ser risco de código:** o caminho do dado real foi percorrido ponta a ponta, e o que falta é jogar no banco do projeto, que ainda não tem partida nenhuma. Acrescentadas **PD-024** (a API não avisa quando os dois serviços discordam do `WUA_SEGREDO`) e **PD-025** (o card de jogadores conta contas, não quem jogou), abertas como issues [#17](https://github.com/laramaia/while_under_attack/issues/17) e [#18](https://github.com/laramaia/while_under_attack/issues/18) |
+| 18/11/2026 | **Catálogo reescrito a partir das fases que o jogo tem** (`2026.11.2-rascunho`, seis fases): a F01 ficou com `on-flag` + `attack`, entrou uma F02 com `advance`, e as seguintes andaram uma posição. A **PD-006** passa a parcial. Achado no caminho um ponto cego da porta da gold — uma gold **vazia** passava por todas as regras, porque todas contavam violações —, fechado com a **REC-003**; o gate vai a 11 regras. A **RN-019** ganhou desempate pela solução de referência: o bloco do conceito dependia da ordem dos nomes no JSON |
