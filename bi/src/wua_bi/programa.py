@@ -118,6 +118,29 @@ def contar_blocos(programa: dict[str, Any]) -> int:
     return total
 
 
+def tipos_usados(programa: dict[str, Any]) -> set[str]:
+    """Os tipos de bloco que aparecem no programa, em qualquer profundidade.
+
+    Usado pelo catalogo para desempatar qual bloco representa o conceito de
+    uma fase quando ela abre mais de um bloco novo na Palette.
+    """
+    tipos: set[str] = set()
+    for pilha in programa.get("pilhas") or []:
+        _tipos_da_sequencia(pilha, tipos)
+    return tipos
+
+
+def _tipos_da_sequencia(sequencia: list[dict[str, Any]], tipos: set[str]) -> None:
+    for bruto in sequencia:
+        tipo = bruto.get("tipo")
+        if tipo:
+            tipos.add(tipo)
+        for campo in CAMPOS_DE_CORPO:
+            corpo = bruto.get(campo)
+            if corpo:
+                _tipos_da_sequencia(corpo, tipos)
+
+
 def _contar_sequencia(sequencia: list[dict[str, Any]]) -> int:
     total = 0
     for bruto in sequencia:
