@@ -20,6 +20,7 @@ interface Evento {
 }
 
 const QUEUE_KEY = 'wua_fila_eventos';
+const DONO_KEY = 'wua_fila_dono';
 const FLUSH_MS = 10_000;
 const BATCH_MAX = 50;
 const INGEST_PATH = '/api/eventos';
@@ -36,15 +37,16 @@ class Telemetry {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
         this.encerrarSessao('app_em_segundo_plano');
+      } else if (this.token && !this.sessionId) {
+        this.abrirSessao();
       }
     });
   }
 
-  iniciarSessao(token: string): void {
+  iniciarSessao(token: string, jogadorId: number): void {
     this.token = token;
-    this.sessionId = crypto.randomUUID();
-    this.seq = 0;
-    this.registrar('sessao_iniciada', {});
+    this.trocarDonoDaFila(jogadorId);
+    this.abrirSessao();
   }
 
   encerrarSessao(motivo: 'logout' | 'app_em_segundo_plano'): void {
@@ -52,6 +54,10 @@ class Telemetry {
     this.registrar('sessao_encerrada', { motivo });
     void this.flush(true);
     this.sessionId = '';
+  }
+
+  get ativa(): boolean {
+    return this.token !== null;
   }
 
   registrar(tipo: EventType, payload: Record<string, unknown>): void {
@@ -88,7 +94,8 @@ class Telemetry {
       });
 
       const confirmado = res.status === 207 || res.ok;
-      const invalido = res.status >= 400 && res.status < 500 && ![401, 408, 429].includes(res.status);
+      const invalido =
+        res.status >= 400 && res.status < 500 && ![401, 408, 429].includes(res.status);
 
       if (confirmado || invalido) {
         if (invalido) console.error('[telemetria] lote recusado', res.status);
@@ -96,8 +103,27 @@ class Telemetry {
         this.salvar();
       }
     } catch {
+      // sem rede: os eventos continuam na fila e vão no próximo ciclo
     } finally {
       this.enviando = false;
+    }
+  }
+
+  private abrirSessao(): void {
+    this.sessionId = crypto.randomUUID();
+    this.seq = 0;
+    this.registrar('sessao_iniciada', {});
+  }
+
+  private trocarDonoDaFila(jogadorId: number): void {
+    try {
+      if (localStorage.getItem(DONO_KEY) !== String(jogadorId)) {
+        this.fila = [];
+        localStorage.setItem(DONO_KEY, String(jogadorId));
+        this.salvar();
+      }
+    } catch {
+      this.fila = [];
     }
   }
 

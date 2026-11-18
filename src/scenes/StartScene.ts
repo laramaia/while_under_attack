@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_H, GAME_W } from '../config';
 import { AddBackground } from '../game/AddBackground';
+import { telemetry } from '../telemetry/telemetry';
 
 export class StartScene extends Phaser.Scene {
   private background!: Phaser.GameObjects.Image;
@@ -25,7 +26,8 @@ export class StartScene extends Phaser.Scene {
       backgroundColor: '#8c3b3b',
       padding: { x: 40, y: 12 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    this.playButton.on('pointerdown', () => this.scene.start('BattleScene'));
+    this.playButton.on('pointerdown', () => 
+      this.scene.start(telemetry.ativa ? 'BattleScene' : 'LoginScene'),);
     this.updateLayout();
     this.scale.on('resize', this.updateLayout, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
