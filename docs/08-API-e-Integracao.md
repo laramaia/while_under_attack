@@ -270,6 +270,19 @@ comitar.
 > publicado.** No dia em que a API for para o Render, essas senhas viram
 > adivinháveis por qualquer pessoa. Trocar antes de publicar — ver PD-005.
 
+### O perfil muda o que o jogo faz, não só o que o dashboard mostra (RN-022)
+
+Entrar com perfil `professor` **não abre sessão de telemetria**: o jogo começa
+normalmente, a fase roda, mas nenhum evento é emitido. Verificado em
+18/11/2026 — professor jogando 20 s, zero eventos na bronze.
+
+É regra de negócio, não detalhe de implementação: a partida do professor não é
+aprendizagem de ninguém, e se entrasse nos indicadores ele estaria enviesando
+o próprio painel que usa para decidir o que reexplicar. Está escrita como
+**RN-022** em Regras de Negócio, porque sem isso a leitura natural de quem
+encontra o `if (sessao.perfil === 'jogador')` na `LoginScene` é "falta chamar
+o `iniciarSessao` para o professor".
+
 ### A troca de PBKDF2 para bcrypt não é retroativa
 
 Em 16/11/2026 o hash dessas duas contas foi **refeito em bcrypt**. Elas tinham
@@ -416,19 +429,79 @@ registrado como pendência de implantação (PD-005).
 
 ## 8. O que falta para o caminho ficar completo
 
-Atualizado em 17/11/2026, depois de o jogo ganhar o módulo de telemetria.
+Atualizado em 18/11/2026, depois de o jogo ganhar tela de login, tempo limite
+de fase e a RN-008 ([PR #12](https://github.com/laramaia/while_under_attack/pull/12)).
 
 | | Situação |
 |---|---|
 | Rotas de login e ingestão | **prontas e testadas** |
 | Gravação na bronze com controle de lote | **pronta e testada** |
+| Campo `disparo` do EV-04 (RN-021), nas três camadas | **pronto e testado** |
 | ETL, gate de qualidade, gold e dashboards | **prontos e testados** |
 | Jogo: montar o envelope, fila local, envio em lote | **pronto** (`src/telemetry/telemetry.ts`) |
 | Jogo: serializar o programa em `pilhas` com `corpo` | **pronto** (`src/telemetry/programa.ts`) |
-| Jogo: disparar os cinco eventos | **pronto** (`BattleScene`) |
-| Jogo: **enviar de verdade** | **falta ligar o login** — ver abaixo |
+| Jogo: tela de login e `iniciarSessao` | **pronto** (`src/scenes/LoginScene.ts`) |
+| Jogo: tempo limite da fase e `disparo` | **pronto** (`src/ui/PlanTimer.ts`) |
+| Jogo: RN-008, derrota quando o programa acaba curto | **pronto** (`GameArea.enemyAttacksUntilHeroDies`) |
+| Jogo: **enviar de verdade** | **funcionando** — ver abaixo |
 
-### O fio que falta: ninguém abre a sessão
+### O caminho inteiro andou com dado real em 18/11/2026
+
+Até aqui o caminho só tinha sido percorrido com eventos montados à mão. Em
+18/11/2026 ele foi percorrido **jogando**: Postgres limpo, back-end na 8001,
+jogo no Vite, login pela tela, relógio estourando sozinho e um Play manual.
+
+```
+silver: sessoes=3, tentativas=9, blocos=9, rejeitados=0
+porta da silver: 4 regras, todas aprovadas
+porta da gold:   6 regras, todas aprovadas
+```
+
+**Zero rejeitados**: nenhum `fase_id` fora do catálogo, nenhum evento órfão.
+
+A RN-021 medida com dado de gente jogando: **9 tentativas, 8 delas Play
+automático**, e o painel mostra **1 tentativa até vencer** e **0 derrotas por
+programa curto**. A vitória veio de um Play do jogo e contou — é a exceção da
+regra, que até então só tinha sido testada com dado sintético.
+
+### O que ainda falta
+
+| O que falta | Issue | Decisão em aberto |
+|---|---|---|
+| Ligar o `src/model/level.ts`: fase, tempo, vida do inimigo e blocos ainda vêm de constante global | [#13](https://github.com/laramaia/while_under_attack/issues/13) | PD-018 |
+| `tempo_limite_s` no catálogo e a coluna em `dim_fase` | [#14](https://github.com/laramaia/while_under_attack/issues/14) | PD-022 |
+| Depois da vitória o jogo para, sem tela e sem para onde ir | [#15](https://github.com/laramaia/while_under_attack/issues/15) | — |
+| Token expirado trava a telemetria em silêncio (`401`) | [#16](https://github.com/laramaia/while_under_attack/issues/16) | PD-023 |
+| Trocar as senhas de teste antes do deploy | [#10](https://github.com/laramaia/while_under_attack/issues/10) | PD-005 |
+| `on-start` na Palette sem executar | [#4](https://github.com/laramaia/while_under_attack/issues/4) | PD-021 |
+| Bloco de repetição com condição | [#2](https://github.com/laramaia/while_under_attack/issues/2) | PD-017 |
+
+Cada issue traz o detalhe de implementação — o que mandar, em que formato, o
+que já está pronto do outro lado e como conferir que funcionou. **Quem for
+mexer deve ler a issue antes**, porque várias dessas coisas já foram decididas
+e testadas, e refazê-las de outro jeito quebra o que já passa no gate.
+
+As quatro primeiras saíram do teste de 18/11/2026 e são pequenas, mas três
+delas afetam o dado:
+
+- **#13** é a mais séria. Enquanto o `fase_id` for constante global, esquecer
+  de trocá-la manda todas as tentativas para a fase errada **sem erro nenhum**,
+  porque a fase existe no catálogo. O gate não tem como pegar: o dado é
+  válido, só não é verdade.
+- **#14** só começa a importar quando as fases tiverem tempos diferentes, e
+  depende da PD-022 fechar em "por fase".
+- **#16** é silenciosa: os eventos param de chegar e nada na tela muda.
+
+### Como era antes, e por que ficou registrado
+
+> **O que vem abaixo está no presente porque foi escrito enquanto era verdade**,
+> entre 16 e 17/11/2026. Ficou aqui de propósito: três dos buracos descritos
+> custaram a ser encontrados, e saber *como* eles apareciam é o que permite
+> reconhecê-los de novo. Nenhum deles é o estado de hoje.
+
+#### O fio que faltava: ninguém abria a sessão (resolvido em 18/11/2026)
+
+Issue [#7](https://github.com/laramaia/while_under_attack/issues/7), fechada.
 
 `telemetry.registrar()` sai cedo quando não há `session_id`, e `flush()` sai
 cedo quando não há token. Os dois só existem depois de
@@ -441,7 +514,9 @@ login do jogo, chamando `iniciarSessao` com o token que o `POST /login`
 devolve. Enquanto isso não existir, não dá para ver nenhum número real no
 dashboard.
 
-### Dois buracos no que o jogo emite
+#### Dois buracos no que o jogo emitia (resolvidos em 18/11/2026)
+
+Issues [#8](https://github.com/laramaia/while_under_attack/issues/8) e [#9](https://github.com/laramaia/while_under_attack/issues/9), fechadas.
 
 **1. Play sem bloco de evento não gera nenhum evento.** O `BattleScene` faz:
 
@@ -476,7 +551,7 @@ gold. Nenhuma das 10 regras reclama. Mas o jogador fez uma tentativa que não
 aparece em lugar nenhum do dashboard, e o `numero_tentativa` das seguintes
 pula um — o que desloca a curva de vitória por número da tentativa.
 
-### A PD-014 foi decidida de um lado só, e o jogo seguiu
+#### A PD-014 foi decidida de um lado só, e o jogo seguiu
 
 O back-end aceita **`corpo`** para o conteúdo dos blocos em C, como o Contrato
 de Eventos sempre disse. O `BlockInstance` do jogo guarda em `inner`, e o
@@ -492,3 +567,5 @@ O serializador também devolve um `Map` de bloco para id, que é como o
 |---|---|
 | 16/11/2026 | Versão inicial, escrita depois de rodar o back-end da branch `mateo/backend-ingestao` de ponta a ponta contra o BI. Rotas dos dois serviços, caminho completo do evento, divisão de validação entre back-end e silver, exigência do `WUA_SEGREDO` compartilhado, e a seção 7 com os três erros de informação que circularam na equipe |
 | 17/11/2026 | **O jogo ganhou telemetria e a PR #1 entrou na `main`.** Seção 8 reescrita: o módulo monta e serializa certo, usa a porta 8001 e reusa o `tentativa_id`, mas **ninguém chama `iniciarSessao`**, então nada é enviado. Registrados dois buracos no que o jogo emite — Play sem bloco de evento não gera evento nenhum, e programa que acaba com o inimigo vivo não gera EV-05 — com o que cada um faz no ETL, testado |
+| 17/11/2026 | **O back-end passou a aceitar o campo `disparo`** (PR #3, commit `947580a`), e a cadeia inteira foi testada junta: jogo → back-end → bronze → silver → gold, com as 10 regras do gate aprovando. Campo ausente e `null` explícito chegam os dois como `jogador`; valor fora dos dois é recusado na ingestão. Seção 8 ganhou a tabela do que falta, **com uma issue por lacuna**: quem for implementar deve ler a issue antes, porque o outro lado já está pronto e testado |
+| 18/11/2026 | **O caminho inteiro andou com dado real pela primeira vez.** O jogo ganhou tela de login, tempo limite de fase e a RN-008 ([PR #12](https://github.com/laramaia/while_under_attack/pull/12)); testado jogando, com 0 rejeitados e as 10 regras do gate aprovadas. Issues #7, #8 e #9 fechadas. Seção 8 reescrita: o que era "o que falta" virou histórico, e sobraram três itens pequenos sem issue própria. Acrescentada a seção sobre a **RN-022** — o perfil `professor` não gera telemetria |

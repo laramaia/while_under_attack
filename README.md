@@ -183,9 +183,11 @@ acima — é o que torna as decisões defensáveis na banca.
 | Jogo: execução do programa | **parcial** — percorre as pilhas e repete 3x; só o `on-flag` dispara (PD-021) e o `if-else` não executa o corpo |
 | Jogo: vida, vitória e derrota | **pronto** — `HERO_MAX_HP`, `ENEMY_MAX_HP`, e o EV-05 já sai com resultado |
 | Jogo: módulo de telemetria | **pronto** — fila local, lote, 207, `corpo` e reuso do `tentativa_id` |
-| Jogo: enviar de verdade | **falta ligar o login** — `telemetry.iniciarSessao()` não é chamado em lugar nenhum, então nada sai da fila |
-| Jogo: fases | em construção. Falta combinar de onde sai o `fase_id` (PD-018) |
-| Jogo: tempo limite da fase | em construção (RN-021) |
+| Jogo: tela de login | **pronta** — `LoginScene`, e o professor entra sem gerar telemetria (RN-022) |
+| Jogo: enviar de verdade | **funcionando** — testado jogando em 18/11/2026 |
+| Jogo: fases | em construção. As cinco estão em `src/model/level.ts` e conferem com o catálogo, mas o arquivo ainda não é usado: o `BattleScene` lê uma constante global (PD-018) |
+| Jogo: tempo limite da fase | **pronto** (RN-021) — `PlanTimer`, e o `disparo` chega até a gold |
+| Jogo: RN-008, derrota quando o programa acaba curto | **pronto** — `enemyAttacksUntilHeroDies` |
 | Back-end: autenticação com bcrypt e JWT | **pronto e testado** |
 | Back-end: ingestão de eventos na bronze | **pronto e testado** |
 | BI: ETL, modelo dimensional, API, dashboards | pronto e rodando |
@@ -195,20 +197,47 @@ eventos montados à mão no formato do contrato: login → `POST /api/eventos` �
 bronze → ETL → silver → gate de qualidade → gold → dashboard, com as 10 regras
 de qualidade aprovadas.
 
-Em 17/11/2026 o jogo ganhou o módulo de telemetria, que monta o envelope, mantém
-fila local e envia em lote para a porta 8001. **Falta um fio:** ninguém chama
-`telemetry.iniciarSessao(token)`, e sem sessão o módulo não registra nem envia
-nada. Esse fio é o login do jogo, que está sendo feito.
+Em 18/11/2026 ele foi percorrido **jogando**, com a tela de login do jogo e o
+relógio da fase: Postgres limpo, back-end na 8001, jogo no Vite.
 
-Enquanto o jogo não envia eventos, o dashboard roda com **dados sintéticos**,
-gerados conforme o Contrato de Eventos e marcados com `origem = 'sintetico'`.
-A tela mostra uma faixa amarela avisando disso.
+```
+silver: sessoes=3, tentativas=9, blocos=9, rejeitados=0
+porta da silver: 4 regras, todas aprovadas
+porta da gold:   6 regras, todas aprovadas
+```
+
+Zero rejeitados. E a RN-021 medida com dado de gente jogando: **9 tentativas,
+8 delas Play automático do relógio**, e o painel mostra **1 tentativa até
+vencer** e **0 derrotas por programa curto** — que é a regra fazendo o que foi
+desenhada para fazer.
+
+### O que falta, com o detalhe de como fazer
+
+Cada lacuna tem uma issue que diz o que mandar, em que formato, o que já está
+pronto do outro lado e como conferir que funcionou. **Quem for implementar deve
+ler a issue antes:** várias dessas coisas já foram decididas e testadas, e
+refazê-las de outro jeito quebra o que hoje passa no gate de qualidade.
+
+| O que falta | Issue |
+|---|---|
+| Ligar o `src/model/level.ts` — fase, tempo, vida do inimigo e blocos ainda vêm de constante global (PD-018) | [#13](https://github.com/laramaia/while_under_attack/issues/13) |
+| `tempo_limite_s` no catálogo e a coluna em `dim_fase` (PD-022) | [#14](https://github.com/laramaia/while_under_attack/issues/14) |
+| Depois da vitória o jogo para, sem tela e sem para onde ir | [#15](https://github.com/laramaia/while_under_attack/issues/15) |
+| Token expirado trava a telemetria em silêncio (PD-023) | [#16](https://github.com/laramaia/while_under_attack/issues/16) |
+| Trocar as senhas de teste antes do deploy (PD-005) | [#10](https://github.com/laramaia/while_under_attack/issues/10) |
+| `on-start` na Palette sem executar (PD-021) | [#4](https://github.com/laramaia/while_under_attack/issues/4) |
+| Bloco de repetição com condição (PD-017) | [#2](https://github.com/laramaia/while_under_attack/issues/2) |
+
+O banco do projeto ainda não tem evento de jogo nenhum: o teste acima rodou
+num Postgres local. Enquanto não houver partida de verdade, o dashboard roda
+com **dados sintéticos**, gerados conforme o Contrato de Eventos e marcados com
+`origem = 'sintetico'`. A tela mostra uma faixa amarela avisando disso.
 
 As pendências que mais seguram o projeto estão em
 [Pendências e Riscos](docs/07-Pendencias-e-Riscos.md); as de impacto alto hoje
 são a **PD-006** (as fases oficiais), a **PD-003** (prazo e marcos), a
-**PD-017** (se vai existir o bloco de repetição com condição) e a **PD-018**
-(de onde o jogo tira o `fase_id`).
+**PD-017** (se vai existir o bloco de repetição com condição), a **PD-022** (o
+tempo limite é global ou por fase?) e a **PD-023** (dá para jogar sem login?).
 
 ---
 

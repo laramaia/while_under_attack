@@ -25,6 +25,33 @@
 | RN-004 | O jogador acessa somente os próprios dados. | Aceita | `bi/.../api/auth_provisoria.py` → `exigir_acesso_a` |
 | RN-005 | O professor acessa os dados de todos os jogadores do MVP. | Aceita | `bi/.../api/auth_provisoria.py` → `exigir_professor` |
 | RN-006 | A identidade do jogador em um evento vem do token de autenticação, nunca do corpo da requisição. | **Aceita** | `backend/.../ingestao.py` → `ingerir_lote` usa o `jogador_id` do token |
+| **RN-022** | **A partida de quem entra com perfil `professor` não gera telemetria.** O professor pode jogar — para conhecer a fase, para demonstrar em aula —, mas essa partida não abre sessão e não emite evento nenhum. Ver abaixo. | **Proposta** | `src/scenes/LoginScene.ts` → `iniciarSessao` só é chamado quando `perfil === 'jogador'` |
+
+### Sobre a RN-022, e por que ela precisa estar escrita
+
+A regra **nasceu do código**, em 18/11/2026: ao revisar a tela de login, o
+`iniciarSessao` estava dentro de um `if (sessao.perfil === 'jogador')`.
+
+Verificado rodando: entrei como `professor`, joguei 20 s com o relógio
+disparando tentativas, e a bronze ficou com **zero eventos** desse jogador —
+só a conta de jogador tinha evento.
+
+**A decisão está certa.** A partida do professor não é aprendizagem de
+ninguém: ele já sabe a resposta, e entra na fase para preparar a aula ou para
+mostrar como se faz. Se essas tentativas entrassem nos indicadores, iriam
+parar no funil de fases (O4), nas tentativas até vencer (RN-012) e na média da
+turma — e o professor estaria, sem querer, enviesando o próprio painel que usa
+para decidir o que reexplicar.
+
+Está escrita aqui porque **comportamento que só existe no código não sobrevive
+a uma refatoração**. Sem a regra, a leitura natural de quem encontrar aquele
+`if` é "falta chamar o `iniciarSessao` para o professor" — e o conserto seria
+o estrago.
+
+> **O que a regra não decide.** Se mais tarde fizer sentido o professor jogar
+> *sendo medido* (num treinamento, por exemplo), isso não é um `if` a menos: é
+> uma conta de jogador para ele. Misturar os dois perfis numa conta só quebra
+> a RN-004 e a RN-005, que separam quem vê o quê.
 
 > **A RN-003 saiu de "Proposta" em 16/11/2026** e passou a ser verificada em
 > código: o seed recusa a conta se o `nome_exibicao` tiver espaço, com a
@@ -44,7 +71,7 @@
 | ID | Regra | Status | Onde vive |
 |---|---|---|---|
 | RN-007 | Uma tentativa começa quando o jogador aperta Play e termina com um único resultado: vitória, derrota ou interrompida. | Aceita | `silver.tentativa`, restrição `tentativa_finalizada_coerente` |
-| RN-008 | Se o programa termina sem derrotar o inimigo, o inimigo ataca até o guerreiro morrer. O resultado é derrota. | Aceita | `etl/silver.py` → `_causa_derrota` |
+| RN-008 | Se o programa termina sem derrotar o inimigo, o inimigo ataca até o guerreiro morrer. O resultado é derrota. | Aceita | `src/game/GameArea.ts` → `enemyAttacksUntilHeroDies`; `etl/silver.py` → `_causa_derrota` |
 | RN-009 | Stop encerra a tentativa como interrompida. Pause apenas suspende a execução. Editar o programa durante a pausa: ver PD-008. | Parcialmente aceita | — |
 | RN-010 | A tentativa é vitória quando a vida do inimigo chega a zero. | Aceita | — |
 | RN-011 | Uma fase é concluída na primeira vitória do jogador nela. | Proposta | `etl/gold.py` → `concluida` |
@@ -168,3 +195,4 @@ deixa de distinguir introdução de reforço nos destaques do professor.
 | 16/11/2026 | **O back-end passou a existir e quatro regras saíram de "Proposta".** RN-003 e RN-006 vão a **Aceita** com o arquivo que as verifica; RN-015 ganha a implementação do lado do servidor. A coluna *Onde vive* passa a usar o caminho completo, porque agora há dois projetos Python no repositório e `api/` sozinho ficou ambíguo |
 | 16/11/2026 | **O motor de execução do jogo entrou na `main`.** A RN-018 ganha o resultado do teste: pilhas sem bloco de evento são ignoradas como a regra previa, várias pilhas com `on-flag` executam em sequência (parte da PD-009 respondida), mas uma pilha encabeçada por **`on-start` não executa** — divergência registrada como **PD-021** |
 | 17/11/2026 | **Acrescentada a RN-021**: a tentativa que o tempo limite dispara não conta nos indicadores de aprendizagem. Veio de uma pergunta do lado do jogo, e a distorção foi medida antes de decidir. A regra de qualidade **RN-012b** foi reescrita para verificar a definição nova — ela barrou a primeira versão da mudança, que era o esperado |
+| 18/11/2026 | **Acrescentada a RN-022**: a partida de quem entra como `professor` não gera telemetria. A regra nasceu do código da tela de login ([PR #12](https://github.com/laramaia/while_under_attack/pull/12)) e foi verificada rodando — professor jogando 20 s, zero eventos na bronze. Está escrita porque sem ela a leitura natural daquele `if` é "falta chamar o `iniciarSessao`", e o conserto seria o estrago. **RN-008 confirmada em código**: o jogo passou a fazer o inimigo atacar até o guerreiro morrer, e a derrota por programa curto chega na silver classificada |
