@@ -148,9 +148,12 @@ mapa caixa por caixa está em
 - Equipe pequena, com jogo e back-end sob a mesma pessoa (RS-01).
 - Hipótese: orçamento zero para hospedagem e licenças (PD-005).
 - A entrega acadêmica precisa demonstrar o ciclo de BI.
-- **O jogo ainda não envia eventos.** Em 16/11/2026 não há código de envio no
-  repositório, e o endpoint de ingestão não existe. Tudo o que o dashboard
-  mostra vem do gerador sintético — ver RS-02.
+- **O banco do projeto ainda não tem partida nenhuma.** O caminho inteiro
+  existe e foi percorrido com dado real em 18/11/2026 — jogo envia, ingestão
+  grava na bronze, ETL publica a gold, dashboard mostra —, mas esse teste
+  rodou num Postgres local. No banco do projeto o que existe são as contas; de
+  evento de jogo, zero. Falta jogar de verdade, com gente, apontando para ele.
+  Ver RS-02.
 
 ---
 
@@ -168,3 +171,4 @@ da LGPD para dados de menores.
 |---|---|
 | 13/10/2026 | Versão inicial |
 | 16/11/2026 | Seção 5 atualizada com o gate de qualidade, a orquestração agendada e a fronteira back-end/BI; nova subseção sobre a conformidade com a arquitetura corporativa; IA registrada explicitamente fora do escopo; aviso sobre o material de pitch na seção 4; restrição acrescentada na seção 9 sobre o jogo ainda não enviar eventos |
+| 18/11/2026 | Restrição da seção 9 reescrita: o jogo passou a enviar e a ingestão passou a existir, então o que falta não é código, é partida jogada no banco do projeto |

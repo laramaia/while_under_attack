@@ -1,5 +1,28 @@
-# Versoes testadas com Python 3.14.
-psycopg[binary]==3.3.6
+# Dependencias do servico de BI, nas versoes em que foi testado
+# (Python 3.13.7 em 18/11/2026).
+#
+# A lista que vale e a do `pyproject.toml`, e o README instala por ela:
+#
+#     python -m venv .venv && .venv/bin/pip install -e .
+#
+# Este arquivo existe para quem precisa das versoes exatas, e precisa ser
+# mantido igual a de la. Ate 18/11/2026 nao estava: quando o login passou a
+# ser delegado ao back-end (ADR-002, ADR-004) o `pyproject.toml` ganhou
+# httpx, PyJWT e bcrypt, e aqui ficaram so os quatro de antes. Quem
+# instalasse por este arquivo recebia uma API que nem subia:
+#
+#     ModuleNotFoundError: No module named 'httpx'
+#
+# O erro estourava no import, antes de qualquer rota, e so dizia o nome do
+# primeiro pacote que faltava.
+psycopg[binary]==3.3.8
 fastapi==0.162.0
 uvicorn[standard]==0.54.0
 python-dotenv==1.2.4
+
+# Entraram com a delegacao do login ao back-end (ADR-002, ADR-004):
+# httpx chama o POST /login, PyJWT confere a assinatura do token que volta,
+# bcrypt gera o hash das contas do gerador no mesmo formato do back-end.
+httpx==0.28.1
+PyJWT==2.15.1
+bcrypt==5.0.0

@@ -31,6 +31,8 @@ status Resolvida, com o link.
 | **PD-021** | **O bloco `on-start` está na Palette e nunca executa.** O motor do jogo só dispara pilhas que começam com `on-flag`. Ou o jogo passa a executá-lo, ou ele sai da Palette, ou perde o `inicia_pilha` no catálogo. Aberta como [issue #4](https://github.com/laramaia/while_under_attack/issues/4) | RN-018, RN-014, RN-019 | **Alto** |
 | **PD-022** | **O tempo limite da fase é o mesmo para todas ou é por fase?** Se for por fase, o número tem que morar no `catalogo-fases.json` e virar coluna em `gold.dim_fase`. Ver abaixo. O trabalho do lado do BI está em [issue #14](https://github.com/laramaia/while_under_attack/issues/14) | RN-021, catálogo, `dim_fase` | **Alto** |
 | **PD-023** | **O que o jogo faz quando o back-end não responde?** A tela de login já existe ([issue #7](https://github.com/laramaia/while_under_attack/issues/7), fechada), mas continua em aberto o que fazer quando o serviço está fora e quando o token de 8 h expira — este último em [issue #16](https://github.com/laramaia/while_under_attack/issues/16). Ver abaixo | RN-001, ADR-004, telemetria | **Alto** |
+| **PD-024** | **A API do BI não avisa quando o `WUA_SEGREDO` dos dois serviços discorda.** O login funciona, o dashboard abre e todo pedido seguinte responde `401 token invalido` — a mesma mensagem de um token adulterado. Os dois `.env.example` já avisam; falta o serviço dizer. [issue #17](https://github.com/laramaia/while_under_attack/issues/17) | ADR-002, ADR-004 | Médio |
+| **PD-025** | **O card "Jogadores" conta contas criadas, não quem jogou.** Com dado sintético as duas coisas são iguais; com dado real a tela discorda de si mesma. Três opções e uma recomendação na issue. [issue #18](https://github.com/laramaia/while_under_attack/issues/18) | `dim_jogador`, dashboard do professor | Médio |
 
 ### Resolvidas
 
@@ -384,7 +386,7 @@ isso, só falta quem decida.
 | ID | Risco | Mitigação | Situação |
 |---|---|---|---|
 | RS-01 | Jogo e back-end concentrados na mesma pessoa viram gargalo | Fechar o contrato de eventos cedo, para que jogo e dashboard possam avançar em paralelo, com dados simulados | **Funcionou.** O BI ficou pronto antes do back-end existir, alimentado pelo gerador sintético |
-| RS-02 | Com ~10 jogadores, os gráficos ficam pouco expressivos | Dados sintéticos apenas em desenvolvimento, claramente marcados e separados. **A demonstração usa dados reais** | **Meio cumprida.** A separação existe (coluna `origem` e faixa amarela no dashboard). A segunda metade **não**: não existem dados reais, porque o jogo ainda não envia e a ingestão não existe |
+| RS-02 | Com ~10 jogadores, os gráficos ficam pouco expressivos | Dados sintéticos apenas em desenvolvimento, claramente marcados e separados. **A demonstração usa dados reais** | **Deixou de ser risco de código.** A separação existe (coluna `origem` e faixa amarela no dashboard) e o caminho do dado real foi percorrido ponta a ponta em 18/11/2026. Falta rodar isso no banco do projeto, que ainda não tem partida nenhuma — ver abaixo |
 | RS-03 | Mudar uma fase depois de coletar dados invalida comparações | `catalog_version` em todo evento (ADR-006) | Em uso: o catálogo foi de `2026.10.1-rascunho` para `2026.11.1-rascunho` |
 | RS-04 | Dashboard escrito com ajuda de IA sem dono na equipe fica difícil de defender na banca | Uma pessoa da equipe revisa e consegue explicar cada parte antes do merge | **Em curso.** O trabalho está no PR #1, em dois commits separados por assunto justamente para a revisão ser possível. O código cita as regras pelo número |
 | RS-05 | Relógio do celular errado bagunça a ordem dos eventos | `seq` por sessão e `received_at` no servidor (ADR-007) | Implementado no ETL |
@@ -392,13 +394,24 @@ isso, só falta quem decida.
 
 ### Sobre o RS-02, com a banca à vista
 
-A mitigação registrada diz que **a demonstração usa dados reais**, e hoje isso
-não é possível. É risco de cronograma, não de código: depende de o endpoint de
-ingestão existir e de o jogo enviar.
+A mitigação registrada diz que **a demonstração usa dados reais**, e até
+17/11/2026 isso não era possível: o jogo não enviava e a ingestão não existia.
+Os dois chegaram, e em 18/11/2026 o caminho inteiro foi percorrido com dado
+real — uma partida jogada no navegador virou EV-01 a EV-05, passou pela
+ingestão, pelas dez regras do gate e saiu na gold.
 
-Vale a equipe combinar um plano B. Apresentar com dado sintético e a faixa
-amarela visível é honesto — mas contraria o que a própria equipe escreveu, e é
-melhor decidir isso antes da banca do que durante.
+**O que falta agora é diferente, e é menor:** esse teste rodou num Postgres
+local. O banco do projeto tem as contas e nenhum evento de jogo. Para a banca
+ver dado real, alguém precisa jogar algumas partidas apontando para ele — não
+há nada a implementar, só a fazer.
+
+Isso tem um prazo implícito que vale notar: dado de jogo não se fabrica na
+véspera sem parecer fabricado. Três pessoas jogando meia hora já dão um
+dashboard com forma; esperar a semana da entrega dá um dashboard com três
+tentativas.
+
+O plano B continua de pé e continua honesto: apresentar com dado sintético e a
+faixa amarela visível. Só que agora ele é escolha, não necessidade.
 
 ---
 
@@ -413,3 +426,4 @@ melhor decidir isso antes da banca do que durante.
 | 16/11/2026 | **O motor de execução dos blocos entrou na `main`.** A **PD-009** passa a parcialmente resolvida pelo próprio código: pilhas com `on-flag` executam todas, em sequência; pilhas sem bloco de evento são ignoradas. Acrescentada a **PD-021**: o `on-start` está na Palette e nunca executa, e isso faz os indicadores contarem blocos que não rodaram. Registrado também o defeito do `Workspace.removeBlockInstance` |
 | 17/11/2026 | **PD-022** (o tempo limite é global ou por fase?) e **PD-023** (dá para jogar sem login?) acrescentadas, as duas com recomendação e abertas como issues [#8](https://github.com/laramaia/while_under_attack/issues/8) e [#7](https://github.com/laramaia/while_under_attack/issues/7). PD-018 atualizada: o jogo escolheu de fato o `fase_id` do catálogo (`CURRENT_PHASE_ID = 'F01'`), mas continua aberta porque é constante global e o jogo tem cinco fases pela frente. O defeito do Workspace foi corrigido pela Lara em `bab601a` e verificado |
 | 18/11/2026 | **A tela de login entrou** ([PR #12](https://github.com/laramaia/while_under_attack/pull/12)) e com ela a primeira pergunta da **PD-023** se respondeu na prática: o login é obrigatório. Sobraram o back-end fora do ar e o token expirado, este aberto como [issue #16](https://github.com/laramaia/while_under_attack/issues/16). As quatro observações do teste de ponta a ponta viraram issues [#13](https://github.com/laramaia/while_under_attack/issues/13), [#14](https://github.com/laramaia/while_under_attack/issues/14), [#15](https://github.com/laramaia/while_under_attack/issues/15) e [#16](https://github.com/laramaia/while_under_attack/issues/16). A **PD-018** ganhou o estado novo: as cinco fases existem em `src/model/level.ts` e conferem com o catálogo, mas o arquivo não é usado por ninguém |
+| 18/11/2026 | **RS-02 deixou de ser risco de código:** o caminho do dado real foi percorrido ponta a ponta, e o que falta é jogar no banco do projeto, que ainda não tem partida nenhuma. Acrescentadas **PD-024** (a API não avisa quando os dois serviços discordam do `WUA_SEGREDO`) e **PD-025** (o card de jogadores conta contas, não quem jogou), abertas como issues [#17](https://github.com/laramaia/while_under_attack/issues/17) e [#18](https://github.com/laramaia/while_under_attack/issues/18) |

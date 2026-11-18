@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -303,6 +303,25 @@ app.mount("/dashboard", _SemCache(directory=config.DIR_DASHBOARD, html=True),
           name="dashboard")
 
 
-@app.get("/")
-def raiz() -> FileResponse:
-    return FileResponse(config.DIR_DASHBOARD / "index.html")
+@app.get("/", include_in_schema=False)
+def raiz() -> RedirectResponse:
+    """Manda a raiz para o dashboard em vez de servir o index.html aqui.
+
+    Ate 18/11/2026 esta rota devolvia o `index.html` direto, com a URL ainda
+    em `/`. O HTML referencia os arquivos por caminho relativo
+    (`href="estilo.css"`, `import ... from './app.js'`), que em `/` viram
+    `/estilo.css` e `/app.js` -- fora do mount, 404 nos dois.
+
+    O estilo sumir era o sintoma visivel. O grave era o outro: sem o
+    `app.js` o modulo nao carrega, o `submit` do formulario de login nunca
+    recebe o listener, o `preventDefault()` nunca roda e o navegador faz um
+    GET nativo. A senha ia para a barra de enderecos, para o historico e
+    para o log do servidor:
+
+        GET /?usuario=professor&senha=professor
+
+    Redirecionar resolve os dois de uma vez e deixa UMA url canonica para o
+    dashboard. O `index.html` continua sendo servido pelo mount, por
+    `/dashboard/`, onde os caminhos relativos resolvem certo.
+    """
+    return RedirectResponse(url="/dashboard/")

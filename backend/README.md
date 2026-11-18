@@ -31,6 +31,14 @@ python -m venv .venv && .venv/Scripts/pip install -e .
 
 No Linux ou macOS, troque `.venv/Scripts/` por `.venv/bin/`.
 
+> **O `WUA_SEGREDO` do `.env` precisa ser igual ao do `bi/.env`.** Quem assina
+> o token é este serviço; quem confere a assinatura é a API do BI (ADR-002,
+> ADR-004). Com segredos diferentes o login **funciona** — a senha é conferida
+> aqui — e todo pedido seguinte ao dashboard responde `401 token invalido`, sem
+> dizer que a causa foi a configuração. Os dois `.env.example` já trazem o mesmo
+> valor: quem copiar os dois fica alinhado sem fazer nada. O problema aparece
+> para quem troca um e esquece o outro.
+
 ### Seed de contas (RN-001, RN-003, ADR-004)
 
 O comando `python -m wua_backend.seed` lê `backend/contas.json` (ou outro arquivo
