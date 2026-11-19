@@ -177,6 +177,21 @@ header.topo {
   border: 1px solid rgba(243, 239, 230, 0.28);
 }
 
+/* O guerreiro (ou o inimigo, na tela do professor) na ponta do cabecalho.
+   E decoracao: alt vazio e aria-hidden, porque nao acrescenta informacao
+   nenhuma para quem usa leitor de tela -- so diz, para quem ve, de que jogo
+   e esta tela. Some em tela estreita, onde o espaco e do que informa. */
+.topo .figura {
+  height: 46px;
+  width: auto;
+  margin: -14px 0 -10px 4px;
+  align-self: flex-end;
+}
+
+@media (max-width: 640px) {
+  .topo .figura { display: none; }
+}
+
 .topo button.discreto:hover {
   background: rgba(243, 239, 230, 0.12);
   color: #f3efe6;
@@ -245,6 +260,26 @@ section.cartao {
   gap: 16px;
   margin-bottom: 16px;
 }
+
+/* ---------- pastilha de bloco (issue #34) ----------
+   As quatro cores sao as da Palette do jogo (defaultCatalog.ts): evento
+   amarelo, acao azul, repeticao laranja, condicional roxo. O jogador
+   reconhece o bloco pela cor antes de ler o nome. */
+
+.bloco-chip {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  margin-right: 7px;
+  vertical-align: -1px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.bloco-chip.cat-event     { background: #e8c547; }
+.bloco-chip.cat-action    { background: #4a7fd4; }
+.bloco-chip.cat-repeat    { background: #e08a3c; }
+.bloco-chip.cat-condition { background: #8f6fc4; }
 
 /* ---------- numeros ---------- */
 

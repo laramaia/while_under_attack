@@ -7,7 +7,7 @@ import {
   aplicarTemaSalvo, prepararGraficos, aoTrocarTema, desenhar,
   eixos, BARRA, BARRA_H, EMPILHADA, cor, num, vazio, formatarData, duracao,
   cartaoNumero, tomDaEficiencia, limiares,
-  nomeDeBloco, CAUSAS, semDados, comTabela, tabela,
+  nomeDeBloco, blocoComCor, CAUSAS, semDados, comTabela, tabela,
 } from './app.js';
 
 aplicarTemaSalvo();
@@ -194,7 +194,7 @@ function conceitosAplicados() {
     return `<div class="destaque ${usou ? 'info' : 'atencao'}">
       <span class="icone" aria-hidden="true">${usou ? '✓' : '●'}</span>
       <span class="corpo">
-        <strong>${f.fase_id}${f.papel === 'reforco' ? ' · reforço' : ''} · ${nomeDeBloco(f.bloco_conceito)}</strong>
+        <strong>${f.fase_id}${f.papel === 'reforco' ? ' · reforço' : ''} · ${blocoComCor(f.bloco_conceito)}</strong>
         <span>${usou
           ? `Você venceu “${f.titulo}” usando o bloco. ${f.conceito} aplicado.`
           : `Você venceu “${f.titulo}” sem usar o bloco. Vale voltar e tentar `

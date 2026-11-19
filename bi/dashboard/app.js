@@ -79,7 +79,9 @@ export function montarTopo(paginaAtual) {
     <span class="espaco"></span>
     <span class="quem">${atual.nome_exibicao}</span>
     <button class="discreto" id="btn-tema">Tema</button>
-    <button class="discreto" id="btn-sair">Sair</button>`;
+    <button class="discreto" id="btn-sair">Sair</button>
+    <img src="assets/${atual.perfil === 'professor' ? 'inimigo' : 'heroi'}.png"
+         class="figura" alt="" aria-hidden="true">`;
 
   topo.querySelector('#btn-sair').onclick = sair;
   topo.querySelector('#btn-tema').onclick = alternarTema;
@@ -251,11 +253,17 @@ export function formatarData(iso) {
  * dashboard pergunta: um lugar só define como cada bloco se chama.
  */
 const rotulosDeBloco = new Map();
+const categoriasDeBloco = new Map();
 
 export async function carregarRotulosDeBloco() {
   try {
     const cat = await api('/catalogo');
-    for (const b of cat.blocos) rotulosDeBloco.set(b.tipo, b.rotulo);
+    for (const b of cat.blocos) {
+      rotulosDeBloco.set(b.tipo, b.rotulo);
+      // A categoria ja vinha no mesmo lugar e era jogada fora. E ela que
+      // da a cor do bloco na Palette (issue #34).
+      categoriasDeBloco.set(b.tipo, b.categoria);
+    }
   } catch {
     /* sem os rótulos a tela ainda serve: cai no identificador técnico */
   }
@@ -264,6 +272,24 @@ export async function carregarRotulosDeBloco() {
 export function nomeDeBloco(tipo) {
   if (!tipo) return '—';
   return rotulosDeBloco.get(tipo) || tipo;
+}
+
+/**
+ * O nome do bloco com a pastilha da cor que ele tem na Palette (issue #34).
+ *
+ * O jogador conhece os blocos pela cor antes de conhecer pelo nome: amarelo
+ * comeca a pilha, azul age, laranja repete, roxo decide. Escrever so "repeat"
+ * no dashboard joga fora o unico sinal que ele ja aprendeu a ler.
+ *
+ * A cor sai da CATEGORIA que o /api/catalogo ja devolvia e que o dashboard
+ * ignorava -- nao de uma segunda lista aqui, que divergiria do jogo na
+ * primeira vez que alguem acrescentasse um bloco.
+ */
+export function blocoComCor(tipo) {
+  const nome = nomeDeBloco(tipo);
+  const categoria = categoriasDeBloco.get(tipo);
+  if (!categoria) return nome;
+  return `<span class="bloco-chip cat-${categoria}" aria-hidden="true"></span>${nome}`;
 }
 
 export const CAUSAS = {

@@ -5,7 +5,7 @@ import {
   api, exigirSessao, montarTopo, mostrarProcedencia, mostrarErro,
   carregarRotulosDeBloco,
   aplicarTemaSalvo, prepararGraficos, aoTrocarTema, desenhar, semDados,
-  eixos, BARRA, EMPILHADA, cor, num, vazio, formatarData, nomeDeBloco,
+  eixos, BARRA, EMPILHADA, cor, num, vazio, formatarData, nomeDeBloco, blocoComCor,
   cartaoNumero, tomDaEficiencia, limiares,
   temaEscuro, comTabela, tabela, lerFiltros, query,
 } from './app.js';
@@ -422,7 +422,7 @@ function tabelaJogadores() {
 function tabelaBlocos() {
   const linhas = base.blocos.map((b) => `<tr>
       <td>${b.fase_id}</td>
-      <td>${b.bloco.startsWith('(') ? b.bloco : nomeDeBloco(b.bloco)}</td>
+      <td>${b.bloco.startsWith('(') ? b.bloco : blocoComCor(b.bloco)}</td>
       <td class="num">${b.derrotas}</td>
     </tr>`).join('');
 
