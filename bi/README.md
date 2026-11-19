@@ -24,11 +24,11 @@ Enquanto o back-end não existia, esta pasta trouxe dois substitutos
 **claramente marcados como provisórios**, para que o BI não ficasse parado
 (RS-01). **Em 16/11/2026 o back-end chegou** e um dos dois já saiu:
 
-- `src/wua_bi/api/auth_provisoria.py` — **a parte provisória saiu.** O login
-  agora é **delegado** ao `POST /login` do back-end (porta 8001), e este
-  arquivo só valida o JWT que ele emite. **As permissões (RN-004 e RN-005)
-  nunca foram provisórias**: continuam aqui, num lugar só, como decidido na
-  ADR-001. O nome do arquivo ficou errado e vale renomear (PD-020).
+- `src/wua_bi/api/acesso.py` — **a parte provisória saiu**, e em 18/11/2026 o
+  nome foi atrás (PD-020, fechada; chamava-se `auth_provisoria.py`). O login é
+  **delegado** ao `POST /login` do back-end (porta 8001) e este arquivo só
+  valida o JWT que ele emite. **As permissões (RN-004 e RN-005) nunca foram
+  provisórias**: continuam aqui, num lugar só, como decidido na ADR-001.
 - `src/wua_bi/gerador.py` — **continua.** Gera eventos sintéticos conformes ao
   Contrato de Eventos e os grava na bronze com `origem = 'sintetico'`. Sai
   quando o jogo começar a enviar eventos de verdade, o que ainda não aconteceu.
@@ -306,7 +306,7 @@ corrigir é a camada gold.
 
 | Regra | Onde está implementada |
 |---|---|
-| RN-004, RN-005 | `api/auth_provisoria.py` → `exigir_acesso_a`, `exigir_professor` |
+| RN-004, RN-005 | `api/acesso.py` → `exigir_acesso_a`, `exigir_professor` |
 | RN-007 | `silver.tentativa`, restrição `tentativa_finalizada_coerente` |
 | RN-008 | `etl/silver.py` → `_causa_derrota` |
 | RN-011 | `etl/gold.py` → `concluida` em `fato_progresso_fase` |
