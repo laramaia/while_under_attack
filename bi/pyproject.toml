@@ -13,6 +13,22 @@ dependencies = [
     "bcrypt>=4.0",
 ]
 
+# Extras: ficam de fora da instalacao padrao de proposito.
+#
+# O PySpark baixa ~300 MB e exige uma JVM 17 ou 21 (a 4.x nao sobe na 23); o
+# Airflow traz dezenas de dependencias e um banco de metadados proprio. Quem
+# so quer rodar o ETL e o dashboard nao precisa de nenhum dos dois, e pagar
+# isso na instalacao padrao faria o projeto demorar cinco minutos para subir
+# numa maquina nova.
+#
+#   pip install -e ".[spark]"     motor PySpark + `etl comparar`
+#   pip install -e ".[airflow]"   para rodar o DAG em airflow/dags/
+#   pip install -e ".[tudo]"      os dois
+[project.optional-dependencies]
+spark = ["pyspark>=4.0"]
+airflow = ["apache-airflow>=3.0"]
+tudo = ["pyspark>=4.0", "apache-airflow>=3.0"]
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"

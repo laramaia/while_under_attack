@@ -26,3 +26,10 @@ python-dotenv==1.2.4
 httpx==0.28.1
 PyJWT==2.15.1
 bcrypt==5.0.0
+
+# Os motores da arquitetura de referencia (ADR-008) NAO estao aqui de
+# proposito: sao extras do pyproject.toml, porque pesam. O PySpark baixa
+# ~300 MB e precisa de JVM 17 ou 21; o Airflow traz um banco de metadados.
+#
+#   pip install -e ".[spark]"     motor PySpark + `etl comparar`
+#   pip install -e ".[airflow]"   para rodar o DAG em airflow/dags/
