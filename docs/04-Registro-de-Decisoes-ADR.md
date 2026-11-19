@@ -215,9 +215,15 @@ implementação:
   tempo de resposta também não revele se a conta existe.
 - **O BI valida o JWT, mas não emite.** Ele delega o login ao back-end
   (ADR-002) e valida a assinatura com o mesmo `WUA_SEGREDO`.
-- **O arquivo do BI continua chamado `auth_provisoria.py`** por ora, mas o
-  conteúdo já não é provisório: validação de token e as permissões RN-004 e
-  RN-005. O nome está errado e vale renomear.
+- **O arquivo do BI passou a se chamar `acesso.py`** em 18/11/2026 (PD-020).
+  Chamava-se `auth_provisoria.py`, de quando o BI conferia a senha sozinho;
+  o conteúdo deixou de ser provisório dias antes do nome. Hoje faz duas
+  coisas: valida o token e aplica as permissões RN-004 e RN-005.
+- **O BI separa os três motivos de `401`** (expirado, assinatura divergente,
+  token inválido). O do meio existe porque os dois serviços leem o
+  `WUA_SEGREDO` de `.env` diferentes: com valores diferentes o login passa e
+  tudo depois dele falha, e a mensagem genérica mandava procurar no lugar
+  errado. Ver a seção 3 do documento de API.
 
 > **A troca de PBKDF2 para bcrypt não é retroativa.** Contas criadas pela
 > autenticação provisória têm hash PBKDF2, que o `bcrypt.checkpw` recusa — o

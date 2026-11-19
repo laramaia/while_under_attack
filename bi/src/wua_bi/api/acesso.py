@@ -1,4 +1,10 @@
-"""Integracao de autenticacao do dashboard com o back-end e permissoes (ADR-001, ADR-004).
+"""Acesso ao dashboard: quem entrou e o que pode ver (ADR-001, ADR-002, ADR-004).
+
+Este arquivo se chamou `auth_provisoria.py` ate 18/11/2026, de quando o BI
+conferia a senha sozinho. Essa parte saiu ha dias -- quem autentica e o
+back-end --, mas o nome continuou dizendo "provisoria" e virou a PD-020.
+Renomear fecha a pendencia e tira do caminho a duvida de quem abre o arquivo
+esperando codigo temporario.
 
 A autenticacao (conferencia de senha bcrypt e emissao do JWT) agora e feita
 pelo servico de back-end em `POST /login` (ADR-002, ADR-004). Este modulo:
@@ -42,11 +48,37 @@ class Usuario:
 
 
 def _ler_token(token: str) -> dict[str, Any]:
-    """Valida a assinatura e o prazo do JWT emitido pelo back-end (ADR-004, RN-006)."""
+    """Valida a assinatura e o prazo do JWT emitido pelo back-end (ADR-004, RN-006).
+
+    Os tres `except` nao sao intercambiaveis, e a ORDEM importa: tanto
+    `ExpiredSignatureError` quanto `InvalidSignatureError` descendem de
+    `InvalidTokenError`, entao o generico tem de vir por ultimo ou os dois
+    primeiros nunca sao alcancados.
+
+    O do meio existe por um caso concreto (issue #17). Quem assina o token e o
+    back-end; quem confere e este servico; os dois leem `WUA_SEGREDO` de
+    arquivos `.env` diferentes. Quando os valores discordam, o login
+    FUNCIONA -- a senha e conferida la -- e todo pedido seguinte cai aqui.
+    Com a mensagem generica "token invalido", que e a mesma de um token
+    adulterado, a pessoa procura defeito na permissao, na consulta ou no
+    banco. Foi onde eu procurei. O login ter passado empurra a suspeita para
+    o lado errado, e nada na tela sugere configuracao.
+
+    `InvalidSignatureError` quer dizer uma coisa so: o token esta bem formado
+    e a assinatura nao bate com ESTE segredo. Nao ha ambiguidade a preservar,
+    e dizer isso nao vaza nada -- o segredo nao aparece, so o nome da
+    variavel de ambiente que as duas pontas tem de compartilhar.
+    """
     try:
         return jwt.decode(token, config.SEGREDO, algorithms=[ALGORITMO_JWT])
     except jwt.ExpiredSignatureError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "token expirado")
+    except jwt.InvalidSignatureError:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "assinatura do token nao confere: o WUA_SEGREDO deste servico e o "
+            "do back-end precisam ser o mesmo valor (ADR-002, ADR-004)",
+        )
     except jwt.InvalidTokenError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "token invalido")
 

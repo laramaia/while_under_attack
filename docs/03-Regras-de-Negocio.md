@@ -22,8 +22,8 @@
 | RN-001 | Contas são criadas somente pela equipe. Não existe autocadastro. | Aceita | `backend/src/wua_backend/seed.py` |
 | RN-002 | O login usa usuário e senha. O sistema não coleta e-mail. | Aceita | `backend/.../auth.py` → `autenticar`; `app.jogador` não tem coluna de e-mail |
 | RN-003 | O nome exibido de um jogador é o primeiro nome ou um apelido, nunca o nome completo. | **Aceita** | `backend/.../seed.py` → `validar_conta` recusa `nome_exibicao` com espaço |
-| RN-004 | O jogador acessa somente os próprios dados. | Aceita | `bi/.../api/auth_provisoria.py` → `exigir_acesso_a` |
-| RN-005 | O professor acessa os dados de todos os jogadores do MVP. | Aceita | `bi/.../api/auth_provisoria.py` → `exigir_professor` |
+| RN-004 | O jogador acessa somente os próprios dados. | Aceita | `bi/.../api/acesso.py` → `exigir_acesso_a` |
+| RN-005 | O professor acessa os dados de todos os jogadores do MVP. | Aceita | `bi/.../api/acesso.py` → `exigir_professor` |
 | RN-006 | A identidade do jogador em um evento vem do token de autenticação, nunca do corpo da requisição. | **Aceita** | `backend/.../ingestao.py` → `ingerir_lote` usa o `jogador_id` do token |
 | **RN-022** | **A partida de quem entra com perfil `professor` não gera telemetria.** O professor pode jogar — para conhecer a fase, para demonstrar em aula —, mas essa partida não abre sessão e não emite evento nenhum. Ver abaixo. | **Proposta** | `src/scenes/LoginScene.ts` → `iniciarSessao` só é chamado quando `perfil === 'jogador'` |
 

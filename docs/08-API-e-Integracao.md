@@ -198,8 +198,51 @@ Um jogador em qualquer uma destas recebe **`403`**.
 | `GET` | `/api/procedencia` | de onde vem cada número do dashboard |
 
 > **As permissões RN-004 e RN-005 vivem num lugar só**, em
-> `bi/src/wua_bi/api/auth_provisoria.py` (`exigir_acesso_a` e
-> `exigir_professor`). O back-end **não** as duplica — é o que a ADR-001 pedia.
+> `bi/src/wua_bi/api/acesso.py` (`exigir_acesso_a` e `exigir_professor`). O
+> back-end **não** as duplica — é o que a ADR-001 pedia. *(O arquivo se chamou
+> `auth_provisoria.py` até 18/11/2026 — PD-020, fechada.)*
+
+### Os três `401` do BI querem dizer coisas diferentes
+
+Interessa aos dois lados, porque o token que o BI recusa foi emitido pelo
+back-end.
+
+| Mensagem | O que aconteceu | O que fazer |
+|---|---|---|
+| `token expirado` | O token passou das 8 h (ADR-004) | Entrar de novo |
+| `assinatura do token nao confere: o WUA_SEGREDO...` | **Os dois serviços estão com `WUA_SEGREDO` diferente** | Igualar os dois `.env` |
+| `token invalido` | Token malformado, truncado, de outro algoritmo | Olhar quem está montando o cabeçalho |
+
+A do meio foi separada em 18/11/2026 ([issue #17](https://github.com/laramaia/while_under_attack/issues/17))
+e vale explicar por quê.
+
+**O token é assinado pelo back-end e conferido pelo BI** (ADR-002), pelo mesmo
+`WUA_SEGREDO` lido de dois `.env` diferentes. Quando os valores discordam, o
+login **funciona** — a senha é conferida no back-end, que não sabe de nada e
+devolve `200` com um token válido — e todo pedido seguinte ao dashboard cai em
+`401`. Reproduzido:
+
+```
+POST localhost:8001/login  -> 200 {"token":"eyJ…","perfil":"professor"}
+GET  localhost:8011/api/eu -> 401 {"detail":"assinatura do token nao confere: …"}
+```
+
+Com a mensagem genérica de antes, o login ter passado empurrava a suspeita para
+o lado errado: quem via isso procurava defeito na permissão, na consulta ou no
+banco. **Nada na tela sugeria configuração.**
+
+`InvalidSignatureError` quer dizer uma coisa só — o token está bem formado e a
+assinatura não bate com *este* segredo —, então não há ambiguidade a preservar.
+A mensagem não vaza o segredo: cita o nome da variável de ambiente, não o valor.
+
+> Detalhe de implementação que importa para quem for mexer: `ExpiredSignatureError`
+> e `InvalidSignatureError` **descendem** de `InvalidTokenError`. Os dois
+> específicos têm de vir antes do genérico, ou nunca são alcançados.
+
+**Para o back-end não muda nada.** Ele continua assinando como sempre; o que
+mudou foi o que o BI diz quando a assinatura não bate. O que vale lembrar é a
+regra dos dois lados: **ao trocar o `WUA_SEGREDO` de um serviço, trocar o do
+outro no mesmo momento** — ao publicar, isso vai acontecer (PD-005).
 
 ---
 

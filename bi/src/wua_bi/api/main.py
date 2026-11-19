@@ -21,7 +21,7 @@ from pydantic import BaseModel
 
 from .. import config, db
 from ..catalogo import catalogo_padrao
-from . import auth_provisoria as auth
+from . import acesso as auth
 from . import consultas
 
 app = FastAPI(
