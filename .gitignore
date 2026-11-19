@@ -1,0 +1,8 @@
+
+
+# Airflow: o DAG em airflow/dags/ e versionado; o resto e estado local de quem
+# aponta o AIRFLOW_HOME para ca (banco de metadados, logs, config gerado).
+airflow/airflow.db
+airflow/airflow.cfg
+airflow/logs/
+airflow/simple_auth_manager_passwords.json.generated

@@ -75,11 +75,46 @@ def conferir() -> int:
     return 1 if falhou else 0
 
 
+def comparar(master: str) -> int:
+    """Roda os dois motores sobre a mesma bronze e mostra lado a lado.
+
+    O de SQL roda numa transacao que termina em rollback: a silver publicada
+    nao e tocada. Dava para comparar so as contagens finais, mas o tempo e
+    metade do que esta em discussao -- a ADR-008 justificou nao usar Spark
+    pelo volume, e numero vale mais que adjetivo.
+    """
+    from .spark import comparar as comparar_motores
+
+    print("rodando os dois motores sobre a mesma bronze...")
+    r = comparar_motores(master=master)
+
+    print()
+    print(f"{'':14} {'SQL':>10} {'Spark':>10}")
+    for chave in ("sessoes", "tentativas", "blocos", "rejeitados"):
+        marca = " " if r["sql"][chave] == r["spark"][chave] else "  <- DIFERE"
+        print(f"{chave:14} {r['sql'][chave]:>10} {r['spark'][chave]:>10}{marca}")
+    print(f"{'duracao_s':14} {r['sql']['duracao_s']:>10} {r['spark']['duracao_s']:>10}")
+
+    print()
+    if r["iguais"]:
+        vezes = r["spark"]["duracao_s"] / max(r["sql"]["duracao_s"], 0.001)
+        print("Os dois motores chegaram ao MESMO resultado.")
+        print(f"O Spark levou {vezes:.0f}x o tempo do SQL neste volume -- e a "
+              f"medicao que a ADR-008 pedia,")
+        print("agora com os dois motores existindo de verdade em vez de so um.")
+        return 0
+
+    print("OS MOTORES DIVERGIRAM em:", ", ".join(r["diferencas"]))
+    print("Isso e defeito de um dos dois, nao resultado valido. Nao publique.")
+    return 1
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="wua_bi.etl", description=__doc__)
     parser.add_argument(
         "comando",
-        choices=["criar", "semear", "rodar", "agendar", "tudo", "conferir"],
+        choices=["criar", "semear", "rodar", "agendar", "tudo", "conferir",
+                 "comparar"],
     )
     parser.add_argument("--jogadores", type=int, default=10)
     parser.add_argument("--dias", type=int, default=21)
@@ -88,6 +123,8 @@ def main() -> None:
                         help="minutos entre execucoes no modo agendar")
     parser.add_argument("--vezes", type=int, default=None,
                         help="quantos ciclos rodar antes de sair (teste)")
+    parser.add_argument("--master", default="local[*]",
+                        help="master do Spark no comando comparar")
     args = parser.parse_args()
 
     codigo = 0
@@ -100,6 +137,8 @@ def main() -> None:
         codigo = rodar()
     if args.comando == "agendar":
         codigo = orquestrador.agendar(args.intervalo, args.vezes)
+    if args.comando == "comparar":
+        codigo = comparar(args.master)
     if args.comando in ("conferir", "tudo") and codigo == 0:
         print()
         codigo = conferir()

@@ -63,10 +63,14 @@ backend/               autenticação e ingestão de eventos
     seed.py            criação das contas, sem autocadastro
     ingestao.py        POST /api/eventos → bronze, com controle de lote
 
+airflow/
+  dags/                DAG do ETL (ADR-009) — um gatilho a mais para a mesma função
+
 bi/                    a fatia de Inteligência de Negócios
   db/                  DDL das três camadas: bronze, silver, gold
   src/wua_bi/
     etl/               bronze → silver → gold, gate de qualidade, agendador
+      spark.py         a mesma transformação em PySpark (ADR-008)
     api/               API de leitura + permissões por perfil
     gerador.py         eventos sintéticos, para desenvolver sem depender de
                        partida jogada (RS-02)
