@@ -121,11 +121,23 @@ alter table bronze.etl_execucao
     check (etapa in ('silver', 'gold', 'qualidade'));
 
 alter table bronze.etl_execucao
-    add column if not exists disparo text not null default 'manual'
-    check (disparo in ('manual', 'agendado'));
+    add column if not exists disparo text not null default 'manual';
+
+-- O CHECK e recriado em vez de so adicionado: ele ja existia com dois valores
+-- ('manual', 'agendado') e o DAG do Airflow grava 'airflow'. Sem isto o ETL
+-- disparado pelo Airflow morre na primeira linha que tenta escrever, com
+-- `violates check constraint "etl_execucao_disparo_check"` -- que foi
+-- exatamente o que aconteceu na primeira vez que o DAG rodou de verdade.
+alter table bronze.etl_execucao
+    drop constraint if exists etl_execucao_disparo_check;
+
+alter table bronze.etl_execucao
+    add constraint etl_execucao_disparo_check
+    check (disparo in ('manual', 'agendado', 'airflow'));
 
 comment on column bronze.etl_execucao.disparo is
-    'Quem chamou o ETL: a pessoa ou o agendador (ADR-009).';
+    'Quem chamou o ETL: a pessoa, o agendador proprio ou o DAG do Airflow '
+    '(ADR-009). Os tres chamam a mesma funcao; o que muda e o gatilho.';
 
 
 -- ---------------------------------------------------------------------------
