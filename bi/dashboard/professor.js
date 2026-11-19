@@ -67,7 +67,7 @@ function numeros() {
   const r = base.resumo;
   const travados = base.funil.reduce((s, f) => s + (f.travados || 0), 0);
   const itens = [
-    [num(r.jogadores), 'Jogadores'],
+    [`${num(r.jogadores_ativos)} de ${num(r.jogadores)}`, 'Jogadores que já jogaram'],
     [num(r.tentativas), 'Tentativas registradas'],
     [num(r.sessoes), 'Sessões'],
     [num(r.fases_concluidas), 'Fases concluídas'],

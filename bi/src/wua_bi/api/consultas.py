@@ -129,9 +129,26 @@ order by c.ordem
 # Visao do professor (O4)
 # ---------------------------------------------------------------------------
 
+# O card de jogadores mostra DOIS numeros, "x de y", e nao um (issue #18).
+#
+# Ate 18/11/2026 mostrava so o total de contas, com o rotulo "Jogadores". Com
+# dado sintetico ninguem via o problema, porque o gerador faz as dez contas
+# jogarem. Com dado real as duas coisas se separam na hora: num teste com UM
+# jogador, a tela dizia "10 Jogadores" sobre 7 tentativas, 3 sessoes e um
+# heatmap de uma linha.
+#
+# Trocar o numero por "quem jogou" resolveria o card e quebraria outra coisa:
+# a tabela de jogadores faz left join a partir de dim_jogador e lista TODAS as
+# contas, inclusive quem nunca comecou -- de proposito, porque "quem ainda nao
+# jogou" e informacao que o professor quer. O card diria 3 e a tabela teria 10
+# linhas: a divergencia mudaria de lugar em vez de sumir.
+#
+# "3 de 10" responde as duas perguntas de uma vez e usa um padrao que ja existe
+# na tela do jogador ("0 de 5 fases concluidas").
 RESUMO_PROFESSOR = """
 select
     (select count(*) from gold.dim_jogador where perfil = 'jogador') as jogadores,
+    (select count(distinct jogador_sk) from gold.fato_tentativa)     as jogadores_ativos,
     (select count(*) from gold.dim_fase)                             as fases,
     (select count(*) from gold.fato_tentativa)                       as tentativas,
     (select count(*) from gold.fato_progresso_fase where concluida)  as fases_concluidas,
