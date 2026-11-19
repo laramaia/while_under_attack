@@ -72,12 +72,12 @@ export function montarTopo(paginaAtual) {
     : [['jogador.html', 'Meu progresso']];
 
   topo.innerHTML = `
-    <h1>while under_attack</h1>
+    <h1><img src="assets/logo.png" alt="while under_attack" class="marca"></h1>
     <nav>${abas.map(([href, texto]) =>
       `<a href="${href}"${href === paginaAtual ? ' aria-current="page"' : ''}>${texto}</a>`
     ).join('')}</nav>
     <span class="espaco"></span>
-    <span style="font-size:13px;color:var(--tinta-fraca)">${atual.nome_exibicao}</span>
+    <span class="quem">${atual.nome_exibicao}</span>
     <button class="discreto" id="btn-tema">Tema</button>
     <button class="discreto" id="btn-sair">Sair</button>`;
 

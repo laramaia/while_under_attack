@@ -1,18 +1,30 @@
 /* Dashboard do while under_attack.
    Sem etapa de build (ADR-002): CSS puro, variaveis para os dois temas.
-   As cores de dados vem da paleta validada; nao invente tons novos. */
+
+   O TEMA E O DO JOGO (issue #30). As cores de entorno -- fundo, cartao,
+   borda, titulo -- sao as que o jogo usa no src/config.ts: o vermelho
+   #8c3b3b dos botoes, o pergaminho #f3efe6 dos paineis, a tinta #2b2118.
+   A fonte dos titulos e a Georgia, que e a do jogo.
+
+   O QUE NAO SEGUE O TEMA E O DADO. As --serie-* e as --rampa-* continuam
+   sendo a paleta validada para leitura, e e de proposito: marrom sobre
+   marrom deixa de ser grafico e vira enfeite. O tema fica na moldura. */
 
 :root {
   color-scheme: light;
 
-  --plano:            #f9f9f7;
-  --superficie:       #fcfcfb;
-  --tinta:            #0b0b0b;
-  --tinta-2:          #52514e;
-  --tinta-fraca:      #898781;
-  --grade:            #e1e0d9;
-  --eixo:             #c3c2b7;
-  --borda:            rgba(11, 11, 11, 0.10);
+  --plano:            #e7e0d2;   /* pergaminho envelhecido, atras de tudo */
+  --superficie:       #f6f2e9;   /* pergaminho claro do cartao */
+  --tinta:            #2b2118;   /* a tinta do jogo */
+  --tinta-2:          #4a4242;
+  --tinta-fraca:      #8a7f72;
+  --grade:            #d9cfbc;
+  --eixo:             #bfb3a0;
+  --borda:            rgba(43, 33, 24, 0.14);
+
+  --realce:           #8c3b3b;   /* o vermelho dos botoes do jogo */
+  --realce-fraco:     rgba(140, 59, 59, 0.10);
+  --veu:              rgba(231, 224, 210, 0.78);  /* sobre a arte de fundo */
 
   --serie-1:          #2a78d6;
   --serie-2:          #eb6834;
@@ -31,20 +43,27 @@
   --rampa-0: #f0efec;      /* sem dado */
 
   --raio: 10px;
+  /* Corpo e tabela em sem serifa: precisam de densidade e de numero alinhado.
+     Titulo e numero grande em Georgia, que e a fonte do jogo. */
   --fonte: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fonte-titulo: Georgia, "Times New Roman", serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-tema="claro"]) {
     color-scheme: dark;
-    --plano:        #0d0d0d;
-    --superficie:   #1a1a19;
-    --tinta:        #f0efec;
-    --tinta-2:      #c3c2b7;
-    --tinta-fraca:  #898781;
-    --grade:        #2c2c2a;
-    --eixo:         #383835;
-    --borda:        rgba(255, 255, 255, 0.10);
+    --plano:        #15100b;
+    --superficie:   #241c14;
+    --tinta:        #f3efe6;
+    --tinta-2:      #cbbfae;
+    --tinta-fraca:  #9a8c7b;
+    --grade:        #342a1f;
+    --eixo:         #463a2b;
+    --borda:        rgba(243, 239, 230, 0.12);
+
+    --realce:       #c86b6b;
+    --realce-fraco: rgba(200, 107, 107, 0.14);
+    --veu:          rgba(21, 16, 11, 0.88);
 
     --serie-1:      #3987e5;
     --serie-2:      #d95926;
@@ -61,14 +80,18 @@
 
 :root[data-tema="escuro"] {
   color-scheme: dark;
-  --plano:        #0d0d0d;
-  --superficie:   #1a1a19;
-  --tinta:        #f0efec;
-  --tinta-2:      #c3c2b7;
-  --tinta-fraca:  #898781;
-  --grade:        #2c2c2a;
-  --eixo:         #383835;
-  --borda:        rgba(255, 255, 255, 0.10);
+  --plano:        #15100b;
+  --superficie:   #241c14;
+  --tinta:        #f3efe6;
+  --tinta-2:      #cbbfae;
+  --tinta-fraca:  #9a8c7b;
+  --grade:        #342a1f;
+  --eixo:         #463a2b;
+  --borda:        rgba(243, 239, 230, 0.12);
+
+  --realce:       #c86b6b;
+  --realce-fraco: rgba(200, 107, 107, 0.14);
+  --veu:          rgba(21, 16, 11, 0.88);
 
   --serie-1:      #3987e5;
   --serie-2:      #d95926;
@@ -87,11 +110,19 @@
 body {
   margin: 0;
   padding: 0;
-  background: var(--plano);
   color: var(--tinta);
   font-family: var(--fonte);
   font-size: 15px;
   line-height: 1.5;
+
+  /* A floresta das cenas do jogo atras de tudo, com um veu por cima.
+     O veu nao e enfeite: sem ele o texto do dashboard fica sobre galho e
+     pedra, e deixa de ser legivel. A arte aparece o suficiente para dizer
+     de onde o dado veio, e nao mais que isso. */
+  background:
+    linear-gradient(var(--veu), var(--veu)),
+    url('assets/background.png') center / cover no-repeat fixed,
+    var(--plano);
 }
 
 /* ---------- cabecalho ---------- */
@@ -101,32 +132,71 @@ header.topo {
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--borda);
-  background: var(--superficie);
+  padding: 10px 16px;
+  /* Faixa escura, como a moldura de painel do jogo. O cabecalho deixa de ser
+     mais uma superficie clara e passa a emoldurar a tela. */
+  background: linear-gradient(180deg, #2b2118, #1d170f);
+  border-bottom: 3px solid var(--realce);
+  color: #f3efe6;
   position: sticky;
   top: 0;
   z-index: 10;
 }
+
 
 .topo h1 {
   font-size: 17px;
   margin: 0;
   font-weight: 650;
   letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+}
+
+/* O logo substitui o texto do titulo. O alt continua dizendo o nome, entao
+   quem usa leitor de tela nao perde nada. */
+.marca {
+  height: 34px;
+  width: auto;
+  display: block;
 }
 
 .topo .espaco { flex: 1; }
 
+/* Nome de quem entrou e os dois botoes, claros sobre a faixa escura. Antes o
+   nome vinha com style inline apontando para a --tinta-fraca, que e escura:
+   com o cabecalho claro dava certo por acaso, e com ele escuro sumia. */
+.topo .quem {
+  font-size: 13px;
+  color: #cbbfae;
+}
+
+.topo button.discreto {
+  background: transparent;
+  color: #d9cfbc;
+  border: 1px solid rgba(243, 239, 230, 0.28);
+}
+
+.topo button.discreto:hover {
+  background: rgba(243, 239, 230, 0.12);
+  color: #f3efe6;
+  border-color: rgba(243, 239, 230, 0.5);
+}
+
 .topo nav a {
-  color: var(--tinta-2);
+  /* Claro sobre a faixa escura do cabecalho, e nao a tinta do corpo. */
+  color: #d9cfbc;
   text-decoration: none;
   padding: 6px 10px;
   border-radius: 8px;
   font-size: 14px;
 }
-.topo nav a:hover { background: var(--plano); }
-.topo nav a[aria-current="page"] { color: var(--tinta); background: var(--plano); font-weight: 600; }
+.topo nav a:hover { background: rgba(243, 239, 230, 0.12); color: #f3efe6; }
+.topo nav a[aria-current="page"] {
+  color: #fff;
+  background: var(--realce);
+  font-weight: 600;
+}
 
 /* ---------- avisos ---------- */
 
@@ -156,9 +226,11 @@ section.cartao {
 }
 
 .cartao > h2 {
-  font-size: 15px;
+  font-family: var(--fonte-titulo);
+  font-size: 18px;
   margin: 0 0 2px;
-  font-weight: 650;
+  font-weight: 700;
+  color: var(--tinta);
 }
 
 .cartao > p.nota {
@@ -186,13 +258,17 @@ section.cartao {
 .numero {
   background: var(--superficie);
   border: 1px solid var(--borda);
+  /* A faixa quente na lateral e o que faz o cartao parecer um painel do jogo
+     e nao uma caixa de planilha. */
+  border-left: 3px solid var(--realce);
   border-radius: var(--raio);
   padding: 14px 16px;
 }
 .numero .valor {
-  font-size: 28px;
-  font-weight: 640;
-  letter-spacing: -0.02em;
+  font-family: var(--fonte-titulo);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   display: block;
   line-height: 1.15;
 }
