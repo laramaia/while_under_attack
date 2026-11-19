@@ -74,7 +74,7 @@ O que ainda não existe, e o que saiu desta lista desde 13/10:
 | Documento de Arquitetura com diagramas de contexto, componentes e implantação | **parcialmente coberto** por `bi/docs/arquitetura-de-referencia.md`, que mapeia o projeto contra a arquitetura corporativa. Faltam os diagramas |
 | Contrato da API (OpenAPI) | **existe, gerado**: cada serviço publica o seu em `/docs` e `/openapi.json` — o back-end na porta 8001, o BI na 8000. As rotas dos dois estão escritas também em `08-API-e-Integracao.md`, que é o que se lê sem subir nada |
 | Modelo de dados das camadas bronze, silver e gold (DDL) | **existe**: `bi/db/01_bronze.sql`, `02_silver.sql`, `03_gold.sql`, comentados regra por regra |
-| Plano de testes e matriz de rastreabilidade | **parcialmente coberto**: as 10 regras do gate de qualidade (`bi/src/wua_bi/etl/qualidade.py`) citam a RN que cada uma verifica. Falta o plano formal |
+| Plano de testes e matriz de rastreabilidade | **parcialmente coberto**: as 11 regras do gate de qualidade (`bi/src/wua_bi/etl/qualidade.py`) citam a RN que cada uma verifica. Falta o plano formal |
 | Convenções de identificadores | abaixo |
 
 ---

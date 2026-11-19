@@ -1,7 +1,7 @@
 # while under_attack: attack()
 ## Catálogo de Fases
 
-**Status:** Rascunho · **Última atualização:** 16/11/2026
+**Status:** Rascunho · **Última atualização:** 18/11/2026
 
 Define o formato de [`catalogo-fases.json`](../catalogo-fases.json) (ADR-006).
 
@@ -55,10 +55,11 @@ programa ideal.
 
 ```json
 {
-  "catalog_version": "2026.11.1-rascunho",
+  "catalog_version": "2026.11.2-rascunho",
 
   "conceitos": [
-    { "conceito_id": "sequencia", "nome": "Sequencia", "ordem": 1 }
+    { "conceito_id": "evento", "nome": "Evento", "ordem": 1 },
+    { "conceito_id": "sequencia", "nome": "Sequencia", "ordem": 2 }
   ],
 
   "tipos_de_bloco": [
@@ -75,11 +76,11 @@ programa ideal.
 
   "fases": [
     {
-      "fase_id": "F01",
-      "ordem": 1,
-      "titulo": "Primeiros passos",
+      "fase_id": "F02",
+      "ordem": 2,
+      "titulo": "Fora de alcance",
       "conceito_id": "sequencia",
-      "blocos_disponiveis": ["on-flag", "on-start", "advance", "attack", "defend"],
+      "blocos_disponiveis": ["on-flag", "advance", "attack"],
       "solucao_referencia": { "pilhas": [[
         { "id": "r1", "tipo": "on-flag" },
         { "id": "r2", "tipo": "advance" },
@@ -101,7 +102,7 @@ programa ideal.
 | `vezes_fixas` | Quantas vezes o bloco repete o corpo, quando não há parâmetro editável. |
 | `tem_condicao` | Se o bloco usa uma condição. **Hoje sempre `false`.** |
 | `condicoes` | Condições disponíveis. **Hoje vazia** (PD-013). |
-| `blocos_disponiveis` | Subconjunto de blocos que a Palette mostra nesta fase. **A ordem importa**: a RN-019 deduz o bloco do conceito pelo que a fase acrescenta em relação à anterior. |
+| `blocos_disponiveis` | Subconjunto de blocos que a Palette mostra nesta fase. A RN-019 deduz o bloco do conceito pelo que a fase acrescenta em relação às anteriores. **A ordem não importa** — até 18/11/2026 importava, e era um problema: ver a seção 3.1. |
 | `solucao_referencia` | Programa completo, no mesmo formato do contrato de eventos. O tamanho de referência é **calculado contando os blocos dele** (RN-014), em vez de digitado à mão. |
 
 > **`inicia_pilha` não é opcional na prática.** Sem nenhum bloco declarando-o, a
@@ -137,19 +138,74 @@ conceito não pegou na introdução.
 > que era uma divergência registrada. Agora está aqui e na RN-020, as duas
 > aguardando validação da equipe.
 
+### 3.1 Qual bloco representa o conceito, quando a fase abre mais de um
+
+A RN-019 pergunta se o jogador venceu **usando** o bloco que a fase ensina. Para
+isso é preciso saber qual bloco é esse, e o catálogo o deduz: é o que a fase
+acrescenta à Palette em relação a todas as anteriores.
+
+Quase sempre é um bloco só, e não há o que decidir. Mas em 18/11/2026, ao
+reescrever as duas primeiras fases com o que elas de fato usam, a fase da
+repetição passou a abrir **dois** de uma vez — `defend` e `repeat` —, porque
+nenhuma fase anterior os oferecia.
+
+A regra de desempate até então era *"o último da lista"*. Ela funcionou por
+sorte: `repeat` estava escrito depois de `defend`. Reordenar os dois nomes no
+JSON — coisa que ninguém trataria como mudança de comportamento — trocaria o
+bloco do conceito da fase para `defend`, e o indicador "venceu aplicando o
+conceito?" passaria a medir outra coisa, sem erro, sem aviso e sem nada no gate
+de qualidade que pegasse.
+
+**O desempate agora é a solução de referência:** entre os blocos novos, vale o
+que a própria solução usa. A referência da fase da repetição usa `repeat` e não
+usa `defend`, e isso não depende de ordem nenhuma. Quando nenhum bloco novo
+aparece na referência, o catálogo responde "não sei" (`null`) em vez de chutar
+— é mais honesto um indicador ausente do que um indicador errado.
+
 ---
 
 ## 4. Progressão (a validar — PD-006)
 
 Esta é a progressão que **os blocos existentes conseguem ensinar**:
 
-| Etapa | Conceito | Bloco novo | Ideia de desafio |
-|---|---|---|---|
-| 1 | Sequência | `on-flag`, `advance`, `attack` | Avançar até o inimigo e atacar na ordem certa |
-| 2 | Repetição com número fixo | `repeat` | Inimigo que precisa de vários ataques, sem copiar blocos |
-| 3 | *(reforço da etapa 2)* | — | Repetir com mais de um bloco no corpo |
-| 4 | Condicional | `if-else` | Atacar somente quando der |
-| 5 | Combinação | — | Condicional dentro de repetição |
+| Fase | Título | Conceito | Bloco novo | Ideia de desafio |
+|---|---|---|---|---|
+| F01 | Primeiros passos | Evento | — | Uma ação só: apertar play e ver o programa rodar |
+| F02 | Fora de alcance | Sequência | `advance` | O inimigo para longe: avançar antes de atacar |
+| F03 | Golpe atrás de golpe | Repetição com número fixo | `repeat` | Inimigo que aguenta vários ataques, sem copiar blocos |
+| F04 | Ele aguenta mais | *(reforço da F03)* | — | Repetir com mais de um bloco no corpo |
+| F05 | Só quando der | Condicional | `if-else` | Atacar somente quando der |
+| F06 | Duelo longo | Combinação | — | Condicional dentro de repetição |
+
+**A F01 e a F02 são as que o jogo tem.** Foram descritas pela equipe do jogo em
+18/11/2026 e o catálogo passou a segui-las. Da F03 em diante a progressão
+continua sendo proposta (PD-006).
+
+### Por que a F01 não ensina sequência
+
+A primeira versão deste catálogo dava `sequencia` à F01. Com a F01 reduzida ao
+que ela realmente é — `on-flag` + `attack` —, isso deixou de se sustentar:
+**com uma ação só não há ordem para errar.** O que a F01 ensina é que um
+programa começa por um bloco de evento e roda quando se aperta play. Daí o
+conceito `evento`.
+
+Quem ensina sequência é a F02, onde avançar antes de atacar é a diferença entre
+acertar e não alcançar. Por isso `sequencia` passou a ser dela.
+
+A alternativa considerada era deixar as duas em `sequencia`, fazendo da F02 uma
+fase de reforço. **Ela foi descartada por duas consequências no dashboard, as
+duas verificadas antes de decidir:**
+
+1. **Um alerta falso, permanente.** O destaque de reforço compara a fase de
+   reforço com a introdução e avisa quando o reforço custa mais. A F02 é
+   objetivamente mais difícil que a F01 — três blocos contra dois, e ordem que
+   importa —, então o painel do professor mostraria *"F02 deveria ser mais
+   fácil que F01"* para sempre, por construção.
+2. **Um indicador morto.** Numa fase de reforço, o bloco do conceito vem da
+   fase que **introduziu** o conceito. A introdução seria a F01, que não
+   acrescenta bloco nenhum (é a primeira, não há com o que comparar). A F02
+   ficaria com `bloco_conceito = null` e perderia o indicador "venceu aplicando
+   o conceito?" — justamente na fase em que `advance` é o conceito.
 
 ### O conceito que teve de sair: repetição com condição
 
@@ -179,14 +235,31 @@ que a Palette ainda não tem.
 
 ## 5. As fases do jogo estão sendo criadas
 
-Este documento descreve fases e o `catalogo-fases.json` as define, mas o jogo
-ainda não tem o conceito: em `src/` há uma `BattleScene`, não uma progressão.
-**Isso está em construção.**
+Em 18/11/2026 o jogo tem **duas** fases, a F01 e a F02, e foi a partir delas
+que este catálogo foi reescrito. Da F03 em diante o que existe é a proposta da
+seção 4.
 
-O que vale combinar enquanto está sendo feito é **de onde sai o `fase_id`** —
-do catálogo, como a ADR-006 previa, ou do código do jogo. É a **PD-018**, e é
-a mesma armadilha da PD-013: duas listas para a mesma coisa, feitas em lugares
-diferentes.
+Duas coisas continuam em aberto enquanto o resto é construído:
+
+**De onde sai o `fase_id`** — do catálogo, como a ADR-006 previa, ou do código
+do jogo. É a **PD-018**, a mesma armadilha da PD-013: duas listas para a mesma
+coisa, feitas em lugares diferentes. Hoje o jogo tem as fases em
+`src/model/level.ts`, que **nenhum código usa**
+([issue #13](https://github.com/laramaia/while_under_attack/issues/13)), e o
+`fase_id` sai de uma constante global.
+
+**A Palette ainda não filtra por fase.** O jogador vê todos os blocos em todas
+as fases. O `blocos_disponiveis` deste catálogo descreve o que a fase *deveria*
+oferecer, e é essa lista que o ETL lê para deduzir o bloco do conceito — não o
+que está na tela. Enquanto as duas não coincidirem, a RN-019 mede a intenção do
+catálogo, não a experiência do jogador.
+
+> **Um aviso sobre a F02, para quem for ler o indicador.** Vencer a F02 exige
+> `advance`: sem avançar o golpe não alcança. Então "venceu aplicando o
+> conceito?" vai dar 100% sempre, não porque a turma aprendeu, mas porque não
+> havia alternativa. O indicador só tem informação quando dá para **contornar**
+> o bloco — como na F03, onde é possível vencer empilhando três `attack` em vez
+> de usar `repeat`. Na F02 ele não mente; ele só não diz nada.
 
 ---
 
@@ -231,3 +304,4 @@ hora, em vez de virar número errado no dashboard.
 | 13/10/2026 | Versão inicial. Categorias de bloco confirmadas (PD-007) |
 | 16/11/2026 | Seção 1 reescrita com os blocos e identificadores reais do jogo. Formato do arquivo atualizado com `rotulo`, `inicia_pilha`, `tem_corpo` e `vezes_fixas`. Nova seção 3 documentando fases de introdução e reforço (RN-020), que antes só existiam no ETL. Progressão reduzida a quatro conceitos: **repetição com condição saiu por não haver bloco** (PD-017). Novas seções 5 e 6: de onde sai o `fase_id` das fases em construção (**PD-018**) e o catálogo e o jogo ainda serem duas listas |
 | 16/11/2026 | **O motor de execução entrou na `main`.** Seção 1 ganha o que ele faz de fato: só o `on-flag` executa (**PD-021**) e várias pilhas com `on-flag` rodam em sequência. Rótulos `Avançar` e `Se / Senão` corrigidos — estavam sem acento, divergindo do jogo. Seção 6 registra que a troca de `color` por `colorKey` passou sem aviso |
+| 18/11/2026 | **A F01 e a F02 do jogo entraram no catálogo**, descritas pela equipe do jogo, e as fases seguintes andaram uma posição (são seis agora). A F01 passou a ter o conceito `evento` e a `sequencia` passou para a F02, com o porquê e a alternativa descartada na seção 4. Nova seção 3.1: o bloco do conceito deixou de depender da ordem do JSON e passa a ser desempatado pela solução de referência. O `on-start` saiu de `blocos_disponiveis` de todas as fases — está na Palette e não executa ([issue #4](https://github.com/laramaia/while_under_attack/issues/4)). Seção 5 reescrita: a Palette ainda não filtra por fase, e o indicador de conceito da F02 é sempre 100% por construção. `catalog_version` **2026.11.2-rascunho** |

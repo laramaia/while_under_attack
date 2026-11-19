@@ -1,19 +1,28 @@
 {
-  "catalog_version": "2026.11.1-rascunho",
+  "catalog_version": "2026.11.2-rascunho",
 
   "_fonte": "Os blocos e as categorias abaixo foram tirados de src/model/defaultCatalog.ts, o catalogo real do jogo, no commit 0127da5. Antes desta versao o arquivo usava identificadores propostos (ao_clicar_em_play, andar, atacar, se, repetir, enquanto) que nao existiam no jogo. Isso fechava parte da PD-013: os identificadores agora sao os do codigo.",
 
   "_ainda_provisorio": "As FASES continuam provisorias (PD-006) e por isso a catalog_version mantem o sufixo -rascunho. Os identificadores de bloco nao sao mais hipotese; a progressao, os titulos e as solucoes de referencia ainda sao.",
 
-  "_nota_reforco": "Nem toda fase introduz um conceito: uma fase que repete o conceito_id de uma fase anterior e uma fase de REFORCO, e o ETL a trata assim. A F03 existe como exemplo disso. Isso nao exige campo novo: o papel sai do proprio conceito_id.",
+  "_mudou_em_2026_11_2": "A F01 e a F02 passaram a ser as duas fases que o jogo realmente tem, descritas pela equipe do jogo: a F01 so precisa de on-flag + attack, e a F02 (nova) poe o inimigo fora de alcance, exigindo on-flag + advance + attack nessa ordem. Como a F02 entrou no meio, as fases seguintes andaram uma posicao: a repeticao que era F02 virou F03, e assim por diante ate a F06.",
+
+  "_sobre_os_conceitos": "A F01 nao ensina sequencia: ela tem UMA acao, e com uma acao nao ha ordem para errar. O que ela ensina e que um programa comeca por um bloco de evento e roda quando se aperta play - o conceito 'evento'. Quem ensina sequencia e a F02, onde avancar antes de atacar e a diferenca entre acertar e nao alcancar. Por isso 'sequencia' passou a ser o conceito da F02, e a F01 ganhou 'evento'. A alternativa que a equipe do jogo propos - deixar as duas em 'sequencia' - faria a F02 virar fase de REFORCO da F01, com duas consequencias ruins no dashboard, as duas verificadas: o alerta de reforco compararia a F02 com a F01 e acusaria 'F02 deveria ser mais facil que F01' para sempre, porque a F02 e mesmo mais dificil; e o indicador 'venceu aplicando o conceito?' ficaria nulo na F02, porque numa fase de reforco ele vem do bloco que a fase INTRODUTORA abriu, e a F01 nao abre nenhum (e a primeira, nao ha com o que comparar).",
+
+  "_nota_reforco": "Nem toda fase introduz um conceito: uma fase que repete o conceito_id de uma fase anterior e uma fase de REFORCO, e o ETL a trata assim. A F04 existe como exemplo disso. Isso nao exige campo novo: o papel sai do proprio conceito_id.",
+
+  "_sem_on_start": "O on-start saiu de blocos_disponiveis em todas as fases. Ele continua existindo em tipos_de_bloco, porque o jogo de fato o mostra na Palette - mas o runner do jogo nunca o executa (issue #4). Declarar como 'disponivel' um bloco que nao roda descreve uma ferramenta que o jogador nao tem. Quando a issue #4 fechar, ele volta, com a catalog_version subindo junto.",
 
   "_sem_repeticao_condicional": "O jogo NAO tem bloco de repeticao com condicao (o 'enquanto' que da nome ao projeto). A Palette tem apenas 'repeat' (Repetir 3x). Por isso o conceito repeticao_condicional saiu desta versao: nao existe bloco que o ensine. Se a equipe criar o bloco, o conceito volta.",
 
+  "_sem_tempo_limite": "O tempo limite da fase NAO esta aqui de proposito. O jogo usa 15 s para as duas fases, por enquanto global, e a PD-022 (global ou por fase?) continua aberta. Subir a catalog_version por um campo que pode mudar de forma seria retrabalho garantido. Quando a PD-022 fechar em 'por fase', o campo entra aqui e vira coluna em gold.dim_fase - issue #14.",
+
   "conceitos": [
-    { "conceito_id": "sequencia", "nome": "Sequencia", "ordem": 1 },
-    { "conceito_id": "repeticao_fixa", "nome": "Repeticao com numero fixo", "ordem": 2 },
-    { "conceito_id": "condicional", "nome": "Condicional", "ordem": 3 },
-    { "conceito_id": "combinacao", "nome": "Combinacao", "ordem": 4 }
+    { "conceito_id": "evento", "nome": "Evento", "ordem": 1 },
+    { "conceito_id": "sequencia", "nome": "Sequencia", "ordem": 2 },
+    { "conceito_id": "repeticao_fixa", "nome": "Repeticao com numero fixo", "ordem": 3 },
+    { "conceito_id": "condicional", "nome": "Condicional", "ordem": 4 },
+    { "conceito_id": "combinacao", "nome": "Combinacao", "ordem": 5 }
   ],
 
   "tipos_de_bloco": [
@@ -27,7 +36,8 @@
       "tipo": "on-start",
       "categoria": "event",
       "rotulo": "Ao iniciar fase",
-      "inicia_pilha": true
+      "inicia_pilha": true,
+      "_nota": "Esta na Palette do jogo e nunca executa (issue #4). Continua aqui porque o jogador o ve, mas saiu de blocos_disponiveis de todas as fases - ver _sem_on_start."
     },
     { "tipo": "attack",  "categoria": "action", "rotulo": "Atacar" },
     { "tipo": "defend",  "categoria": "action", "rotulo": "Defender" },
@@ -65,8 +75,19 @@
       "fase_id": "F01",
       "ordem": 1,
       "titulo": "Primeiros passos",
+      "conceito_id": "evento",
+      "blocos_disponiveis": ["on-flag", "attack"],
+      "solucao_referencia": { "pilhas": [[
+        { "id": "r1", "tipo": "on-flag" },
+        { "id": "r2", "tipo": "attack" }
+      ]] }
+    },
+    {
+      "fase_id": "F02",
+      "ordem": 2,
+      "titulo": "Fora de alcance",
       "conceito_id": "sequencia",
-      "blocos_disponiveis": ["on-flag", "on-start", "advance", "attack", "defend"],
+      "blocos_disponiveis": ["on-flag", "advance", "attack"],
       "solucao_referencia": { "pilhas": [[
         { "id": "r1", "tipo": "on-flag" },
         { "id": "r2", "tipo": "advance" },
@@ -74,11 +95,11 @@
       ]] }
     },
     {
-      "fase_id": "F02",
-      "ordem": 2,
+      "fase_id": "F03",
+      "ordem": 3,
       "titulo": "Golpe atras de golpe",
       "conceito_id": "repeticao_fixa",
-      "blocos_disponiveis": ["on-flag", "on-start", "advance", "attack", "defend", "repeat"],
+      "blocos_disponiveis": ["on-flag", "advance", "attack", "defend", "repeat"],
       "solucao_referencia": { "pilhas": [[
         { "id": "r1", "tipo": "on-flag" },
         { "id": "r2", "tipo": "advance" },
@@ -88,11 +109,11 @@
       ]] }
     },
     {
-      "fase_id": "F03",
-      "ordem": 3,
+      "fase_id": "F04",
+      "ordem": 4,
       "titulo": "Ele aguenta mais",
       "conceito_id": "repeticao_fixa",
-      "blocos_disponiveis": ["on-flag", "on-start", "advance", "attack", "defend", "repeat"],
+      "blocos_disponiveis": ["on-flag", "advance", "attack", "defend", "repeat"],
       "solucao_referencia": { "pilhas": [[
         { "id": "r1", "tipo": "on-flag" },
         { "id": "r2", "tipo": "repeat", "corpo": [
@@ -102,11 +123,11 @@
       ]] }
     },
     {
-      "fase_id": "F04",
-      "ordem": 4,
+      "fase_id": "F05",
+      "ordem": 5,
       "titulo": "So quando der",
       "conceito_id": "condicional",
-      "blocos_disponiveis": ["on-flag", "on-start", "advance", "attack", "defend", "repeat", "if-else"],
+      "blocos_disponiveis": ["on-flag", "advance", "attack", "defend", "repeat", "if-else"],
       "solucao_referencia": { "pilhas": [[
         { "id": "r1", "tipo": "on-flag" },
         { "id": "r2", "tipo": "advance" },
@@ -116,11 +137,11 @@
       ]] }
     },
     {
-      "fase_id": "F05",
-      "ordem": 5,
+      "fase_id": "F06",
+      "ordem": 6,
       "titulo": "Duelo longo",
       "conceito_id": "combinacao",
-      "blocos_disponiveis": ["on-flag", "on-start", "advance", "attack", "defend", "repeat", "if-else"],
+      "blocos_disponiveis": ["on-flag", "advance", "attack", "defend", "repeat", "if-else"],
       "solucao_referencia": { "pilhas": [[
         { "id": "r1", "tipo": "on-flag" },
         { "id": "r2", "tipo": "repeat", "corpo": [

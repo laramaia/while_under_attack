@@ -192,7 +192,7 @@ Um jogador em qualquer uma destas recebe **`403`**.
 
 | Método | Rota | Para quê |
 |---|---|---|
-| `GET` | `/api/qualidade` | boletim das 10 regras do gate da última execução (ADR-010) |
+| `GET` | `/api/qualidade` | boletim das 11 regras do gate da última execução (ADR-010) |
 | `GET` | `/api/execucoes` | histórico de execuções do ETL, com duração e linhas por etapa |
 | `GET` | `/api/ingestao` | contagens de `bronze.ingestao_lote`: lotes, recebidos, gravados, ignorados, rejeitados |
 | `GET` | `/api/procedencia` | de onde vem cada número do dashboard |
@@ -547,7 +547,10 @@ aí há derrota. Sem isso, a tentativa fica com EV-04 e sem EV-05.
 **O ETL aguenta**, e isso foi testado: a tentativa entra na silver com
 `resultado` nulo, **não** entra em `gold.fato_tentativa`, e a reconciliação
 `REC-001` continua passando, porque ela conta tentativa na silver, não no
-gold. Nenhuma das 10 regras reclama. Mas o jogador fez uma tentativa que não
+gold. Nenhuma das 11 regras reclama — a `REC-003`, que entrou depois e confere
+silver contra gold, foi escrita contando só as tentativas **conclusivas**
+justamente para não reprovar a gold inteira por causa de uma tentativa
+inacabada, que é comportamento esperado. Testado. Mas o jogador fez uma tentativa que não
 aparece em lugar nenhum do dashboard, e o `numero_tentativa` das seguintes
 pula um — o que desloca a curva de vitória por número da tentativa.
 

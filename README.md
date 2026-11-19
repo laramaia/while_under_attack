@@ -195,7 +195,7 @@ acima — é o que torna as decisões defensáveis na banca.
 
 **O caminho inteiro já foi percorrido de ponta a ponta** em 16/11/2026, com
 eventos montados à mão no formato do contrato: login → `POST /api/eventos` →
-bronze → ETL → silver → gate de qualidade → gold → dashboard, com as 10 regras
+bronze → ETL → silver → gate de qualidade → gold → dashboard, com as 11 regras
 de qualidade aprovadas.
 
 Em 18/11/2026 ele foi percorrido **jogando**, com a tela de login do jogo e o

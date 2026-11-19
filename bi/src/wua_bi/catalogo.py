@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from . import config
-from .programa import contar_blocos
+from .programa import contar_blocos, tipos_usados
 
 
 @dataclass(frozen=True)
@@ -108,7 +108,21 @@ class Catalogo:
         return "introducao" if primeira.fase_id == fase.fase_id else "reforco"
 
     def bloco_introduzido(self, fase: Fase) -> str | None:
-        """O bloco que esta fase acrescenta a Palette, se acrescentar algum."""
+        """O bloco que esta fase acrescenta a Palette, se acrescentar algum.
+
+        Quando a fase abre MAIS DE UM bloco novo, o desempate e a solucao de
+        referencia: vale o bloco novo que a propria solucao usa. Sem esse
+        desempate a resposta dependia da ordem em que os tipos estao escritos
+        no JSON -- `novos[-1]` --, e uma lista reordenada sem ma intencao
+        trocava o bloco do conceito da fase, mudando um indicador do
+        dashboard sem que nada acusasse.
+
+        Caso real em 18/11/2026: com a F01 e a F02 novas ficando so com o que
+        elas de fato usam, a fase da repeticao passou a abrir `defend` e
+        `repeat` de uma vez. Pela regra antiga o conceito dela seria o ultimo
+        da lista; por sorte era o `repeat`. A solucao de referencia nao deixa
+        isso no acaso: ela usa `repeat` e nao usa `defend`.
+        """
         anteriores: set[str] = set()
         for outra in sorted(self.fases, key=lambda f: f.ordem):
             if outra.ordem >= fase.ordem:
@@ -117,7 +131,17 @@ class Catalogo:
 
         novos = [t for t in fase.blocos_disponiveis if t not in anteriores]
         # a primeira fase introduz tudo; nao ha o que comparar
-        return novos[-1] if novos and anteriores else None
+        if not novos or not anteriores:
+            return None
+
+        na_solucao = tipos_usados(fase.solucao_referencia)
+        usados = [t for t in novos if t in na_solucao]
+        if usados:
+            return usados[-1]
+
+        # nenhum bloco novo aparece na referencia: nao da para dizer qual
+        # representa o conceito, e chutar o ultimo da lista seria inventar.
+        return None
 
     def bloco_do_conceito(self, fase: Fase) -> str | None:
         """O bloco que representa o conceito desta fase.

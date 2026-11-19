@@ -524,8 +524,24 @@ não publicou.
 
 Reprovou: `rollback`. A gold continua sendo a última versão aprovada.
 
-As regras passaram de 8 para 10, com duas de **reconciliação** (`REC-001`,
-`REC-002`), exigência explícita da faixa de qualidade do diagrama.
+As regras passaram de 8 para 11, com três de **reconciliação** (`REC-001`,
+`REC-002`, `REC-003`), exigência explícita da faixa de qualidade do diagrama.
+
+> **A `REC-003` corrigiu um ponto cego da própria porta da gold**, descoberto em
+> 18/11/2026. As outras regras dela têm todas a forma *"quantas linhas da gold
+> violam X?"*. É uma forma boa para ler em voz alta, mas tem um defeito: numa
+> gold **vazia** todas respondem zero e todas aprovam. O gate publicaria o nada
+> e diria que está tudo certo.
+>
+> Não foi hipótese. Ao subir a `catalog_version` do catálogo, o
+> `fato_tentativa` — que junta com `dim_fase` por `(fase_id, catalog_version)` —
+> deixou de achar par para os eventos, e as 199 tentativas da silver viraram 0
+> na gold. As seis regras aprovaram e o ETL imprimiu *"gold publicada"*.
+>
+> A lição que vale guardar além deste caso: **uma porta de qualidade precisa de
+> pelo menos uma regra que conte o que falta**, e não só regras que conferem o
+> que está lá. Reconciliação é isso, e é por isso que o diagrama corporativo a
+> pede como faixa própria.
 
 O comando `conferir` mudou de papel: passou a **ler** o boletim gravado em
 `bronze.etl_qualidade`, em vez de avaliar as regras de novo por fora.
@@ -555,3 +571,4 @@ O comando `conferir` mudou de papel: passou a **ler** o boletim gravado em
 | 13/10/2026 | Versão inicial, ADR-001 a ADR-007 |
 | 16/11/2026 | Acrescentadas ADR-008, ADR-009 e ADR-010. Notas de situação na ADR-003 (gatilho resolvido pela ADR-009), ADR-004 (autenticação provisória em uso), ADR-006 (o jogo ainda não lê o catálogo) e ADR-007 (controle de lote). Este documento substitui o `bi/docs/adr-complemento.md`, que foi removido |
 | 16/11/2026 | **O back-end passou a existir e três ADRs mudaram de estado.** ADR-002 vai a **Aceito**: PD-011 resolvida (FastAPI), mas em **dois serviços** sobre o mesmo banco, com o segredo do JWT compartilhado como consequência registrada. ADR-004 ganha o que foi implementado de fato — bcrypt custo 12, JWT HS256 de 8 h — e o aviso de que a troca de PBKDF2 não é retroativa. ADR-007 ganha o estado do servidor (pronto e testado) separado do estado do jogo (não começou) |
+| 18/11/2026 | **ADR-010 ganha a `REC-003`** e o gate passa de 10 para 11 regras. A porta da gold tinha um ponto cego: todas as suas regras contavam violações, e numa gold vazia nenhuma viola nada — uma gold zerada por `catalog_version` divergente passou pelo gate e foi publicada. A nova regra reconcilia silver contra gold e conta o que falta |
