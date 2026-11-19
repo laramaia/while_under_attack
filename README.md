@@ -251,8 +251,16 @@ tempo limite é global ou por fase?) e a **PD-023** (dá para jogar sem login?).
 | Pessoa | Responsabilidade |
 |---|---|
 | Heloisa | Inteligência de Negócios: ETL, modelo dimensional, API de leitura e dashboards |
-| Lara | Back-end |
-| Mateo | Palette do jogo; back-end de autenticação e ingestão |
+| Lara | O jogo: cenas, motor de execução, Palette, Workspace e telemetria |
+| Mateo | Back-end de autenticação e ingestão |
+| Joao Manoel | Analista de Governança de Dados |
+
+> **A divisão acima foi conferida contra o histórico do git em 19/11/2026**, e
+> duas linhas mudaram porque não batiam. `src/` — o jogo inteiro, Palette
+> incluída — é da Lara, com 9 dos 10 commits; `backend/` é do Mateo, com 7 dos
+> 9. A tabela anterior dava a Palette ao Mateo e o back-end à Lara. Se a
+> divisão combinada for outra, é a tabela que está certa e o histórico que
+> enganou — corrijam aqui.
 
 A composição completa e quem responde por hospedagem, testes e documentação
 continua em aberto (**PD-002**).
