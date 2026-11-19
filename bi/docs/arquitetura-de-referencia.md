@@ -61,7 +61,7 @@ equivalente, com justificativa · ⬜ fora do escopo do MVP, documentado
 | Caixa do diagrama | No projeto | |
 |---|---|---|
 | **DELTA LAKE** — storage objeto, Parquet, log de transações, catálogo | **PostgreSQL com três schemas** (`ADR-003`). O que o Delta entrega e o projeto precisa — transação, imutabilidade, histórico — o Postgres entrega nativamente. Ver §4 | ⚠️ |
-| **APACHE SPARK (PySpark)** | **SQL no Postgres + Python**. A transformação é a mesma; o motor é proporcional ao volume. Ver §4 | ⚠️ |
+| **APACHE SPARK (PySpark)** | **Adotado em 19/11/2026**, em `bi/src/wua_bi/etl/spark.py`, ao lado do motor de SQL. `etl comparar` roda os dois e prova que chegam ao mesmo resultado. Ver §4 | ✅ |
 | **BRONZE** — dados brutos + metadados de lote, append-only | `bronze.eventos`: append-only garantido por **gatilho** que recusa `update` e `delete` (RN-016), `payload` cru em `jsonb`, `unique(event_id)` (RN-015). Metadados de lote **adicionados agora** (`lote_id`) | 🔧 |
 | **SILVER** — tratados e integrados, pseudonimizados | `silver.sessao`, `silver.tentativa`, `silver.programa_bloco` reconstruídos e tipados. Pseudonimização: ver §5.1 | ✅ |
 | **Gate de qualidade** (losango: *"só dado aprovado pela qualidade chega à Gold"*) | **Era a maior lacuna do projeto e foi fechada agora.** Ver §3.1 | 🔧 |
@@ -71,7 +71,7 @@ equivalente, com justificativa · ⬜ fora do escopo do MVP, documentado
 
 | Caixa do diagrama | No projeto | |
 |---|---|---|
-| **APACHE AIRFLOW** — orquestra ingestão, transformação, qualidade, publicação, refresh e alertas | **Agendador próprio** (`etl agendar`), a cada 15 min, mais o gatilho manual. Decisão apresentada em 26/10/2026, nunca implementada — **implementada agora** e registrada na ADR-009. Ver §3.2 | 🔧 |
+| **APACHE AIRFLOW** — orquestra ingestão, transformação, qualidade, publicação, refresh e alertas | **Adotado em 19/11/2026**: o DAG `wua_etl` está em `airflow/dags/`, rodou de ponta a ponta e publicou a gold. O agendador próprio continua, como terceiro gatilho da mesma função. Ver ADR-009 | ✅ |
 | **Dispara extrações** | O agendador chama uma função (`pipeline.executar`), não um comando. Trocar o gatilho por cron, Scheduled Job do Render ou um DAG do Airflow não mexe em nenhuma linha do ETL | ✅ |
 | **Alertas** | **Implementado agora**: `alertas.py`, com stderr + coluna `erro` no banco + webhook opcional. Ver §3.3 | 🔧 |
 
@@ -212,7 +212,32 @@ tempo, basta rodar o ETL com o catálogo daquela versão. A `catalog_version` na
 chave natural da `dim_fase` (`ADR-006`, `RS-03`) é o que preserva a comparação
 histórica, que era o motivo real de querer time travel aqui.
 
-### Apache Spark → SQL no Postgres + Python
+### Apache Spark → adotado, com a medição ao lado
+
+> **Atualizado em 19/11/2026.** O que está escrito abaixo era a justificativa
+> para **não** adotar, e o argumento continua correto — mas deixou de ser a
+> decisão. O Spark passou a ser exigido como produto e foi implementado em
+> `bi/src/wua_bi/etl/spark.py`, ao lado do motor de SQL.
+>
+> O comando `etl comparar` roda os dois sobre a mesma bronze:
+>
+> ```
+>                       SQL      Spark
+> sessoes                46         46
+> tentativas            199        199
+> blocos                681        681
+> rejeitados              0          0
+> duracao_s           0.054      2.925
+> ```
+>
+> **Mesmo resultado, 54x o tempo.** Ter o produto *e* o número é melhor do que
+> ter só o argumento: a banca pode ver o Spark rodando e, na mesma tela, por
+> que ele não era necessário.
+>
+> Duas coisas ficaram fora do Spark de propósito, e as duas são da ADR-010: a
+> leitura do programa (que é recursiva, e reusar a função do motor de SQL
+> garante que os blocos não divirjam) e a **escrita** — o `write.jdbc` abre
+> transação própria, e a gold certificada depende de tudo estar na mesma.
 
 Spark existe para dividir trabalho que não cabe numa máquina. O trabalho aqui
 cabe em 0,08 segundo. Rodar PySpark single-node, como o próprio diagrama admite
@@ -471,7 +496,7 @@ Nenhum destes é código; todos são decisão.
 
 | | O que falta | Quem decide |
 |---|---|---|
-| 1 | **Confirmar a leitura do §1** — se o professor exige os *produtos* (Airflow, Spark, Delta) e não as capacidades, o escopo muda e esta conversa precisa acontecer **antes** de qualquer outra coisa | professor da disciplina |
+| 1 | ~~**Confirmar a leitura do §1**~~ — **respondido em 19/11/2026: a exigência é pelos produtos.** Spark e Airflow foram adotados; Delta Lake, Power BI e Entra ID continuam substituídos, com a justificativa de cada um neste documento | ✅ feito |
 | 2 | **`PD-012`** — termo de consentimento para menores de idade. Impacto alto e provavelmente se aplica | equipe |
 | 3 | **`RN-003`** sair de "Proposta" — é a regra que impede nome completo. Envolve dado pessoal | equipe |
 | 4 | **`PD-005`** — onde hospedar. Pré-requisito para separar dev de prod (§5.6) | equipe |
@@ -493,4 +518,5 @@ Nenhum destes é código; todos são decisão.
 | "E se falhar de madrugada?" | `select etapa, erro from bronze.etl_execucao where erro is not null` |
 | "Onde está o controle de acesso?" | `auth_provisoria.py` → `exigir_acesso_a` / `exigir_professor`, e entrar como jogador tentando ver outro |
 | "Qual a linhagem deste número?" | §5.3, descendo do `event_id` até a `fato_progresso_fase` |
-| "Por que não Spark?" | §4, com o tempo de execução real: 0,08 s |
+| "Cadê o Spark?" | `bi/src/wua_bi/etl/spark.py`, e `etl comparar` mostra os dois motores lado a lado |
+| "Cadê o Airflow?" | `airflow/dags/wua_etl.py` — um DAG de uma tarefa, e o §4 explica por que uma só |

@@ -146,6 +146,7 @@ gratuito contínuo — só crédito de teste.
 |---|---|
 | `python -m wua_bi.etl criar` | cria schemas e tabelas (seguro de repetir) |
 | `python -m wua_bi.etl semear` | gera eventos sintéticos na bronze |
+| `python -m wua_bi.etl comparar` | roda a transformação nos **dois motores** (SQL e PySpark) e compara |
 | `python -m wua_bi.etl rodar` | bronze → silver → gold, passando pelo gate |
 | `python -m wua_bi.etl agendar` | roda sozinho a cada 15 min (ADR-009) |
 | `python -m wua_bi.etl conferir` | mostra o boletim de qualidade da última execução |
@@ -222,9 +223,62 @@ A disciplina exige que o projeto atenda à **Arquitetura Corporativa de Dados �
 UNIVAG** (Lakehouse Medallion com Delta Lake, Spark, Airflow, Power BI e uma
 faixa de governança transversal).
 
-O projeto adota essa arquitetura **por capacidade, e não por produto**: toda
-capacidade que o diagrama exige está implementada, e cada escolha de produto
-diferente está justificada com alternativa, decisão e custo aceito.
+O projeto adota essa arquitetura **por capacidade**, e desde 19/11/2026 também
+**por produto** onde ela é exigida assim: o **Apache Spark** e o **Apache
+Airflow** estão implementados e rodando. Delta Lake, Power BI e Entra ID
+continuam substituídos, cada um com alternativa, decisão e custo aceito.
+
+### Spark e Airflow: onde estão e como rodar
+
+Os dois são **extras**, porque pesam — o PySpark baixa ~300 MB e precisa de uma
+JVM 17 ou 21 (a 4.x **não sobe na 23**); o Airflow traz um banco de metadados
+próprio. Quem só quer o ETL e o dashboard não instala nenhum dos dois.
+
+```bash
+.venv/bin/pip install -e ".[tudo]"        # ou ".[spark]" / ".[airflow]"
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+```
+
+**O motor PySpark** faz a transformação bronze → silver em
+[`src/wua_bi/etl/spark.py`](src/wua_bi/etl/spark.py), ao lado do motor de SQL e
+não no lugar dele. Para ver os dois sobre a mesma bronze:
+
+```bash
+.venv/bin/python -m wua_bi.etl comparar
+```
+
+```
+                      SQL      Spark
+sessoes                46         46
+tentativas            199        199
+blocos                681        681
+rejeitados              0          0
+duracao_s           0.054      2.925
+```
+
+O comando roda o motor de SQL numa transação que termina em **rollback**: a
+silver publicada não é tocada, então dá para rodar na véspera da apresentação
+sem medo.
+
+Duas coisas ficam fora do Spark de propósito. A leitura do programa é
+**recursiva** — um bloco contém blocos —, e reusar a função do motor de SQL
+garante que os blocos não divirjam. E a **escrita**: o `write.jdbc` abre
+transação própria, e a ADR-010 depende de tudo estar na mesma transação.
+
+**O DAG** está em [`../airflow/dags/wua_etl.py`](../airflow/dags/wua_etl.py) e
+chama a mesma `pipeline.executar` que a linha de comando chama:
+
+```bash
+export AIRFLOW_HOME=~/airflow
+export AIRFLOW__CORE__DAGS_FOLDER="$PWD/../airflow/dags"
+export PYTHONPATH="$PWD/src"
+airflow db migrate && airflow dags reserialize
+airflow tasks test wua_etl etl_completo      # roda o ETL inteiro pelo Airflow
+```
+
+São **três gatilhos** para a mesma função agora, e a coluna
+`bronze.etl_execucao.disparo` registra qual foi: `manual`, `agendado` ou
+`airflow`.
 
 **Leia antes de mexer em qualquer coisa deste README:**
 

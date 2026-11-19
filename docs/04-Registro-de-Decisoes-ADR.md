@@ -407,10 +407,52 @@ Substituições de produto mantidas:
 | Produto do diagrama | No projeto | Razão |
 |---|---|---|
 | Delta Lake | PostgreSQL, três schemas | Transação, imutabilidade e schema enforcement são nativos (ADR-003) |
-| Apache Spark | SQL + Python | 527 eventos em 0,08 s |
-| Apache Airflow | agendador próprio | ADR-009 |
+| ~~Apache Spark~~ | **adotado em 19/11/2026** — ver abaixo | — |
+| ~~Apache Airflow~~ | **adotado em 19/11/2026** — ver abaixo | — |
 | Power BI | dashboard web próprio | Licença paga para RLS (ADR-001, PD-001) |
 | Entra ID / AD | contas pré-criadas | Sem diretório disponível (ADR-004) |
+
+### Revisão de 19/11/2026 — Spark e Airflow passam a ser exigidos como produto
+
+Esta ADR abria dizendo que produto e capacidade não são a mesma coisa, e §1 do
+documento de conformidade registrava a pergunta em aberto: *"se o professor
+exige os produtos e não as capacidades, o escopo muda"*. **A exigência passou a
+ser pelo produto.** É o fato novo que a própria ADR dizia ser necessário para
+rever a decisão — sem ele, mudar seria trocar uma decisão argumentada por uma
+decisão de obediência.
+
+**O que mudou no código:**
+
+- `airflow/dags/wua_etl.py` — DAG real, que chama a mesma `pipeline.executar`.
+  Rodou de ponta a ponta: gold publicada, as 11 regras aprovadas, tarefa verde.
+- `bi/src/wua_bi/etl/spark.py` — a transformação bronze → silver em PySpark,
+  **ao lado** da de SQL e não no lugar dela.
+- `etl comparar` — roda os dois motores sobre a mesma bronze e compara.
+
+**O que não mudou, e é o ponto:** a ADR-003 e a ADR-010 continuam valendo. O
+Spark transforma e devolve as linhas; quem escreve continua sendo a transação do
+ETL, porque o `write.jdbc` do Spark não participa dela e a gold certificada
+depende disso. O DAG tem **uma** tarefa pelo mesmo motivo.
+
+**A medição que a ADR pedia, agora com os dois motores existindo:**
+
+```
+                      SQL      Spark
+sessoes                46         46
+tentativas            199        199
+blocos                681        681
+rejeitados              0          0
+duracao_s           0.054      2.925
+```
+
+Mesmo resultado, **54x o tempo**. O argumento original não era errado — era
+sobre proporção, e continua verdadeiro. O que mudou foi o critério: a exigência
+agora é ter o produto, e ter o produto **mais** a medição é melhor do que ter
+só o argumento.
+
+O custo aceito: duas implementações da mesma transformação. É por isso que o
+`etl comparar` existe — um motor novo que ninguém consegue provar equivalente
+ao antigo é risco, não entrega.
 
 ### Consequências
 
@@ -471,6 +513,37 @@ relógio.
 **O caminho de volta está aberto e é curto:** `pipeline.executar()` é uma
 função. Migrar para Airflow é escrever um DAG de uma tarefa que a chama. Cron
 do sistema ou Scheduled Job do Render funcionam do mesmo jeito.
+
+#### 19/11/2026 — o caminho de volta foi percorrido
+
+A alternativa 4 deixou de ser alternativa: o Airflow passou a ser exigido como
+produto (ver a revisão da ADR-008). O DAG está em `airflow/dags/wua_etl.py` e
+**a previsão acima se confirmou na letra** — é um DAG de uma tarefa que chama
+`pipeline.executar`, e nenhuma linha do ETL mudou por causa dele.
+
+Agora são **três gatilhos** para a mesma função, e a coluna
+`bronze.etl_execucao.disparo` registra qual foi:
+
+| Gatilho | Comando | `disparo` |
+|---|---|---|
+| Pessoa | `etl rodar` | `manual` |
+| Agendador próprio | `etl agendar` | `agendado` |
+| Airflow | o DAG `wua_etl` | `airflow` |
+
+**Uma tarefa, e não uma por camada.** A tentação é quebrar em
+`silver → qualidade → gold → publicar`, que é como um DAG de livro-texto se
+parece. Isso quebraria a ADR-010: o gate só significa alguma coisa porque as
+duas portas rodam dentro da **mesma transação**, e transação de banco não
+atravessa tarefas do Airflow. Seriam quatro caixas no grafo e uma gold que pode
+ficar pela metade. O motivo está escrito no topo do DAG, para ninguém
+"melhorar" isso sem saber o que está trocando.
+
+**O DAG levanta exceção na mão**, porque `pipeline.executar` nunca levanta — ela
+devolve `Resumo(ok=False)` para o agendador próprio poder seguir rodando depois
+de uma falha. Sem o `raise`, a tarefa ficaria **verde com o gate reprovando**.
+Isso não é teoria: na primeira execução real o DAG falhou de verdade, porque o
+`CHECK` de `disparo` ainda não aceitava `'airflow'`, e a tarefa foi para
+`up_for_retry` como deveria.
 
 ### Consequências
 
@@ -578,3 +651,4 @@ O comando `conferir` mudou de papel: passou a **ler** o boletim gravado em
 | 16/11/2026 | Acrescentadas ADR-008, ADR-009 e ADR-010. Notas de situação na ADR-003 (gatilho resolvido pela ADR-009), ADR-004 (autenticação provisória em uso), ADR-006 (o jogo ainda não lê o catálogo) e ADR-007 (controle de lote). Este documento substitui o `bi/docs/adr-complemento.md`, que foi removido |
 | 16/11/2026 | **O back-end passou a existir e três ADRs mudaram de estado.** ADR-002 vai a **Aceito**: PD-011 resolvida (FastAPI), mas em **dois serviços** sobre o mesmo banco, com o segredo do JWT compartilhado como consequência registrada. ADR-004 ganha o que foi implementado de fato — bcrypt custo 12, JWT HS256 de 8 h — e o aviso de que a troca de PBKDF2 não é retroativa. ADR-007 ganha o estado do servidor (pronto e testado) separado do estado do jogo (não começou) |
 | 18/11/2026 | **ADR-010 ganha a `REC-003`** e o gate passa de 10 para 11 regras. A porta da gold tinha um ponto cego: todas as suas regras contavam violações, e numa gold vazia nenhuma viola nada — uma gold zerada por `catalog_version` divergente passou pelo gate e foi publicada. A nova regra reconcilia silver contra gold e conta o que falta |
+| 19/11/2026 | **Spark e Airflow passam a ser exigidos como produto, e foram adotados.** A ADR-008 ganha a revisão com a medição dos dois motores lado a lado (mesmo resultado, 54x o tempo) e a ADR-009 ganha o DAG como terceiro gatilho. O `CHECK` de `bronze.etl_execucao.disparo` passou a aceitar `'airflow'` — sem isso o DAG morria na primeira linha, e foi assim que se descobriu, rodando |
