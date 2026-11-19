@@ -6,6 +6,7 @@ import {
   carregarRotulosDeBloco,
   aplicarTemaSalvo, prepararGraficos, aoTrocarTema, desenhar, semDados,
   eixos, BARRA, EMPILHADA, cor, num, vazio, formatarData, nomeDeBloco,
+  cartaoNumero, tomDaEficiencia, limiares,
   temaEscuro, comTabela, tabela, lerFiltros, query,
 } from './app.js';
 
@@ -67,16 +68,25 @@ function numeros() {
   const r = base.resumo;
   const travados = base.funil.reduce((s, f) => s + (f.travados || 0), 0);
   const itens = [
-    [`${num(r.jogadores_ativos)} de ${num(r.jogadores)}`, 'Jogadores que já jogaram'],
-    [num(r.tentativas), 'Vezes que apertaram Play'],
-    [num(r.sessoes), 'Partidas'],
-    [num(r.fases_concluidas), 'Fases vencidas'],
-    [num(travados), 'Travados numa fase'],
-    [num(r.eficiencia_media, 2), 'Código enxuto, na média'],
+    // O destaque da tela da turma: quantos da turma de fato comecaram.
+    cartaoNumero({
+      valor: `${num(r.jogadores_ativos)} de ${num(r.jogadores)}`,
+      rotulo: 'Jogadores que já jogaram', icone: 'pessoas', destaque: true,
+    }),
+    cartaoNumero({ valor: num(r.tentativas), rotulo: 'Vezes que apertaram Play', icone: 'escudo' }),
+    cartaoNumero({ valor: num(r.sessoes), rotulo: 'Partidas', icone: 'bandeira' }),
+    cartaoNumero({ valor: num(r.fases_concluidas), rotulo: 'Fases vencidas', icone: 'bandeira' }),
+    cartaoNumero({
+      valor: num(travados), rotulo: 'Travados numa fase', icone: 'espada',
+      // Travado e sempre ruim, mas zero travado nao merece alarme nenhum.
+      ...(travados > 0 ? { tom: 'critico', selo: 'não saíram da fase' } : {}),
+    }),
+    cartaoNumero({
+      valor: num(r.eficiencia_media, 2), rotulo: 'Código enxuto, na média', icone: 'raio',
+      ...tomDaEficiencia(r.eficiencia_media, limiares.eficiencia),
+    }),
   ];
-  document.querySelector('#numeros').innerHTML = itens.map(([valor, rotulo]) =>
-    `<div class="numero"><span class="valor">${valor}</span>
-     <span class="rotulo">${rotulo}</span></div>`).join('');
+  document.querySelector('#numeros').innerHTML = itens.join('');
 }
 
 const ICONE = { critico: '▲', atencao: '●', info: 'i' };

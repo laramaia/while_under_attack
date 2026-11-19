@@ -87,6 +87,16 @@ def procedencia(usuario: auth.Usuario = Depends(auth.usuario_atual)) -> dict[str
     """
     dados = consultas.procedencia()
     dados["catalogo_carregado"] = catalogo_padrao().catalog_version
+    # Os limiares que decidem o que e bom, o que pede atencao e o que e
+    # critico saem daqui e nao do dashboard (issue #31). Sao os mesmos que os
+    # destaques usam: se a tela pintasse de verde por um limiar proprio, o
+    # card e o alerta poderiam discordar sobre a mesma fase, e quem olhasse
+    # nao teria como saber qual dos dois esta certo.
+    dados["limiares"] = {
+        "eficiencia": consultas.LIMIAR_EFICIENCIA,
+        "conceito": consultas.LIMIAR_CONCEITO,
+        "funil": consultas.LIMIAR_FUNIL,
+    }
     return dados
 
 

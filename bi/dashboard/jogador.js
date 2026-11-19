@@ -6,6 +6,7 @@ import {
   carregarRotulosDeBloco,
   aplicarTemaSalvo, prepararGraficos, aoTrocarTema, desenhar,
   eixos, BARRA, BARRA_H, EMPILHADA, cor, num, vazio, formatarData, duracao,
+  cartaoNumero, tomDaEficiencia, limiares,
   nomeDeBloco, CAUSAS, semDados, comTabela, tabela,
 } from './app.js';
 
@@ -86,16 +87,34 @@ async function carregar() {
 
 function numeros() {
   const r = dados.resumo;
+  const venceu = r.fases_concluidas >= r.fases_no_catalogo;
+
   const itens = [
-    [`${num(r.fases_concluidas)} de ${num(r.fases_no_catalogo)}`, 'Fases vencidas'],
-    [num(r.media_tentativas_ate_vencer, 1), 'Erros antes de acertar'],
-    [num(r.eficiencia_media, 2), 'Código enxuto'],
-    [num(r.total_tentativas), 'Vezes que apertou Play'],
-    [duracao(r.segundos_montando), 'Montando programas'],
+    // O destaque e este: e a pergunta que o jogador faz primeiro.
+    cartaoNumero({
+      valor: `${num(r.fases_concluidas)} de ${num(r.fases_no_catalogo)}`,
+      rotulo: 'Fases vencidas', icone: 'bandeira', destaque: true,
+      ...(venceu ? { tom: 'bom', selo: 'terminou o jogo' } : {}),
+    }),
+    cartaoNumero({
+      valor: num(r.media_tentativas_ate_vencer, 1),
+      rotulo: 'Erros antes de acertar', icone: 'espada',
+    }),
+    cartaoNumero({
+      valor: num(r.eficiencia_media, 2),
+      rotulo: 'Código enxuto', icone: 'raio',
+      ...tomDaEficiencia(r.eficiencia_media, limiares.eficiencia),
+    }),
+    cartaoNumero({
+      valor: num(r.total_tentativas),
+      rotulo: 'Vezes que apertou Play', icone: 'escudo',
+    }),
+    cartaoNumero({
+      valor: duracao(r.segundos_montando),
+      rotulo: 'Montando programas', icone: 'ampulheta',
+    }),
   ];
-  document.querySelector('#numeros').innerHTML = itens.map(([valor, rotulo]) =>
-    `<div class="numero"><span class="valor">${valor}</span>
-     <span class="rotulo">${rotulo}</span></div>`).join('');
+  document.querySelector('#numeros').innerHTML = itens.join('');
 }
 
 function graficoTentativas() {

@@ -106,12 +106,19 @@ export function temaEscuro() {
 }
 
 /** RS-02: o dashboard diz na cara quando está mostrando dado sintético. */
+/* Os limiares vem da API (/api/procedencia), e nao de constantes aqui: sao os
+   mesmos que os destaques usam. Se a tela tivesse os seus, um card poderia
+   pintar de verde uma fase que o alerta chama de problema. Os valores abaixo
+   so valem ate a primeira resposta chegar. */
+export const limiares = { eficiencia: 0.7, conceito: 0.7, funil: 0.3 };
+
 export async function mostrarProcedencia() {
   const alvo = document.querySelector('#procedencia');
   if (!alvo) return;
 
   try {
     const p = await api('/procedencia');
+    if (p.limiares) Object.assign(limiares, p.limiares);
     if (p.tem_sintetico) {
       const quanto = p.so_sintetico
         ? 'Todos os dados desta tela são sintéticos'
@@ -165,6 +172,69 @@ export function duracao(segundos) {
   const min = Math.round(s / 60);
   if (min < 60) return `${min} min`;
   return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
+}
+
+/* ---------------------------------------------------------------------------
+   Cartoes de numero (issue #31)
+
+   Antes todos os numeros saiam iguais: mesmo tamanho, mesma cor, mesmo peso.
+   Cinco numeros cinzas lado a lado -- o olho nao sabia por onde comecar, e
+   era isso que o professor queria dizer com "bater o olho e entender".
+
+   Agora cada cartao pode ter icone, tom e destaque. O tom NUNCA e so cor:
+   vem sempre com uma palavra junto, porque quem nao distingue verde de
+   vermelho precisa entender a tela igual.
+   --------------------------------------------------------------------------- */
+
+const ICONES = {
+  bandeira: '<path d="M4 21V4m0 0h11l-2 4 2 4H4"/>',
+  espada:   '<path d="M14.5 3.5 20 3l-.5 5.5-9 9L7 20l-3-3 2.5-3.5z"/><path d="m6 18 1.5 1.5"/>',
+  escudo:   '<path d="M12 3 5 6v5c0 4 3 7.5 7 9 4-1.5 7-5 7-9V6z"/>',
+  ampulheta:'<path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9"/>',
+  pessoas:  '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 6a3 3 0 0 1 0 6"/>',
+  raio:     '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+};
+
+function svg(nome) {
+  const corpo = ICONES[nome];
+  if (!corpo) return '';
+  return `<svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+    aria-hidden="true">${corpo}</svg>`;
+}
+
+/**
+ * Um cartao de numero.
+ *
+ * @param {object} c
+ * @param {string} c.valor      ja formatado
+ * @param {string} c.rotulo     o nome, em lingua de gente
+ * @param {string} [c.icone]    chave de ICONES
+ * @param {string} [c.tom]      'bom' | 'atencao' | 'critico'
+ * @param {string} [c.selo]     a palavra que acompanha o tom (sem ela, nao pinte)
+ * @param {boolean} [c.destaque] o numero que a tela quer que seja lido primeiro
+ */
+export function cartaoNumero(c) {
+  const classes = ['numero'];
+  if (c.destaque) classes.push('destaque');
+  if (c.tom && c.selo) classes.push(c.tom);
+
+  const selo = c.tom && c.selo ? `<span class="selo">${c.selo}</span>` : '';
+
+  return `<div class="${classes.join(' ')}">
+      <span class="rotulo">${svg(c.icone)}${c.rotulo}</span>
+      <span class="valor">${c.valor}</span>
+      ${selo}
+    </div>`;
+}
+
+/** O tom da eficiencia, pelos limiares que a API publica (nao por um chute daqui). */
+export function tomDaEficiencia(valor, limiar) {
+  if (valor === null || valor === undefined) return {};
+  const v = Number(valor);
+  if (v >= 1) return { tom: 'bom', selo: 'no tamanho da solução ideal' };
+  if (v >= limiar) return { tom: 'bom', selo: 'perto do ideal' };
+  return { tom: 'atencao', selo: 'sobraram blocos' };
 }
 
 export function formatarData(iso) {
