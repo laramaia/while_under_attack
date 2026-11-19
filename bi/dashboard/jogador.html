@@ -21,11 +21,10 @@
     <section class="cartao" id="c-tentativas">
       <div class="topo-cartao">
         <div>
-          <h2>Quantas tentativas até vencer cada fase</h2>
+          <h2 title="RN-012: conta vitórias e derrotas até a primeira vitória, inclusive. Rastreabilidade completa em /api/procedencia.">Quantas vezes você errou antes de acertar</h2>
           <p class="nota">
-            Conta vitórias e derrotas até a primeira vitória, inclusive (RN-012).
-            As fases estão na ordem em que são ensinadas, e a barra clara é a
-            mediana da turma na mesma fase, para você ter com o que comparar.
+            Uma barra por fase, na ordem em que são ensinadas. A barra clara é
+            a turma na mesma fase, para você ter com o que comparar.
           </p>
         </div>
         <button class="discreto ver-tabela">Ver tabela</button>
@@ -35,7 +34,7 @@
     </section>
 
     <section class="cartao">
-      <h2>Você usou o bloco que a fase ensina?</h2>
+      <h2 title="RN-019: o programa da primeira vitória usou o bloco que representa o conceito da fase. Rastreabilidade completa em /api/procedencia.">Você resolveu do jeito que a fase ensina?</h2>
       <p class="nota">
         Cada conceito tem um bloco que o representa. Dá para vencer sem ele —
         repetindo o mesmo ataque várias vezes em vez de usar o bloco de
@@ -47,19 +46,19 @@
 
     <div class="grade-cartoes">
       <section class="cartao">
-        <h2>O quanto o seu código é enxuto</h2>
+        <h2 title="RN-014: blocos da solução de referência ÷ blocos do programa vencedor. Rastreabilidade completa em /api/procedencia.">O seu código foi enxuto?</h2>
         <p class="nota">
-          Blocos da solução de referência ÷ blocos do seu programa vencedor
-          (RN-014). A linha tracejada em 1,0 é a referência.
+          <strong>1,0 é do tamanho da solução ideal.</strong> Abaixo disso
+          sobraram blocos; acima, você resolveu com menos do que a referência.
         </p>
         <div class="tela"><canvas id="g-eficiencia"></canvas></div>
       </section>
 
       <section class="cartao">
-        <h2>Onde você travou</h2>
+        <h2 title="RN-008: toda derrota é classificada entre programa curto e parada num bloco. Rastreabilidade completa em /api/procedencia.">Por que você perdeu</h2>
         <p class="nota">
-          Suas derrotas, separadas por causa: o programa acabou antes de
-          derrubar o inimigo, ou a execução parou num bloco (RN-008).
+          Duas causas: o programa <strong>acabou cedo demais</strong>, com o
+          inimigo ainda de pé, ou <strong>parou num bloco</strong> no meio.
         </p>
         <div class="tela"><canvas id="g-travou"></canvas></div>
       </section>

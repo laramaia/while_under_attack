@@ -68,9 +68,10 @@
 
     <div class="grade-cartoes">
       <section class="cartao">
-        <h2>Quanto custa cada fase</h2>
+        <h2 title="RN-012: mediana de tentativas até a primeira vitória, entre quem concluiu a fase. Rastreabilidade completa em /api/procedencia.">Quantas tentativas cada fase custa</h2>
         <p class="nota">
-          Mediana de tentativas até vencer entre quem concluiu a fase (RN-012).
+          O valor do meio da turma, entre quem já venceu a fase. Barra alta é
+          fase cara.
         </p>
         <div class="tela"><canvas id="g-dificuldade"></canvas></div>
       </section>
@@ -114,9 +115,9 @@
     </section>
 
     <section class="cartao">
-      <h2>Onde a turma trava</h2>
+      <h2 title="RN-008: bloco em que a execução parou, nas derrotas classificadas como parada num bloco. Rastreabilidade completa em /api/procedencia.">Em que bloco a turma empaca</h2>
       <p class="nota">
-        Blocos em que a execução parou nas derrotas, somando todos os jogadores (RN-008).
+        O bloco em que a execução parou, somando as derrotas de todo mundo.
       </p>
       <div style="overflow-x:auto"><table id="t-blocos"></table></div>
     </section>

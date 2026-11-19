@@ -68,11 +68,11 @@ function numeros() {
   const travados = base.funil.reduce((s, f) => s + (f.travados || 0), 0);
   const itens = [
     [`${num(r.jogadores_ativos)} de ${num(r.jogadores)}`, 'Jogadores que já jogaram'],
-    [num(r.tentativas), 'Tentativas registradas'],
-    [num(r.sessoes), 'Sessões'],
-    [num(r.fases_concluidas), 'Fases concluídas'],
-    [num(travados), 'Jogadores travados numa fase'],
-    [num(r.eficiencia_media, 2), 'Eficiência média do código'],
+    [num(r.tentativas), 'Vezes que apertaram Play'],
+    [num(r.sessoes), 'Partidas'],
+    [num(r.fases_concluidas), 'Fases vencidas'],
+    [num(travados), 'Travados numa fase'],
+    [num(r.eficiencia_media, 2), 'Código enxuto, na média'],
   ];
   document.querySelector('#numeros').innerHTML = itens.map(([valor, rotulo]) =>
     `<div class="numero"><span class="valor">${valor}</span>

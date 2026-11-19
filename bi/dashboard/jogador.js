@@ -87,10 +87,10 @@ async function carregar() {
 function numeros() {
   const r = dados.resumo;
   const itens = [
-    [`${num(r.fases_concluidas)} de ${num(r.fases_no_catalogo)}`, 'Fases concluídas'],
-    [num(r.media_tentativas_ate_vencer, 1), 'Tentativas até vencer, em média'],
-    [num(r.eficiencia_media, 2), 'Eficiência do código'],
-    [num(r.total_tentativas), 'Tentativas no total'],
+    [`${num(r.fases_concluidas)} de ${num(r.fases_no_catalogo)}`, 'Fases vencidas'],
+    [num(r.media_tentativas_ate_vencer, 1), 'Erros antes de acertar'],
+    [num(r.eficiencia_media, 2), 'Código enxuto'],
+    [num(r.total_tentativas), 'Vezes que apertou Play'],
     [duracao(r.segundos_montando), 'Montando programas'],
   ];
   document.querySelector('#numeros').innerHTML = itens.map(([valor, rotulo]) =>
