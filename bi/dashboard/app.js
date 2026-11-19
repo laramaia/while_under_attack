@@ -566,3 +566,38 @@ export function mostrarErro(mensagem) {
   alvo.className = 'aviso erro';
   alvo.textContent = mensagem;
 }
+
+/**
+ * Liga as abas do painel (issue do redesenho).
+ *
+ * Trocar de aba nao recarrega nada: os graficos ja estao desenhados, so
+ * estavam escondidos. Mas o Chart.js mede o canvas na hora de desenhar, e um
+ * canvas dentro de um `hidden` mede zero -- entao o grafico da aba escondida
+ * nasce com tamanho errado e so se corrige quando alguem redimensiona a
+ * janela. Por isso o `resize()` ao mostrar.
+ */
+export function ligarAbas(aoTrocar) {
+  const barra = document.querySelector('#abas');
+  if (!barra) return;
+
+  barra.addEventListener('click', (evento) => {
+    const botao = evento.target.closest('.aba');
+    if (!botao) return;
+
+    const alvo = botao.dataset.painel;
+    barra.querySelectorAll('.aba').forEach((b) =>
+      b.setAttribute('aria-selected', String(b.dataset.painel === alvo)));
+    document.querySelectorAll('.painel-aba').forEach((p) => {
+      p.hidden = p.dataset.painel !== alvo;
+    });
+
+    redimensionarGraficos();
+    if (aoTrocar) aoTrocar(alvo);
+  });
+}
+
+/** Remede todos os graficos visiveis. */
+export function redimensionarGraficos() {
+  graficos.forEach((g) => g.resize());
+}
+

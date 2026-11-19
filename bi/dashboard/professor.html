@@ -11,7 +11,7 @@
   <header class="topo"></header>
   <p class="aviso" id="procedencia"></p>
 
-  <main>
+  <main class="painel">
     <!-- O4: visão consolidada de todos os jogadores (RN-005) -->
 
     <div class="filtros">
@@ -29,97 +29,75 @@
       </select>
 
       <span class="separador"></span>
-      <span class="resultado" id="aviso-filtro">
-        Os filtros valem para atividade e taxa de vitória.
-      </span>
+
+      <!-- As abas sao o que faz tudo caber sem rolagem: cada uma e uma tela
+           cheia, como as paginas de um relatorio do Power BI. -->
+      <nav class="abas" id="abas">
+        <button class="aba" data-painel="visao" aria-selected="true">Visão geral</button>
+        <button class="aba" data-painel="fases" aria-selected="false">As fases</button>
+        <button class="aba" data-painel="jogadores" aria-selected="false">Os jogadores</button>
+      </nav>
     </div>
 
     <div class="numeros" id="numeros"></div>
 
-    <section class="cartao">
-      <h2>Destaques</h2>
-      <p class="nota">
-        Lidos dos indicadores da camada gold, com os limiares escritos no
-        código da API para poderem ser discutidos.
-      </p>
-      <div class="destaques" id="destaques"></div>
-    </section>
+    <!-- ----------------------------------------------------------------- -->
+    <section class="painel-aba" data-painel="visao">
+      <section class="cartao area-a">
+        <h2>O que merece atenção</h2>
+        <div class="destaques rola" id="destaques"></div>
+      </section>
 
-    <section class="cartao">
-      <h2>Em que fases eles param</h2>
-      <p class="nota">
-        Quantos jogadores chegaram a cada fase e quantos conseguiram concluí-la.
-        A parte laranja é quem chegou e ficou pelo caminho.
-      </p>
-      <div class="tela alta"><canvas id="g-funil"></canvas></div>
-    </section>
+      <section class="cartao area-b">
+        <h2>Em que fases eles param</h2>
+        <div class="tela"><canvas id="g-funil"></canvas></div>
+      </section>
 
-    <section class="cartao" id="c-atividade">
-      <div class="topo-cartao">
-        <div>
-          <h2>Atividade da turma</h2>
-          <p class="nota">Tentativas por dia, separadas pelo resultado.</p>
+      <section class="cartao area-c" id="c-atividade">
+        <div class="topo-cartao">
+          <div><h2>Atividade da turma</h2></div>
+          <button class="discreto ver-tabela">Ver tabela</button>
         </div>
-        <button class="discreto ver-tabela">Ver tabela</button>
-      </div>
-      <div class="tela"><canvas id="g-atividade"></canvas></div>
-      <div class="tabela-apoio" hidden></div>
+        <div class="tela"><canvas id="g-atividade"></canvas></div>
+        <div class="tabela-apoio" hidden></div>
+      </section>
     </section>
 
-    <div class="grade-cartoes">
-      <section class="cartao">
+    <!-- ----------------------------------------------------------------- -->
+    <section class="painel-aba" data-painel="fases" hidden>
+      <section class="cartao area-a">
         <h2 title="RN-012: mediana de tentativas até a primeira vitória, entre quem concluiu a fase. Rastreabilidade completa em /api/procedencia.">Quantas tentativas cada fase custa</h2>
-        <p class="nota">
-          O valor do meio da turma, entre quem já venceu a fase. Barra alta é
-          fase cara.
-        </p>
         <div class="tela"><canvas id="g-dificuldade"></canvas></div>
       </section>
 
-      <section class="cartao">
+      <section class="cartao area-b">
         <h2>A turma aprende tentando?</h2>
-        <p class="nota">
-          Em que fração das vezes a enésima tentativa termina em vitória. Se a
-          linha sobe, as derrotas estão ensinando algo.
-        </p>
         <div class="tela"><canvas id="g-aprendizado"></canvas></div>
       </section>
-    </div>
 
-    <section class="cartao">
-      <h2>Venceram aplicando o conceito?</h2>
-      <p class="nota">
-        Cada conceito tem um bloco que o representa. Este gráfico mostra
-        quantos venceram usando esse bloco e quantos contornaram — por exemplo,
-        vencendo a fase de repetição empilhando o mesmo ataque várias vezes.
-        Vale também para as fases de reforço, que é onde mais interessa saber
-        se o conceito pegou. Conceito que não se resume a um bloco, como
-        combinação, fica de fora.
-      </p>
-      <div class="tela"><canvas id="g-conceito"></canvas></div>
+      <section class="cartao area-c">
+        <h2>Venceram aplicando o conceito?</h2>
+        <div class="tela"><canvas id="g-conceito"></canvas></div>
+      </section>
+
+      <section class="cartao area-d">
+        <h2 title="RN-008: bloco em que a execução parou, nas derrotas classificadas como parada num bloco. Rastreabilidade completa em /api/procedencia.">Em que bloco a turma empaca</h2>
+        <div class="rola"><table id="t-blocos"></table></div>
+      </section>
     </section>
 
-    <section class="cartao">
-      <h2>Jogador por fase</h2>
-      <p class="nota">
-        Tentativas que cada jogador precisou até vencer cada fase. Célula vazia
-        significa que o jogador ainda não chegou lá.
-      </p>
-      <div class="heatmap" id="heatmap"></div>
-      <div class="legenda-rampa" id="legenda-rampa"></div>
-    </section>
+    <!-- ----------------------------------------------------------------- -->
+    <section class="painel-aba" data-painel="jogadores" hidden>
+      <section class="cartao area-a">
+        <h2>Jogador por fase</h2>
+        <div class="heatmap rola" id="heatmap"></div>
+        <div class="legenda-rampa" id="legenda-rampa"></div>
+      </section>
 
-    <section class="cartao">
-      <h2>Jogadores</h2>
-      <div style="overflow-x:auto"><table id="t-jogadores"></table></div>
-    </section>
-
-    <section class="cartao">
-      <h2 title="RN-008: bloco em que a execução parou, nas derrotas classificadas como parada num bloco. Rastreabilidade completa em /api/procedencia.">Em que bloco a turma empaca</h2>
-      <p class="nota">
-        O bloco em que a execução parou, somando as derrotas de todo mundo.
-      </p>
-      <div style="overflow-x:auto"><table id="t-blocos"></table></div>
+      <section class="cartao area-b">
+        <h2>Jogadores</h2>
+        <div class="rola"><table id="t-jogadores"></table></div>
+      </section>
     </section>
   </main>
 

@@ -6,6 +6,7 @@ import {
   carregarRotulosDeBloco,
   aplicarTemaSalvo, prepararGraficos, aoTrocarTema, desenhar, semDados,
   eixos, BARRA, EMPILHADA, cor, num, vazio, formatarData, nomeDeBloco, blocoComCor,
+  ligarAbas,
   cartaoNumero, tomDaEficiencia, limiares,
   temaEscuro, comTabela, tabela, lerFiltros, query,
 } from './app.js';
@@ -119,7 +120,7 @@ function graficoFunil() {
   desenhar('g-funil', {
     type: 'bar',
     data: {
-      labels: f.map((x) => `${x.fase_id} · ${x.titulo}`),
+      labels: f.map((x) => x.titulo),
       datasets: [
         {
           label: 'Concluíram',
@@ -218,7 +219,7 @@ function graficoDificuldade() {
   desenhar('g-dificuldade', {
     type: 'bar',
     data: {
-      labels: f.map((x) => x.fase_id),
+      labels: f.map((x) => x.titulo),
       datasets: [{
         label: 'Mediana de tentativas',
         data: f.map((x) => Number(x.mediana_tentativas_ate_vencer)),
@@ -300,7 +301,7 @@ function graficoConceito() {
     data: {
       // a fase de reforço fica marcada: o leitor precisa saber que ela não
       // ensina o bloco, cobra de novo
-      labels: f.map((x) => `${x.fase_id}${x.papel === 'reforco' ? ' (reforço)' : ''}`
+      labels: f.map((x) => `${x.titulo}${x.papel === 'reforco' ? ' (reforço)' : ''}`
                            + ` · ${nomeDeBloco(x.bloco_conceito)}`),
       datasets: [
         {
@@ -358,26 +359,31 @@ function tintaDoPasso(passo) {
 }
 
 function heatmap() {
-  const fases = [...new Map(base.heatmap.map((c) => [c.fase_id, c.ordem]))]
-    .sort((a, b) => a[1] - b[1]).map(([id]) => id);
+  // O cabecalho do heatmap e a unica tela em que o nome da fase nao cabe:
+  // sao seis colunas numa linha. Entao vai o NUMERO da fase (1, 2, 3...),
+  // que qualquer um entende, com o nome no title. "F01" nao era nem uma
+  // coisa nem outra.
+  const fases = [...new Map(base.heatmap.map((c) => [c.fase_id, c]))]
+    .sort((a, b) => a[1].ordem - b[1].ordem)
+    .map(([id, c]) => ({ id, ordem: c.ordem, titulo: c.titulo || id }));
   const nomes = [...new Set(base.heatmap.map((c) => c.nome_exibicao))];
 
   const corpo = nomes.map((nome) => {
-    const celulas = fases.map((fase) => {
+    const celulas = fases.map(({ id: fase, titulo }) => {
       const c = base.heatmap.find((x) => x.nome_exibicao === nome && x.fase_id === fase);
 
       if (!c || c.tentativas_ate_vencer === null) {
         const chegou = c && c.total_tentativas;
         // célula sem conclusão: tom neutro, nunca um passo da rampa
         return `<td class="celula"><span style="background:var(--rampa-0)"
-                 title="${nome} · ${fase}: ${chegou ? `${c.total_tentativas} tentativas, sem vencer` : 'não chegou'}"
+                 title="${nome} · ${titulo}: ${chegou ? `${c.total_tentativas} tentativas, sem vencer` : 'não chegou'}"
                  >${chegou ? '·' : ''}</span></td>`;
       }
 
       const passo = passoDaRampa(c.tentativas_ate_vencer);
       return `<td class="celula"><span class="${tintaDoPasso(passo)}"
                style="background:var(${RAMPA[passo]})"
-               title="${nome} · ${fase}: ${c.tentativas_ate_vencer} tentativas até vencer, eficiência ${vazio(c.eficiencia_codigo)}"
+               title="${nome} · ${titulo}: ${c.tentativas_ate_vencer} tentativas até vencer, eficiência ${vazio(c.eficiencia_codigo)}"
                >${c.tentativas_ate_vencer}</span></td>`;
     }).join('');
 
@@ -385,7 +391,8 @@ function heatmap() {
   }).join('');
 
   document.querySelector('#heatmap').innerHTML = `<table>
-    <thead><tr><th></th>${fases.map((f) => `<th class="num">${f}</th>`).join('')}</tr></thead>
+    <thead><tr><th></th>${fases.map((f) =>
+      `<th class="num" title="${f.titulo}">${f.ordem}</th>`).join('')}</tr></thead>
     <tbody>${corpo}</tbody></table>`;
 
   // a rampa é ordenada, então a legenda também diz o que cada passo significa
@@ -421,7 +428,7 @@ function tabelaJogadores() {
 
 function tabelaBlocos() {
   const linhas = base.blocos.map((b) => `<tr>
-      <td>${b.fase_id}</td>
+      <td>${b.titulo || b.fase_id}</td>
       <td>${b.bloco.startsWith('(') ? b.bloco : blocoComCor(b.bloco)}</td>
       <td class="num">${b.derrotas}</td>
     </tr>`).join('');
@@ -452,6 +459,7 @@ try {
   tabelaJogadores();
   tabelaBlocos();
   aoTrocarTema(desenharTudo);
+  ligarAbas();
   mostrarProcedencia();
 } catch (erro) {
   mostrarErro(`Não foi possível carregar os dados: ${erro.message}`);

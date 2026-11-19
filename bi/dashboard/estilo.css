@@ -600,3 +600,164 @@ select.discreto {
   width: 10px; height: 10px; border-radius: 3px;
   display: inline-block; margin-right: 5px;
 }
+
+/* ===========================================================================
+   Painel de uma tela so (Power BI, e nao pagina que rola)
+
+   O pedido foi direto: "e pra ser estilo Power BI, nao uma tela que voce fica
+   tendo que rolar pra baixo". Entao a janela inteira e o painel, e nada rola
+   -- exceto DENTRO de uma tabela ou lista que nao coube, que e o que o Power
+   BI tambem faz.
+
+   O que faz tudo caber sem jogar informacao fora sao as ABAS: cada uma e uma
+   tela cheia. A alternativa seria apagar visualizacoes, e nenhuma delas esta
+   sobrando.
+   =========================================================================== */
+
+html:has(main.painel),
+body:has(main.painel) {
+  height: 100%;
+  overflow: hidden;
+}
+
+body:has(main.painel) {
+  display: flex;
+  flex-direction: column;
+}
+
+main.painel {
+  flex: 1;
+  min-height: 0;              /* sem isto o grid estoura a altura da janela */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 14px 14px;
+  margin: 0;
+  max-width: none;
+}
+
+.painel-aba {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.painel-aba[hidden] { display: none; }
+
+/* Visao geral: alertas a esquerda, funil ao lado, atividade embaixo. */
+.painel-aba[data-painel="visao"] {
+  grid-template-columns: minmax(280px, 1fr) minmax(0, 1.4fr);
+  grid-template-rows: 1.1fr 1fr;
+  grid-template-areas:
+    "a b"
+    "a c";
+}
+
+/* As fases: quatro quadrantes. */
+.painel-aba[data-painel="fases"] {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  grid-template-areas:
+    "a b"
+    "c d";
+}
+
+/* Meu progresso: o grafico grande e o que ele ja via, os outros em volta. */
+.painel-aba[data-painel="progresso"] {
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr);
+  grid-template-rows: 1.15fr 1fr;
+  grid-template-areas:
+    "a b"
+    "c d";
+}
+
+/* Fase a fase: as duas tabelas lado a lado. */
+.painel-aba[data-painel="detalhe"] {
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  grid-template-rows: 1fr;
+  grid-template-areas: "a b";
+}
+
+/* Os jogadores: o heatmap manda, a tabela acompanha. */
+.painel-aba[data-painel="jogadores"] {
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr);
+  grid-template-rows: 1fr;
+  grid-template-areas: "a b";
+}
+
+.area-a { grid-area: a; }
+.area-b { grid-area: b; }
+.area-c { grid-area: c; }
+.area-d { grid-area: d; }
+
+/* O cartao vira coluna flexivel para o grafico ocupar o que sobrar da altura. */
+.painel-aba .cartao {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 12px 14px;
+  overflow: hidden;
+}
+
+.painel-aba .cartao > h2 { font-size: 16px; margin-bottom: 8px; }
+
+.painel-aba .tela,
+.painel-aba .tela.alta {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+
+/* A unica rolagem que sobra e esta: dentro da lista ou da tabela que nao
+   coube. E diferente de rolar a pagina -- o painel continua inteiro na tela. */
+.rola {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ---------- abas ---------- */
+
+.abas {
+  display: flex;
+  gap: 4px;
+}
+
+.aba {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--borda);
+  background: var(--superficie);
+  color: var(--tinta-2);
+  cursor: pointer;
+}
+
+.aba:hover { border-color: var(--realce); }
+
+.aba[aria-selected="true"] {
+  background: var(--realce);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* Numeros mais compactos: num painel de uma tela so, a fileira de KPI nao
+   pode comer a altura dos graficos. */
+main.painel .numeros { margin-bottom: 0; }
+main.painel .numero { padding: 8px 12px; }
+main.painel .numero .valor { font-size: 24px; }
+main.painel .numero.destaque .valor { font-size: 30px; }
+main.painel .numero .selo { font-size: 11px; margin-top: 2px; }
+
+/* Em tela baixa ou estreita o painel de uma tela so deixa de fazer sentido:
+   os cartoes ficariam menores que o proprio titulo. Ai volta a rolar. */
+@media (max-height: 560px), (max-width: 760px) {
+  html:has(main.painel), body:has(main.painel) { height: auto; overflow: auto; }
+  .painel-aba { display: block; }
+  .painel-aba .cartao { margin-bottom: 10px; height: 320px; }
+}
+

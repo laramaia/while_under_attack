@@ -7,7 +7,7 @@ import {
   aplicarTemaSalvo, prepararGraficos, aoTrocarTema, desenhar,
   eixos, BARRA, BARRA_H, EMPILHADA, cor, num, vazio, formatarData, duracao,
   cartaoNumero, tomDaEficiencia, limiares,
-  nomeDeBloco, blocoComCor, CAUSAS, semDados, comTabela, tabela,
+  nomeDeBloco, blocoComCor, CAUSAS, semDados, comTabela, tabela, ligarAbas,
 } from './app.js';
 
 aplicarTemaSalvo();
@@ -126,7 +126,7 @@ function graficoTentativas() {
   desenhar('g-tentativas', {
     type: 'bar',
     data: {
-      labels: fases.map((f) => `${f.fase_id} · ${f.titulo}`),
+      labels: fases.map((f) => f.titulo),
       datasets: [
         {
           label: 'Você',
@@ -168,7 +168,7 @@ function graficoTentativas() {
     alvo,
     ['Fase', 'Você', 'Mediana da turma', 'Interrompidas', 'Eficiência'],
     fases.map((f) => [
-      `${f.fase_id} · ${f.titulo}`,
+      f.titulo,
       f.tentativas_ate_vencer,
       vazio(f.mediana_turma),
       f.interrompidas_ate_vencer ?? 0,
@@ -194,7 +194,7 @@ function conceitosAplicados() {
     return `<div class="destaque ${usou ? 'info' : 'atencao'}">
       <span class="icone" aria-hidden="true">${usou ? '✓' : '●'}</span>
       <span class="corpo">
-        <strong>${f.fase_id}${f.papel === 'reforco' ? ' · reforço' : ''} · ${blocoComCor(f.bloco_conceito)}</strong>
+        <strong>${f.titulo}${f.papel === 'reforco' ? ' · reforço' : ''} · ${blocoComCor(f.bloco_conceito)}</strong>
         <span>${usou
           ? `Você venceu “${f.titulo}” usando o bloco. ${f.conceito} aplicado.`
           : `Você venceu “${f.titulo}” sem usar o bloco. Vale voltar e tentar `
@@ -216,7 +216,7 @@ function graficoEficiencia() {
   desenhar('g-eficiencia', {
     type: 'bar',
     data: {
-      labels: fases.map((f) => f.fase_id),
+      labels: fases.map((f) => f.titulo),
       datasets: [{
         label: 'Eficiência',
         data: fases.map((f) => Number(f.eficiencia_codigo)),
@@ -296,7 +296,6 @@ function tabelaFases() {
         : '<span class="marca fora">não jogada</span>';
 
     return `<tr>
-      <td>${f.fase_id}</td>
       <td>${f.titulo}</td>
       <td>${f.conceito}</td>
       <td>${marca}</td>
@@ -312,7 +311,7 @@ function tabelaFases() {
 
   document.querySelector('#t-fases').innerHTML = `
     <thead><tr>
-      <th>Fase</th><th>Título</th><th>Conceito</th><th>Situação</th>
+      <th>Fase</th><th>Conceito</th><th>Situação</th>
       <th class="num">Até vencer</th><th class="num">Interrompidas</th>
       <th class="num">Eficiência</th><th class="num">Usou o bloco</th>
       <th class="num">Tentativas</th><th class="num">Última</th>
@@ -352,6 +351,7 @@ try {
   tabelaFases();
   tabelaConceitos();
   aoTrocarTema(desenharTudo);
+  ligarAbas();
   mostrarProcedencia();
 } catch (erro) {
   mostrarErro(`Não foi possível carregar os dados: ${erro.message}`);

@@ -262,6 +262,7 @@ select
     j.jogador_id,
     f.fase_id,
     f.ordem,
+    f.titulo,
     p.concluida,
     p.tentativas_ate_vencer,
     p.total_tentativas,
@@ -279,13 +280,14 @@ order by j.nome_exibicao, f.ordem
 BLOCOS_PROBLEMATICOS = """
 select
     f.fase_id,
+    f.titulo,
     coalesce(t.bloco_em_execucao_tipo, '(programa acabou antes)') as bloco,
     count(*) as derrotas
 from gold.fato_tentativa t
 join gold.dim_fase f on f.fase_sk = t.fase_sk
 join gold.dim_resultado r on r.resultado_sk = t.resultado_sk
 where r.resultado = 'derrota'
-group by f.fase_id, 2
+group by f.fase_id, f.titulo, 3
 order by derrotas desc
 limit 20
 """
@@ -424,6 +426,7 @@ select
     reforco.fase_id                             as fase_reforco,
     reforco.titulo                              as titulo_reforco,
     intro.fase_id                               as fase_intro,
+    intro.titulo                                as titulo_intro,
     reforco.conceito_nome,
     reforco.mediana_tentativas_ate_vencer       as mediana_reforco,
     intro.mediana_tentativas_ate_vencer         as mediana_intro
@@ -451,8 +454,8 @@ def _destaques_de_reforco() -> list[dict[str, Any]]:
         if reforco > intro:
             achados.append({
                 "nivel": "atencao",
-                "titulo": f"{linha['fase_reforco']} deveria ser mais fácil que "
-                          f"{linha['fase_intro']}",
+                "titulo": f"“{linha['titulo_reforco']}” deveria ser mais fácil "
+                          f"que “{linha['titulo_intro']}”",
                 "texto": f"“{linha['titulo_reforco']}” reforça "
                          f"{linha['conceito_nome'].lower()}, mas custa "
                          f"{_tentativas(reforco)} contra {intro:g} da fase que "
@@ -462,9 +465,9 @@ def _destaques_de_reforco() -> list[dict[str, Any]]:
         else:
             achados.append({
                 "nivel": "info",
-                "titulo": f"O reforço em {linha['fase_reforco']} está funcionando",
+                "titulo": f"O reforço em “{linha['titulo_reforco']}” está funcionando",
                 "texto": f"{_tentativas(reforco)} contra {intro:g} em "
-                         f"{linha['fase_intro']}: a turma resolve o mesmo "
+                         f"“{linha['titulo_intro']}”: a turma resolve o mesmo "
                          f"conceito com menos tentativas na segunda vez.",
             })
 
@@ -482,7 +485,7 @@ def destaques() -> list[dict[str, Any]]:
         if chegaram >= 3 and travados / chegaram >= LIMIAR_FUNIL:
             achados.append({
                 "nivel": "critico",
-                "titulo": f"{fase['fase_id']} esta segurando a turma",
+                "titulo": f"“{fase['titulo']}” está segurando a turma",
                 "texto": f"{travados} de {chegaram} jogadores chegaram a "
                          f"“{fase['titulo']}” e nao conseguiram concluir.",
             })
@@ -492,7 +495,7 @@ def destaques() -> list[dict[str, Any]]:
         if avaliaveis >= 3 and aplicaram / avaliaveis < LIMIAR_CONCEITO:
             achados.append({
                 "nivel": "atencao",
-                "titulo": f"{fase['fase_id']} esta sendo vencida sem o conceito",
+                "titulo": f"“{fase['titulo']}” está sendo vencida sem o conceito",
                 "texto": f"So {aplicaram} de {avaliaveis} usaram o bloco "
                          f"“{fase['bloco_conceito']}” para vencer. Os outros "
                          f"contornaram, entao a fase nao esta cobrando "
@@ -503,7 +506,7 @@ def destaques() -> list[dict[str, Any]]:
         if eficiencia is not None and float(eficiencia) < LIMIAR_EFICIENCIA:
             achados.append({
                 "nivel": "atencao",
-                "titulo": f"Programas longos em {fase['fase_id']}",
+                "titulo": f"Programas longos em “{fase['titulo']}”",
                 "texto": f"A eficiência media e {eficiencia}: os programas "
                          f"vencedores tem bem mais blocos que a solucao de "
                          f"referencia.",
@@ -512,7 +515,7 @@ def destaques() -> list[dict[str, Any]]:
         if (fase["derrotas_programa_curto"] or 0) > 2 * (fase["derrotas_parou_em_bloco"] or 1):
             achados.append({
                 "nivel": "info",
-                "titulo": f"Em {fase['fase_id']} o programa acaba cedo demais",
+                "titulo": f"Em “{fase['titulo']}” o programa acaba cedo demais",
                 "texto": f"{fase['derrotas_programa_curto']} derrotas foram por "
                          f"o programa terminar com o inimigo vivo. Pode ser que "
                          f"a fase nao deixe claro quanto dano falta.",

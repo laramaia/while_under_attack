@@ -11,69 +11,58 @@
   <header class="topo"></header>
   <p class="aviso" id="procedencia"></p>
 
-  <main>
-    <!-- só aparece para o perfil professor, que escolhe de quem é a tela (RN-005) -->
-    <p id="escolha-jogador" hidden style="margin:0 0 16px"></p>
+  <main class="painel">
+    <div class="filtros">
+      <!-- só aparece para o perfil professor, que escolhe de quem é a tela (RN-005) -->
+      <p id="escolha-jogador" hidden style="margin:0"></p>
+      <span class="separador"></span>
+      <nav class="abas" id="abas">
+        <button class="aba" data-painel="progresso" aria-selected="true">Meu progresso</button>
+        <button class="aba" data-painel="detalhe" aria-selected="false">Fase a fase</button>
+      </nav>
+    </div>
 
     <!-- O3: devolver ao jogador um diagnóstico do próprio aprendizado -->
     <div class="numeros" id="numeros"></div>
 
-    <section class="cartao" id="c-tentativas">
-      <div class="topo-cartao">
-        <div>
-          <h2 title="RN-012: conta vitórias e derrotas até a primeira vitória, inclusive. Rastreabilidade completa em /api/procedencia.">Quantas vezes você errou antes de acertar</h2>
-          <p class="nota">
-            Uma barra por fase, na ordem em que são ensinadas. A barra clara é
-            a turma na mesma fase, para você ter com o que comparar.
-          </p>
+    <section class="painel-aba" data-painel="progresso">
+      <section class="cartao area-a" id="c-tentativas">
+        <div class="topo-cartao">
+          <div>
+            <h2 title="RN-012: conta vitórias e derrotas até a primeira vitória, inclusive. Rastreabilidade completa em /api/procedencia.">Quantas vezes você errou antes de acertar</h2>
+          </div>
+          <button class="discreto ver-tabela">Ver tabela</button>
         </div>
-        <button class="discreto ver-tabela">Ver tabela</button>
-      </div>
-      <div class="tela"><canvas id="g-tentativas"></canvas></div>
-      <div class="tabela-apoio" hidden></div>
-    </section>
+        <div class="tela"><canvas id="g-tentativas"></canvas></div>
+        <div class="tabela-apoio" hidden></div>
+      </section>
 
-    <section class="cartao">
-      <h2 title="RN-019: o programa da primeira vitória usou o bloco que representa o conceito da fase. Rastreabilidade completa em /api/procedencia.">Você resolveu do jeito que a fase ensina?</h2>
-      <p class="nota">
-        Cada conceito tem um bloco que o representa. Dá para vencer sem ele —
-        repetindo o mesmo ataque várias vezes em vez de usar o bloco de
-        repetição, por exemplo —, mas aí o conceito ficou para trás. Conceito
-        que não se resume a um bloco não aparece aqui.
-      </p>
-      <div id="conceitos-aplicados"></div>
-    </section>
+      <section class="cartao area-b">
+        <h2 title="RN-019: o programa da primeira vitória usou o bloco que representa o conceito da fase. Rastreabilidade completa em /api/procedencia.">Você resolveu do jeito que a fase ensina?</h2>
+        <div class="rola" id="conceitos-aplicados"></div>
+      </section>
 
-    <div class="grade-cartoes">
-      <section class="cartao">
+      <section class="cartao area-c">
         <h2 title="RN-014: blocos da solução de referência ÷ blocos do programa vencedor. Rastreabilidade completa em /api/procedencia.">O seu código foi enxuto?</h2>
-        <p class="nota">
-          <strong>1,0 é do tamanho da solução ideal.</strong> Abaixo disso
-          sobraram blocos; acima, você resolveu com menos do que a referência.
-        </p>
         <div class="tela"><canvas id="g-eficiencia"></canvas></div>
       </section>
 
-      <section class="cartao">
+      <section class="cartao area-d">
         <h2 title="RN-008: toda derrota é classificada entre programa curto e parada num bloco. Rastreabilidade completa em /api/procedencia.">Por que você perdeu</h2>
-        <p class="nota">
-          Duas causas: o programa <strong>acabou cedo demais</strong>, com o
-          inimigo ainda de pé, ou <strong>parou num bloco</strong> no meio.
-        </p>
         <div class="tela"><canvas id="g-travou"></canvas></div>
       </section>
-    </div>
-
-    <section class="cartao">
-      <h2>Fase a fase</h2>
-      <p class="nota">Os mesmos números da tela, em tabela.</p>
-      <div style="overflow-x:auto"><table id="t-fases"></table></div>
     </section>
 
-    <section class="cartao">
-      <h2>Conceitos</h2>
-      <p class="nota">Cada fase ensina um conceito de lógica, nesta ordem.</p>
-      <div style="overflow-x:auto"><table id="t-conceitos"></table></div>
+    <section class="painel-aba" data-painel="detalhe" hidden>
+      <section class="cartao area-a">
+        <h2>Fase a fase</h2>
+        <div class="rola"><table id="t-fases"></table></div>
+      </section>
+
+      <section class="cartao area-b">
+        <h2>Conceitos</h2>
+        <div class="rola"><table id="t-conceitos"></table></div>
+      </section>
     </section>
   </main>
 
