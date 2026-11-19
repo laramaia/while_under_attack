@@ -30,6 +30,8 @@ três trocas de pessoa — não encha esse espaço.
 
 ## Fala 1 — Joao Manoel · dois slides · 0:00 · 50s
 
+*Na capa ele aparece como **Analista de Governança de Dados**.*
+
 ### Slide "Capa" (20s)
 
 > Boa tarde. Nosso projeto se chama **while under_attack**. É um jogo de
@@ -166,4 +168,4 @@ jogador só acessa os próprios dados — a regra de permissão vive num lugar s
 - [ ] Combinar o gesto de passar uma pergunta técnica para a Heloisa
 - [ ] Combinar quem passa o slide (uma pessoa só, do começo ao fim)
 - [ ] Abrir o dashboard numa aba, caso peçam para ver
-- [ ] Conferir na capa o papel do Joao Manoel — ele não está na tabela do README
+- [ ] Incluir o Joao Manoel (Analista de Governança de Dados) na tabela de papéis do README — a capa já traz o papel dele, o README ainda não

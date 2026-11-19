@@ -7,6 +7,7 @@ import { createDefaultCatalog } from '../model/defaultCatalog';
 import { AddBackground } from '../game/AddBackground';
 import { FimDeExecucao, ProgramRunner } from '../model/ProgramRunner';
 import { PlanTimer } from '../ui/PlanTimer';
+import { DeathPopup } from '../ui/DeathPopup';
 import { getVisibleArea } from '../utils/viewport';
 import { GAME_H, GAME_W, CURRENT_PHASE_ID, PLAN_TIME_MS } from '../config';
 import { telemetry } from '../telemetry/telemetry';
@@ -17,6 +18,7 @@ export class BattleScene extends Phaser.Scene {
   private editor!: EditorPanel;
   private background!: Phaser.GameObjects.Image;
   private timer!: PlanTimer;
+  private deathPopup!: DeathPopup;
 
   private tentativaId: string | null = null;
   private ids = new Map<BlockInstance, string>();
@@ -68,12 +70,14 @@ export class BattleScene extends Phaser.Scene {
     this.add.existing(this.editor);
 
     this.timer = new PlanTimer(this);
+    this.deathPopup = new DeathPopup(this);
     new BlockDragger(this, this.editor);
 
     const onResize = () => {
       this.adjustCameraToScreen();
       this.editor.onResize();
       this.timer.layout();
+      this.deathPopup.layout();
     };
     this.scale.on('resize', onResize);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -186,7 +190,18 @@ export class BattleScene extends Phaser.Scene {
       } else {
         console.log('Fim de jogo!');
       }
+    } else if (gameArea.heroHp <= 0) {
+      // Derrota com o guerreiro caido: espera ele sumir e so entao mostra a
+      // tela. Mostrar junto com a animacao faria o popup aparecer por cima de
+      // um guerreiro ainda de pe.
+      await gameArea.waitHeroDeath();
+      this.deathPopup.show(() => {
+        this.startRound(gameArea, runner)
+          .catch((e) => console.error('[startRound]', e));
+      });
     } else {
+      // Interrompida pelo Stop: o guerreiro continua vivo, nao ha morte a
+      // anunciar, e a rodada recomeca direto como sempre fez.
       await this.startRound(gameArea, runner);
     }
   }

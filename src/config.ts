@@ -95,3 +95,36 @@ export const TIMER_MARGIN_TOP = 12;
 export const TIMER_DEPTH = 600;
 export const ENEMY_DEATH_DELAY_MS = 500;
 export const ENEMY_FADE_MS = 600;
+
+// Morte do guerreiro. Os mesmos tempos do inimigo, de proposito: as duas
+// mortes sao a mesma cena vista dos dois lados, e tempos diferentes fariam
+// uma parecer mais importante que a outra.
+export const HERO_DEATH_DELAY_MS = ENEMY_DEATH_DELAY_MS;
+export const HERO_FADE_MS = ENEMY_FADE_MS;
+
+// Tela de "voce morreu"
+//
+// Generica de proposito: e um retangulo com texto e um botao, para o fluxo
+// existir e poder ser testado. A arte propria entra depois, trocando o que
+// esta aqui sem mexer em DeathPopup.ts.
+export const DEATH_DEPTH = 900;          // acima do editor (500) e do timer (600)
+export const DEATH_VEU_COLOR = 0x1a1410; // escurece a cena atras
+export const DEATH_VEU_ALPHA = 0.72;
+export const DEATH_PANEL_W = 520;
+export const DEATH_PANEL_H = 260;
+export const DEATH_PANEL_COLOR = 0xf3efe6;
+export const DEATH_PANEL_RADIUS = 18;
+export const DEATH_BORDER_COLOR = 0x8c3b3b;
+export const DEATH_BORDER_W = 4;
+export const DEATH_TITLE = 'Você morreu';
+export const DEATH_TITLE_SIZE = '46px';
+export const DEATH_TITLE_COLOR = '#8c3b3b';
+export const DEATH_SUBTITLE = 'O inimigo derrubou o guerreiro.';
+export const DEATH_SUBTITLE_SIZE = '20px';
+export const DEATH_SUBTITLE_COLOR = '#4a4242';
+export const DEATH_FONT = 'Georgia, serif';
+export const DEATH_BUTTON_LABEL = 'Tentar de novo';
+export const DEATH_BUTTON_SIZE = '24px';
+export const DEATH_BUTTON_COLOR = '#ffffff';
+export const DEATH_BUTTON_BG = '#8c3b3b';
+export const DEATH_FADE_MS = 220;

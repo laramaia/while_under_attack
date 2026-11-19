@@ -8,6 +8,8 @@ import {
   ENEMY_FADE_MS,
   ENEMY_DEATH_DELAY_MS,
   ENEMY_STOP_X_F02,
+  HERO_FADE_MS,
+  HERO_DEATH_DELAY_MS,
 } from '../config';
 
 const HERO_START_X = 280;
@@ -23,6 +25,7 @@ export class GameArea extends Phaser.GameObjects.Container {
   private hero: Phaser.GameObjects.Sprite;
   private enemy: Phaser.GameObjects.Sprite;
   private dying: Promise<void> | null = null;
+  private heroDying: Promise<void> | null = null;
 
   heroHp = HERO_MAX_HP;
   enemyHp = ENEMY_MAX_HP;
@@ -93,6 +96,12 @@ export class GameArea extends Phaser.GameObjects.Container {
     this.dying = null;
   }
 
+  /** Espera a animacao de morte do guerreiro, se ela estiver rodando. */
+  async waitHeroDeath(): Promise<void> {
+    await this.heroDying;
+    this.heroDying = null;
+  }
+
   private enemyDie(): Promise<void> {
     return new Promise((resolve) => {
       this.scene.tweens.add({
@@ -161,7 +170,33 @@ export class GameArea extends Phaser.GameObjects.Container {
   }
 
   damageHero(amount: number): void {
+    const before = this.heroHp;
     this.heroHp = Math.max(0, this.heroHp - amount);
+    // Mesma condicao do damageEnemy: dispara na travessia do zero, e nao
+    // sempre que a vida esta em zero. Sem isso, o `enemyAttacksUntilHeroDies`
+    // comecaria uma animacao de morte por golpe depois do primeiro.
+    if (before > 0 && this.heroHp === 0) this.heroDying = this.heroDie();
+  }
+
+  /** O guerreiro cai: some da cena, como o inimigo faz ao morrer.
+   *
+   * Nao ha sprite de morte do guerreiro -- `public/assets/characters/hero`
+   * tem idle e attack. Entao a queda e um tween de alpha, igual a do inimigo.
+   * Quando houver arte propria, e aqui que ela entra.
+   */
+  private heroDie(): Promise<void> {
+    return new Promise((resolve) => {
+      this.scene.tweens.add({
+        targets: this.hero,
+        alpha: 0,
+        delay: HERO_DEATH_DELAY_MS,
+        duration: HERO_FADE_MS,
+        onComplete: () => {
+          this.hero.setVisible(false);
+          resolve();
+        },
+      });
+    });
   }
 
   private lunge(): Promise<void> {
