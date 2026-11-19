@@ -86,7 +86,9 @@ export class ProgramRunner extends Phaser.Events.EventEmitter {
     switch (block.template.id) {
       case 'attack':
         this.gameArea.heroAttack();
-        this.gameArea.damageEnemy(ATTACK_DAMAGE);
+        if (this.gameArea.isEnemyInRange()) {
+          this.gameArea.damageEnemy(ATTACK_DAMAGE);
+        }
         await this.wait(800);
         break;
 
@@ -96,8 +98,7 @@ export class ProgramRunner extends Phaser.Events.EventEmitter {
         break;
 
       case 'advance':
-        console.log('Executando: Avançar');
-        await this.wait(600);
+        await this.gameArea.heroAdvance();
         break;
 
       case 'repeat':

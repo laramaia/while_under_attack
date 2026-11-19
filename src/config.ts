@@ -8,7 +8,7 @@ export const HOVER_SCALE = 1.08;
 // Telemetria
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8001';
 export const GAME_VERSION = '0.3.0';
-export const CATALOG_VERSION = '2026.11.1-rascunho';
+export const CATALOG_VERSION = '2026.11.2-rascunho';
 export const SCHEMA_VERSION = 1;
 export const CURRENT_PHASE_ID = 'F01';
 
@@ -83,6 +83,7 @@ export const PLAN_TIME_MS = 15000;
 export const ENEMY_WALK_MS = 4000;
 export const ENEMY_START_X = GAME_W + 150;
 export const ENEMY_STOP_X = 520;
+export const ENEMY_STOP_X_F02 = 680;
 
 export const TIMER_FONT = 'Georgia, serif';
 export const TIMER_SIZE = '64px';
