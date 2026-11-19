@@ -62,7 +62,7 @@ export async function api(caminho) {
 
 export function montarTopo(paginaAtual) {
   const atual = sessao();
-  const topo = document.querySelector('header.topo');
+  const topo = document.querySelector('header.faixa') || document.querySelector('header.topo');
   if (!topo || !atual) return;
 
   // O professor não joga (Glossário), então para ele a tela do jogador é uma
@@ -71,15 +71,21 @@ export function montarTopo(paginaAtual) {
     ? [['professor.html', 'Turma'], ['jogador.html', 'Por jogador']]
     : [['jogador.html', 'Meu progresso']];
 
+  // O titulo fica no meio da faixa, como nas referencias de painel: quem
+  // olha de longe le primeiro o nome do painel, nao o menu.
+  const titulo = topo.dataset.titulo || 'while under_attack';
+
   topo.innerHTML = `
-    <h1>while under_attack</h1>
+    <img src="assets/logo.png" alt="while under_attack" class="marca">
     <nav>${abas.map(([href, texto]) =>
       `<a href="${href}"${href === paginaAtual ? ' aria-current="page"' : ''}>${texto}</a>`
     ).join('')}</nav>
-    <span class="espaco"></span>
-    <span style="font-size:13px;color:var(--tinta-fraca)">${atual.nome_exibicao}</span>
+    <h1>${titulo}</h1>
+    <span class="quem">${atual.nome_exibicao}</span>
     <button class="discreto" id="btn-tema">Tema</button>
-    <button class="discreto" id="btn-sair">Sair</button>`;
+    <button class="discreto" id="btn-sair">Sair</button>
+    <img src="assets/${atual.perfil === 'professor' ? 'inimigo' : 'heroi'}.png"
+         class="figura" alt="" aria-hidden="true">`;
 
   topo.querySelector('#btn-sair').onclick = sair;
   topo.querySelector('#btn-tema').onclick = alternarTema;
@@ -102,16 +108,28 @@ export function aplicarTemaSalvo() {
 export function temaEscuro() {
   const marcado = document.documentElement.dataset.tema;
   if (marcado) return marcado === 'escuro';
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  // O painel e escuro por padrao, e nao o que o sistema preferir: foi assim
+  // que ele foi desenhado, e e nele que os numeros grandes e as cores de
+  // bloco funcionam. O claro continua no botao Tema, para quem precisar
+  // imprimir ou projetar numa sala clara demais.
+  return true;
 }
 
 /** RS-02: o dashboard diz na cara quando está mostrando dado sintético. */
+/* Os limiares do que e bom, do que pede atencao e do que e critico vem da
+   API, e nao de constantes aqui: sao os mesmos que os destaques usam. Se a
+   tela tivesse os seus, um KPI poderia pintar de verde uma fase que o alerta
+   logo abaixo chama de problema. Os valores abaixo so valem ate a primeira
+   resposta chegar. */
+export const limiares = { eficiencia: 0.7, conceito: 0.7, funil: 0.3 };
+
 export async function mostrarProcedencia() {
   const alvo = document.querySelector('#procedencia');
   if (!alvo) return;
 
   try {
     const p = await api('/procedencia');
+    if (p.limiares) Object.assign(limiares, p.limiares);
     if (p.tem_sintetico) {
       const quanto = p.so_sintetico
         ? 'Todos os dados desta tela são sintéticos'
@@ -165,6 +183,88 @@ export function duracao(segundos) {
   const min = Math.round(s / 60);
   if (min < 60) return `${min} min`;
   return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
+}
+
+/* ---------------------------------------------------------------------------
+   KPI: o disco com o icone, o numero grande e a linha de apoio.
+
+   O formato veio das referencias de painel que a equipe escolheu. O que muda
+   em relacao a elas: la a linha de apoio compara com o periodo anterior
+   ("vs Prior Period $2.06M"), e aqui nao ha periodo anterior para comparar --
+   o banco tem semanas de dado, nao anos. Entao a linha diz do que o numero e
+   parte: "de 60 possiveis", "toda a turma". E contexto em vez de variacao, e
+   e honesto: inventar uma variacao exigiria um recorte temporal que o dado
+   ainda nao sustenta.
+   --------------------------------------------------------------------------- */
+
+const ICONES = {
+  pessoas:  '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 6a3 3 0 0 1 0 6"/>',
+  bandeira: '<path d="M5 21V4m0 0h12l-2.5 4 2.5 4H5"/>',
+  espada:   '<path d="M14.5 3.5 20 3l-.5 5.5-9 9L7 20l-3-3 2.5-3.5z"/><path d="m6 18 1.5 1.5"/>',
+  escudo:   '<path d="M12 3 5 6v5c0 4 3 7.5 7 9 4-1.5 7-5 7-9V6z"/>',
+  raio:     '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  ampulheta:'<path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9"/>',
+  alvo:     '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>',
+};
+
+const TONS = {
+  acento:      'var(--acento)',
+  evento:      'var(--bloco-evento)',
+  acao:        'var(--bloco-acao)',
+  repeticao:   'var(--bloco-repeticao)',
+  condicional: 'var(--bloco-condicional)',
+  bom:         'var(--bom)',
+  atencao:     'var(--atencao)',
+  critico:     'var(--critico)',
+};
+
+/**
+ * @param {object} k
+ * @param {string} k.rotulo   o nome, em caixa alta na tela
+ * @param {string} k.valor    ja formatado
+ * @param {string} [k.apoio]  a linha de baixo: de que o numero e parte
+ * @param {string} [k.icone]  chave de ICONES
+ * @param {string} [k.tom]    chave de TONS; pinta o numero e o disco
+ */
+export function kpi(k) {
+  const tom = TONS[k.tom] || 'var(--acento)';
+  const corpo = ICONES[k.icone] || ICONES.alvo;
+
+  return `<div class="kpi" style="--tom:${tom}">
+      <span class="disco">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${corpo}</svg>
+      </span>
+      <span class="corpo">
+        <span class="rotulo">${k.rotulo}</span>
+        <span class="valor">${k.valor}</span>
+        ${k.apoio ? `<span class="apoio">${k.apoio}</span>` : ''}
+      </span>
+    </div>`;
+}
+
+/**
+ * Liga as paginas do painel. Trocar de pagina nao redesenha nada, mas o
+ * Chart.js mede o canvas na hora de desenhar e canvas dentro de `hidden` mede
+ * zero -- sem o resize() ao mostrar, o grafico da pagina escondida nasce com
+ * o tamanho errado e so se corrige quando alguem redimensiona a janela.
+ */
+export function ligarAbas() {
+  const barra = document.querySelector('#abas');
+  if (!barra) return;
+
+  barra.addEventListener('click', (evento) => {
+    const botao = evento.target.closest('.aba');
+    if (!botao) return;
+
+    const alvo = botao.dataset.painel;
+    barra.querySelectorAll('.aba').forEach((b) =>
+      b.setAttribute('aria-selected', String(b.dataset.painel === alvo)));
+    document.querySelectorAll('.aba-painel').forEach((p) => {
+      p.hidden = p.dataset.painel !== alvo;
+    });
+    graficos.forEach((g) => g.resize());
+  });
 }
 
 export function formatarData(iso) {
