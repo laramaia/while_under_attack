@@ -282,11 +282,19 @@ export function cor(nome) {
 /** Aplica os tokens de tinta/grade aos padrões do Chart.js. */
 export function prepararGraficos() {
   Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", sans-serif';
-  Chart.defaults.font.size = 12;
-  Chart.defaults.color = cor('--tinta-fraca');
+  // 12px era legivel no monitor e sumia no projetor da sala. A banca le a
+  // dois metros de distancia (issue #33).
+  Chart.defaults.font.size = 13;
+  // A tinta-fraca deixava o rotulo do eixo quase tao apagado quanto a grade.
+  Chart.defaults.color = cor('--tinta-2');
   Chart.defaults.borderColor = cor('--grade');
   Chart.defaults.maintainAspectRatio = false;
   Chart.defaults.animation.duration = 300;
+
+  // Linha mais grossa e ponto maior: a serie tem que pesar mais que a grade.
+  Chart.defaults.elements.line.borderWidth = 3;
+  Chart.defaults.elements.point.radius = 4;
+  Chart.defaults.elements.point.hoverRadius = 6;
 
   // o texto nunca veste a cor da série
   Chart.defaults.plugins.legend.labels.color = cor('--tinta-2');
@@ -310,7 +318,9 @@ export function prepararGraficos() {
 export function eixos({ valorEm = 'y', tituloValor = '', inteiro = true } = {}) {
   const dosValores = {
     beginAtZero: true,
-    grid: { color: cor('--grade'), drawTicks: false },
+    // A grade compete com o dado quando tem a mesma presenca. Aqui ela fica
+    // visivelmente mais fraca: serve para medir, nao para ser lida.
+    grid: { color: cor('--grade'), drawTicks: false, lineWidth: 1 },
     border: { display: false },
     ticks: { precision: inteiro ? 0 : undefined, padding: 6 },
     title: tituloValor
@@ -331,14 +341,15 @@ export function eixos({ valorEm = 'y', tituloValor = '', inteiro = true } = {}) 
 export const BARRA = {
   borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
   borderSkipped: 'start',
-  maxBarThickness: 40,
+  // Barra mais larga, pelo mesmo motivo da fonte maior: ser lida de longe.
+  maxBarThickness: 56,
 };
 
 /** Barras horizontais: o arredondamento vai para a ponta direita. */
 export const BARRA_H = {
   borderRadius: { topRight: 4, bottomRight: 4, topLeft: 0, bottomLeft: 0 },
   borderSkipped: 'start',
-  maxBarThickness: 26,
+  maxBarThickness: 34,
 };
 
 /** Separador de 2px entre segmentos empilhados. */
@@ -352,11 +363,68 @@ export const EMPILHADA = {
 
 const graficos = new Map();
 
+/* Escreve o valor em cima da barra, quando houver poucas (issue #33).
+ *
+ * Legenda e eixo obrigam o olho a ir e voltar para saber quanto vale uma
+ * barra. Com o numero em cima, a leitura e direta -- e e o que o painel que
+ * o professor mostrou faz.
+ *
+ * So entra quando ha poucas barras: com muitas, o numero vira ruido e as
+ * etiquetas se encavalam. O limite e por quantidade de barras desenhadas,
+ * nao por tipo de grafico.
+ */
+const MAX_BARRAS_COM_ETIQUETA = 14;
+
+const etiquetaNaBarra = {
+  id: 'etiquetaNaBarra',
+  afterDatasetsDraw(grafico) {
+    const visiveis = grafico.data.datasets.reduce(
+      (total, _, i) => total + (grafico.isDatasetVisible(i) ? grafico.getDatasetMeta(i).data.length : 0),
+      0,
+    );
+    if (visiveis === 0 || visiveis > MAX_BARRAS_COM_ETIQUETA) return;
+
+    // Empilhado nao leva etiqueta: o rotulo de um conjunto cai DENTRO do
+    // segmento do outro, e quem olha le o numero errado na cor errada. Isso
+    // aconteceu de verdade no "Em que fases eles param", onde o 9 do azul
+    // apareceu no meio da faixa laranja.
+    //
+    // A deteccao e pelas escalas e nao por dataset.stack: no Chart.js o
+    // empilhamento de barra vem das opcoes de escala, e o dataset costuma
+    // ficar sem `stack` nenhum.
+    const escalas = grafico.options?.scales || {};
+    if (Object.values(escalas).some((e) => e && e.stacked)) return;
+
+    const ctx = grafico.ctx;
+    ctx.save();
+    ctx.fillStyle = cor('--tinta-2');
+    ctx.font = `600 12px ${Chart.defaults.font.family}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+
+    grafico.data.datasets.forEach((conjunto, i) => {
+      if (!grafico.isDatasetVisible(i)) return;
+      const meta = grafico.getDatasetMeta(i);
+      if (meta.type !== 'bar') return;          // linha ja tem ponto; barra, nao
+
+      meta.data.forEach((barra, j) => {
+        const valor = conjunto.data[j];
+        if (valor === null || valor === undefined) return;
+        const texto = Number(valor).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+        ctx.fillText(texto, barra.x, barra.y - 4);
+      });
+    });
+
+    ctx.restore();
+  },
+};
+
 /** Cria (ou recria) um gráfico. Guardar a referência permite redesenhar no troca-tema. */
 export function desenhar(idCanvas, config) {
   graficos.get(idCanvas)?.destroy();
   const tela = document.getElementById(idCanvas);
   if (!tela) return null;
+  config.plugins = [...(config.plugins || []), etiquetaNaBarra];
   const grafico = new Chart(tela, config);
   graficos.set(idCanvas, grafico);
   return grafico;
