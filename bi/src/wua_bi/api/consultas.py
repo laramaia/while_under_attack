@@ -23,7 +23,21 @@ select
     round(avg(p.tentativas_ate_vencer), 1)                   as media_tentativas_ate_vencer,
     round(avg(p.eficiencia_codigo), 2)                       as eficiencia_media,
     coalesce(sum(p.interrompidas_ate_vencer), 0)             as interrompidas,
-    round(coalesce(sum(p.tempo_edicao_ate_vencer_ms), 0) / 60000.0, 1) as minutos_montando
+    -- Em SEGUNDOS, e nao em minutos. O card mostrava "0 min" para quem tinha
+    -- acabado de jogar, e o dado estava certo o tempo todo: a Lara somava 26 s
+    -- montando programas, que viram 0,4 min, que o dashboard arredondava para
+    -- zero.
+    --
+    -- Nao e caso de borda, e a regra: a fase tem tempo limite de 15 s
+    -- (PLAN_TIME_MS), entao cada tentativa custa no maximo 15 s de edicao.
+    -- Para o numero chegar a 1 minuto inteiro seriam precisas quatro
+    -- tentativas estourando o limite. Em minutos, este indicador ia passar a
+    -- vida quase todo em "0 min" -- ele foi escrito antes de a fase ter
+    -- tempo limite, quando montar um programa podia levar o tempo que fosse.
+    --
+    -- Quem escolhe a unidade agora e o dashboard, que conhece a ordem de
+    -- grandeza na hora de desenhar. Aqui sai o numero cru.
+    round(coalesce(sum(p.tempo_edicao_ate_vencer_ms), 0) / 1000.0)::int as segundos_montando
 from gold.fato_progresso_fase p
 where p.jogador_sk = %(jogador_sk)s
 """
