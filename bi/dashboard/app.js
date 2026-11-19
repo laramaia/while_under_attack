@@ -145,6 +145,28 @@ export function num(v, casas = 0) {
   });
 }
 
+/**
+ * Duracao em segundos, na unidade que couber: "26 s", "3 min", "1 h 20 min".
+ *
+ * Existe porque o card "Montando programas" mostrava "0 min" para quem tinha
+ * acabado de jogar. O dado estava certo -- 26 segundos --, mas em minutos e
+ * sem casa decimal isso vira zero. Com o tempo limite da fase em 15 s, a
+ * maior parte dos jogadores nunca vai somar um minuto inteiro, entao minuto
+ * era a unidade errada para este jogo.
+ *
+ * Devolve "—" para nulo, e nao "0 s": nao ter jogado e diferente de ter
+ * jogado sem gastar tempo.
+ */
+export function duracao(segundos) {
+  if (segundos === null || segundos === undefined) return '—';
+  const s = Math.round(Number(segundos));
+  if (!Number.isFinite(s)) return '—';
+  if (s < 90) return `${s} s`;
+  const min = Math.round(s / 60);
+  if (min < 60) return `${min} min`;
+  return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')} min`;
+}
+
 export function formatarData(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });

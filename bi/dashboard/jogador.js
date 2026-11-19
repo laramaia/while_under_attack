@@ -5,7 +5,7 @@ import {
   api, exigirSessao, montarTopo, mostrarProcedencia, mostrarErro,
   carregarRotulosDeBloco,
   aplicarTemaSalvo, prepararGraficos, aoTrocarTema, desenhar,
-  eixos, BARRA, BARRA_H, EMPILHADA, cor, num, vazio, formatarData,
+  eixos, BARRA, BARRA_H, EMPILHADA, cor, num, vazio, formatarData, duracao,
   nomeDeBloco, CAUSAS, semDados, comTabela, tabela,
 } from './app.js';
 
@@ -91,7 +91,7 @@ function numeros() {
     [num(r.media_tentativas_ate_vencer, 1), 'Tentativas até vencer, em média'],
     [num(r.eficiencia_media, 2), 'Eficiência do código'],
     [num(r.total_tentativas), 'Tentativas no total'],
-    [num(r.minutos_montando, 0) + ' min', 'Montando programas'],
+    [duracao(r.segundos_montando), 'Montando programas'],
   ];
   document.querySelector('#numeros').innerHTML = itens.map(([valor, rotulo]) =>
     `<div class="numero"><span class="valor">${valor}</span>
