@@ -13,9 +13,12 @@ class Abort {
   constructor(readonly interrompida: boolean) {}
 }
 
+const WAIT_STEP_MS = 50;
+
 export class ProgramRunner extends Phaser.Events.EventEmitter {
   private isRunning = false;
   private stopRequested = false;
+  private paused = false;
   private current: BlockInstance | null = null;
 
   constructor(private gameArea: GameArea) {
@@ -34,11 +37,20 @@ export class ProgramRunner extends Phaser.Events.EventEmitter {
     if (this.isRunning) this.stopRequested = true;
   }
 
+  pause(): void {
+    if (this.isRunning) this.paused = true;
+  }
+
+  resume(): void {
+    this.paused = false;
+  }
+
   async run(roots: BlockInstance[]): Promise<void> {
     if (this.isRunning || !this.canRun(roots)) return;
 
     this.isRunning = true;
     this.stopRequested = false;
+    this.paused = false;
     this.current = null;
 
     let interrompida = false;
@@ -51,6 +63,7 @@ export class ProgramRunner extends Phaser.Events.EventEmitter {
     } catch (e) {
       if (!(e instanceof Abort)) {
         this.isRunning = false;
+        this.paused = false;
         throw e;
       }
       interrompida = e.interrompida;
@@ -58,6 +71,7 @@ export class ProgramRunner extends Phaser.Events.EventEmitter {
     }
 
     this.isRunning = false;
+    this.paused = false;
     const fim: FimDeExecucao = {
       interrompida,
       programaConcluido: concluido,
@@ -70,6 +84,7 @@ export class ProgramRunner extends Phaser.Events.EventEmitter {
     let current = block;
 
     while (current) {
+      await this.waitIfPaused();
       this.checkAbort();
       this.current = current;
       await this.executeSingleBlock(current);
@@ -114,7 +129,18 @@ export class ProgramRunner extends Phaser.Events.EventEmitter {
     }
   }
 
-  private wait(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  private async waitIfPaused(): Promise<void> {
+    while (this.paused && !this.stopRequested) {
+      await new Promise<void>((resolve) => setTimeout(resolve, WAIT_STEP_MS));
+    }
+  }
+
+  private async wait(ms: number): Promise<void> {
+    let left = ms;
+    while (left > 0) {
+      const step = Math.min(WAIT_STEP_MS, left);
+      await new Promise<void>((resolve) => setTimeout(resolve, step));
+      if (!this.paused) left -= step;
+    }
   }
 }

@@ -13,6 +13,7 @@ import { GAME_H, GAME_W, CURRENT_PHASE_ID, PLAN_TIME_MS } from '../config';
 import { telemetry } from '../telemetry/telemetry';
 import { serializarPrograma } from '../telemetry/programa';
 import { getLevel, enemyHpOf, getNextLevel } from '../model/level';
+import { PauseMenu } from '../ui/PauseMenu';
 
 export class BattleScene extends Phaser.Scene {
   private editor!: EditorPanel;
@@ -25,6 +26,12 @@ export class BattleScene extends Phaser.Scene {
   private editStart = 0;
   private execStart = 0;
   private currentFaseId: string = CURRENT_PHASE_ID;
+
+  private pauseMenu!: PauseMenu;
+  private paused = false;
+  private pausedAt = 0;
+  private pausedMs = 0;
+  private exiting = false;
 
   constructor() {
     super('BattleScene');
@@ -65,6 +72,17 @@ export class BattleScene extends Phaser.Scene {
     const gameArea = new GameArea(this);
     const runner = new ProgramRunner(gameArea);
 
+    this.paused = false;
+    this.exiting = false;
+    this.pausedMs = 0;
+    this.tentativaId = null;
+
+    this.pauseMenu = new PauseMenu(this, {
+      onContinue: () => this.resumeGame(runner),
+      onExit: () => this.exitToStart(runner),
+    });
+    gameArea.on('pause', () => this.pauseGame(runner));
+
     this.editor = new EditorPanel(this, createDefaultCatalog());
     this.editor.setDepth(500);
     this.add.existing(this.editor);
@@ -101,7 +119,11 @@ export class BattleScene extends Phaser.Scene {
     gameArea.resetHp(level ? enemyHpOf(level) : undefined);
     gameArea.resetPositions();
     this.editor.close();
+
+    gameArea.setPauseEnabled(true);
     await gameArea.enemyApproach(level?.enemyStopX);
+    gameArea.setPauseEnabled(false);
+    if (this.exiting) return;
 
     this.editor.open();
     this.editStart = performance.now();
@@ -126,6 +148,7 @@ export class BattleScene extends Phaser.Scene {
     this.tentativaId = crypto.randomUUID();
     this.ids = ids;
     this.execStart = performance.now();
+    this.pausedMs = 0;
 
     telemetry.registrar('tentativa_executada', {
       tentativa_id: this.tentativaId,
@@ -136,6 +159,7 @@ export class BattleScene extends Phaser.Scene {
     });
 
     if (executavel) {
+      gameArea.setPauseEnabled(true);
       runner.run(roots);
     } else {
       void this.onFinished(gameArea, runner, {
@@ -191,17 +215,12 @@ export class BattleScene extends Phaser.Scene {
         console.log('Fim de jogo!');
       }
     } else if (gameArea.heroHp <= 0) {
-      // Derrota com o guerreiro caido: espera ele sumir e so entao mostra a
-      // tela. Mostrar junto com a animacao faria o popup aparecer por cima de
-      // um guerreiro ainda de pe.
       await gameArea.waitHeroDeath();
       this.deathPopup.show(() => {
         this.startRound(gameArea, runner)
           .catch((e) => console.error('[startRound]', e));
       });
     } else {
-      // Interrompida pelo Stop: o guerreiro continua vivo, nao ha morte a
-      // anunciar, e a rodada recomeca direto como sempre fez.
       await this.startRound(gameArea, runner);
     }
   }
@@ -218,5 +237,33 @@ export class BattleScene extends Phaser.Scene {
         Math.max(width / this.background.width, height / this.background.height),
       );
     }
+  }
+
+  private pauseGame(runner: ProgramRunner): void {
+    if (this.paused) return;
+
+    this.paused = true;
+    this.pausedAt = performance.now();
+    runner.pause();
+    this.tweens.pauseAll();
+    this.anims.pauseAll();
+    this.pauseMenu.show();
+  }
+
+  private resumeGame(runner: ProgramRunner): void {
+    if (!this.paused) return;
+
+    this.paused = false;
+    this.pausedMs += performance.now() - this.pausedAt;
+    this.pauseMenu.hide();
+    this.anims.resumeAll();
+    this.tweens.resumeAll();
+    runner.resume();
+  }
+
+  private exitToStart(runner: ProgramRunner): void {
+    this.exiting = true;
+    this.resumeGame(runner);
+    runner.stop();
   }
 }
