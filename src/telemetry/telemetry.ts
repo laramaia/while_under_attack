@@ -93,6 +93,12 @@ class Telemetry {
         body: JSON.stringify({ eventos: lote }),
       });
 
+      if (res.status === 401) {
+        this.token = null;
+        this.mostrarAvisoTokenExpirado();
+        return;
+      }
+
       const confirmado = res.status === 207 || res.ok;
       const invalido =
         res.status >= 400 && res.status < 500 && ![401, 408, 429].includes(res.status);
@@ -107,6 +113,35 @@ class Telemetry {
     } finally {
       this.enviando = false;
     }
+  }
+
+  private mostrarAvisoTokenExpirado(): void {
+    if (document.getElementById('wua-token-expired-modal')) return;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'wua-token-expired-modal';
+    overlay.style.cssText =
+      'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;' +
+      'background:rgba(20,18,16,0.65);z-index:9999;font-family:Arial,sans-serif;';
+
+    overlay.innerHTML = `
+      <div style="background:#f3efe6;padding:32px;border-radius:12px;width:320px;
+                  display:flex;flex-direction:column;gap:16px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+        <h2 style="margin:0;color:#2b2118;font-size:20px;">Sessão Expirada</h2>
+        <p style="margin:0;color:#555;font-size:14px;line-height:1.4;">
+          Sua sessão expirou. Seu progresso local está salvo, mas você precisa entrar novamente.
+        </p>
+        <button id="wua-btn-relogin" style="padding:10px;font-size:16px;background:#2b2118;color:#fff;border:none;border-radius:6px;cursor:pointer;">
+          Fazer Login Novamente
+        </button>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    const btn = overlay.querySelector('#wua-btn-relogin');
+    btn?.addEventListener('click', () => {
+      window.location.reload();
+    });
   }
 
   private abrirSessao(): void {
