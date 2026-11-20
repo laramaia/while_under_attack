@@ -31,7 +31,7 @@ export class BlockView extends Phaser.GameObjects.Container {
       this.bottomSprite.setScale(scale);
       this.add([this.topSprite, this.middleSprite, this.bottomSprite]);
 
-      this.updateCBlockLayout(30);
+      this.updateCBlockLayout(10);
     } else {
       const sprite = this.scene.add.image(0, 0, `${colorKey}_block_${shape}`).setOrigin(0, 0);
       const scale = BLOCK_W / sprite.width;
@@ -58,13 +58,11 @@ export class BlockView extends Phaser.GameObjects.Container {
   public updateCBlockLayout(innerHeight: number): void {
     if (!this.topSprite || !this.middleSprite || !this.bottomSprite) return;
 
-    const minInner = 30;
-    const finalInnerH = Math.max(minInner, innerHeight);
+    const finalInnerH = Math.max(0, innerHeight);
     const topH = this.topSprite.displayHeight;
 
     this.middleSprite.setPosition(0, topH);
     this.middleSprite.displayHeight = finalInnerH;
-
     this.bottomSprite.setPosition(0, topH + finalInnerH);
 
     const totalHeight = topH + finalInnerH + this.bottomSprite.displayHeight;

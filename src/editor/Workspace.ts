@@ -128,21 +128,24 @@ export class Workspace extends Phaser.GameObjects.Container {
       const thisWorldPos = this.getWorldTransformMatrix();
       const localOtherX = otherWorldPos.tx - thisWorldPos.tx;
       const localOtherY = otherWorldPos.ty - thisWorldPos.ty;
+
+      if (other.template.shape === 'c-block') {
+        const innerTopY = localOtherY + 25;
+        const innerBottomY = localOtherY + other.height - 20;
+        const dentroX = lx >= localOtherX + 10 && lx <= localOtherX + other.width;
+        const dentroY = ly >= innerTopY && ly <= innerBottomY;
+
+        if (dentroX && dentroY) {
+          return { block: other, type: 'inner' };
+        }
+      }
+
       const expectedX = localOtherX;
       const GAP = -22;
       const expectedY = localOtherY + other.height + GAP;
 
       if (Math.abs(lx - expectedX) < SNAP_DIST_X && Math.abs(ly - expectedY) < SNAP_DIST_Y) {
         return { block: other, type: 'next' };
-      }
-
-      if (other.template.shape === 'c-block') {
-        const innerTargetX = localOtherX + 24;
-        const innerTargetY = localOtherY + 45;
-
-        if (Math.abs(lx - innerTargetX) < SNAP_DIST_X && Math.abs(ly - innerTargetY) < SNAP_DIST_Y) {
-          return { block: other, type: 'inner' };
-        }
       }
     }
 
@@ -155,20 +158,25 @@ export class Workspace extends Phaser.GameObjects.Container {
       curr = curr.prevBlock;
     }
 
-    for (const b of this.activeBlocks) {
-      if (b.inner.includes(curr) || b.inner.includes(rootOrParent)) {
-        let totalInnerH = 10;
-        for (const innerBlock of b.inner) {
-          totalInnerH += this.getTotalChainHeight(innerBlock);
-        }
-        b.updateCBlockLayout(totalInnerH);
-        this.updateBlockPositions(b);
-        return;
-      }
+    const BASE_INNER_H = 20;
+    const GAP = -22;
+    const cBlockTarget = rootOrParent.template.shape === 'c-block' ? rootOrParent : curr;
+
+    if (cBlockTarget.inner.length > 0) {
+      this.layoutCBlockInner(cBlockTarget, GAP, BASE_INNER_H);
+    }
+
+    const parentCBlock = this.activeBlocks.find(
+      (b) => b.inner.includes(curr!) || b.inner.includes(rootOrParent),
+    );
+
+    if (parentCBlock) {
+      this.layoutCBlockInner(parentCBlock, GAP, BASE_INNER_H);
+      this.updateBlockPositions(parentCBlock);
+      return;
     }
 
     let next = curr.nextBlock;
-    const GAP = -22;
     let accumulatedY = curr.y + curr.height + GAP;
 
     while (next) {
@@ -178,14 +186,33 @@ export class Workspace extends Phaser.GameObjects.Container {
     }
   }
 
-  private getTotalChainHeight(block: BlockInstance): number {
-    let h = 0;
-    let curr: BlockInstance | null = block;
-    while (curr) {
-      h += curr.height;
-      curr = curr.nextBlock;
+  private layoutCBlockInner(cBlock: BlockInstance, gap: number, baseInnerH: number): void {
+    let innerCount = 0;
+    const innerStartY = cBlock.y + 45;
+    let accumulatedInnerY = innerStartY;
+
+    for (const innerBlock of cBlock.inner) {
+      innerBlock.setPosition(cBlock.x + 24, accumulatedInnerY);
+      innerCount += 1;
+
+      let lastBottomY = accumulatedInnerY + innerBlock.height;
+      let innerNext: BlockInstance | null = innerBlock.nextBlock;
+      let innerNextY = accumulatedInnerY + innerBlock.height + gap;
+
+      while (innerNext) {
+        innerNext.setPosition(cBlock.x + 24, innerNextY);
+        lastBottomY = innerNextY + innerNext.height;
+        innerCount += 1;
+        innerNextY += innerNext.height + gap;
+        innerNext = innerNext.nextBlock;
+      }
+
+      accumulatedInnerY = lastBottomY + gap;
     }
-    return h;
+
+    const occupiedH = accumulatedInnerY - innerStartY;
+    const targetInnerH = innerCount > 1 ? Math.max(baseInnerH, occupiedH - 35) : baseInnerH;
+    cBlock.updateCBlockLayout(targetInnerH);
   }
 
   private buildTitle(): Phaser.GameObjects.Text {
