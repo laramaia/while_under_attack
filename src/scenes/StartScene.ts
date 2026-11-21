@@ -26,8 +26,9 @@ export class StartScene extends Phaser.Scene {
       backgroundColor: '#8c3b3b',
       padding: { x: 40, y: 12 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    this.playButton.on('pointerdown', () => 
-      this.scene.start(telemetry.ativa ? 'BattleScene' : 'LoginScene'),);
+    this.playButton.on('pointerdown', () => {
+      this.scene.start('BattleScene');
+    });
     this.updateLayout();
     this.scale.on('resize', this.updateLayout, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
