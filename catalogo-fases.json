@@ -77,6 +77,8 @@
       "titulo": "Primeiros passos",
       "conceito_id": "evento",
       "blocos_disponiveis": ["on-flag", "attack"],
+      "_bloco_conceito_nota": "Declarado a mao porque a deducao nao resolve a PRIMEIRA fase: ela acrescenta todos os blocos, ja que nao ha fase anterior com que comparar. Sem isto o indicador 'venceu aplicando o conceito?' saia nulo justamente na fase mais simples. O conceito e 'evento' e quem o representa e o on-flag, o 'Ao clicar em play'.",
+      "bloco_conceito": "on-flag",
       "solucao_referencia": { "pilhas": [[
         { "id": "r1", "tipo": "on-flag" },
         { "id": "r2", "tipo": "attack" }

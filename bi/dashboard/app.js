@@ -132,8 +132,8 @@ export async function mostrarProcedencia() {
     if (p.limiares) Object.assign(limiares, p.limiares);
     if (p.tem_sintetico) {
       const quanto = p.so_sintetico
-        ? 'Todos os dados desta tela são sintéticos'
-        : `${p.eventos_sinteticos} de ${p.eventos} eventos são sintéticos`;
+        ? 'Todas as tentativas desta tela são sintéticas'
+        : `${p.eventos_sinteticos} de ${p.eventos} tentativas são sintéticas`;
       alvo.className = 'aviso sintetico';
       alvo.innerHTML =
         `<strong>Dados de desenvolvimento.</strong> ${quanto}, gerados para testar o ` +
