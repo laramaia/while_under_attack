@@ -7,7 +7,18 @@
   <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
-  <form class="login" id="form-login">
+  <!-- O `return false` e a rede de seguranca do login.
+
+       O que trata o submit esta num <script type="module"> que importa o
+       app.js. Se esse import falhar por qualquer motivo -- arquivo em cache
+       de uma versao antiga, caminho errado, rede -- o modulo inteiro nao
+       roda, o listener nunca e registrado, e o formulario faz um GET nativo:
+       a pagina recarrega, nenhum erro aparece e para quem esta usando "nao
+       acontece nada". Foi exatamente o que a equipe relatou.
+
+       Com o `return false`, o pior caso deixa de ser silencioso: o navegador
+       nao recarrega, e o aviso abaixo aparece dizendo o que houve. -->
+  <form class="login" id="form-login" onsubmit="return false">
     <h1>while under_attack</h1>
     <p class="nota">Entre com a conta que a equipe criou para você.</p>
 
@@ -19,12 +30,20 @@
 
     <p class="erro-login" id="erro" role="alert"></p>
     <button class="acao" type="submit">Entrar</button>
+
+    <p class="erro-login" id="sem-script">
+      A página não carregou por completo, então o botão não vai funcionar.
+      Recarregue segurando Shift (ou Cmd+Shift+R) para ignorar o cache.
+    </p>
   </form>
 
   <script type="module">
     import { guardarSessao, aplicarTemaSalvo } from './app.js';
 
     aplicarTemaSalvo();
+
+    // Chegou aqui: o modulo carregou e o listener vai ser registrado.
+    document.querySelector('#sem-script').remove();
 
     const form = document.querySelector('#form-login');
     const erro = document.querySelector('#erro');
@@ -53,7 +72,11 @@
         // O professor cai direto na visão da turma (RN-005).
         location.href = dados.perfil === 'professor' ? 'professor.html' : 'jogador.html';
       } catch {
-        erro.textContent = 'Não foi possível falar com o servidor.';
+        // Quase sempre e uma destas duas: a API do BI nao esta no ar, ou ela
+        // esta e o back-end que ela consulta nao. Dizer qual poupa a pessoa
+        // de adivinhar.
+        erro.textContent = 'Não foi possível falar com o servidor. '
+          + 'Confira se a API do BI (porta 8000) e o back-end (8001) estão no ar.';
       }
     });
   </script>

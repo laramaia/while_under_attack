@@ -324,4 +324,10 @@ def raiz() -> RedirectResponse:
     dashboard. O `index.html` continua sendo servido pelo mount, por
     `/dashboard/`, onde os caminhos relativos resolvem certo.
     """
-    return RedirectResponse(url="/dashboard/")
+    # `no-store` porque esta rota ja serviu, antes de 18/11/2026, o
+    # index.html direto na raiz -- uma pagina quebrada que o navegador
+    # guardou em cache por heuristica, ja que ela ia sem cabecalho de cache
+    # nenhum. Quem abriu a raiz naquela epoca pode continuar recebendo a
+    # copia velha, com o login que nao funciona, mesmo com o servidor
+    # corrigido. Com o no-store, o cache de quem abrir de novo e descartado.
+    return RedirectResponse(url="/dashboard/", headers={"Cache-Control": "no-store"})

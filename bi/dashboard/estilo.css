@@ -348,6 +348,14 @@ select.discreto {
   min-height: 18px;
 }
 
+/* O aviso de "a pagina nao carregou por completo". Ele nasce visivel e o
+   modulo o remove ao carregar -- o contrario de nascer escondido e aparecer
+   no erro, porque se o modulo nao roda nao ha quem o mostre. */
+#sem-script {
+  margin: 10px 0 0;
+  line-height: 1.4;
+}
+
 .vazio {
   color: var(--tinta-fraca);
   font-size: 13.5px;
