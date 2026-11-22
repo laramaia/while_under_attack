@@ -87,6 +87,15 @@ def procedencia(usuario: auth.Usuario = Depends(auth.usuario_atual)) -> dict[str
     """
     dados = consultas.procedencia()
     dados["catalogo_carregado"] = catalogo_padrao().catalog_version
+    # Os limiares do que e bom, do que pede atencao e do que e critico saem
+    # daqui e nao do dashboard: sao os mesmos que os destaques usam. Se a tela
+    # pintasse por um limiar proprio, um KPI poderia dizer verde sobre a mesma
+    # fase que o alerta logo abaixo chama de problema.
+    dados["limiares"] = {
+        "eficiencia": consultas.LIMIAR_EFICIENCIA,
+        "conceito": consultas.LIMIAR_CONCEITO,
+        "funil": consultas.LIMIAR_FUNIL,
+    }
     return dados
 
 

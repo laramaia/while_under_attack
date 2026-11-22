@@ -1,85 +1,83 @@
 /* Dashboard do while under_attack.
-   Sem etapa de build (ADR-002): CSS puro, variaveis para os dois temas.
-   As cores de dados vem da paleta validada; nao invente tons novos. */
+   Sem etapa de build (ADR-002): CSS puro, variaveis.
+
+   PAINEL ESCURO, nas cores do jogo. O escuro veio das referencias que a
+   equipe escolheu (paineis de Power BI); as cores vieram do src/config.ts
+   do jogo, e nao do azul corporativo das referencias:
+
+     #8c3b3b  vermelho dos botoes  -> --acento (clareado para fundo escuro)
+     #2b2118  tinta                -> base do --plano
+     #f3efe6  pergaminho           -> --tinta
+
+   As cores de SERIE sao as dos blocos da Palette -- amarelo evento, azul
+   acao, laranja repeticao, roxo condicional. Assim um grafico do dashboard
+   e a tela do jogo falam a mesma lingua de cor.
+
+   O claro continua existindo no botao Tema, mas o painel foi desenhado no
+   escuro: e nele que os numeros grandes e as cores de bloco funcionam. */
 
 :root {
-  color-scheme: light;
-
-  --plano:            #f9f9f7;
-  --superficie:       #fcfcfb;
-  --tinta:            #0b0b0b;
-  --tinta-2:          #52514e;
-  --tinta-fraca:      #898781;
-  --grade:            #e1e0d9;
-  --eixo:             #c3c2b7;
-  --borda:            rgba(11, 11, 11, 0.10);
-
-  --serie-1:          #2a78d6;
-  --serie-2:          #eb6834;
-  --serie-3:          #1baf7a;
-
-  --bom:              #0ca30c;
-  --atencao:          #fab219;
-  --critico:          #d03b3b;
-
-  /* rampa ordinal azul, do mais claro ao mais escuro */
-  --rampa-1: #86b6ef;
-  --rampa-2: #5598e7;
-  --rampa-3: #2a78d6;
-  --rampa-4: #1c5cab;
-  --rampa-5: #104281;
-  --rampa-0: #f0efec;      /* sem dado */
-
-  --raio: 10px;
-  --fonte: system-ui, -apple-system, "Segoe UI", sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-tema="claro"]) {
-    color-scheme: dark;
-    --plano:        #0d0d0d;
-    --superficie:   #1a1a19;
-    --tinta:        #f0efec;
-    --tinta-2:      #c3c2b7;
-    --tinta-fraca:  #898781;
-    --grade:        #2c2c2a;
-    --eixo:         #383835;
-    --borda:        rgba(255, 255, 255, 0.10);
-
-    --serie-1:      #3987e5;
-    --serie-2:      #d95926;
-    --serie-3:      #199e70;
-
-    --rampa-1: #184f95;
-    --rampa-2: #256abf;
-    --rampa-3: #3987e5;
-    --rampa-4: #6da7ec;
-    --rampa-5: #9ec5f4;
-    --rampa-0: #383835;
-  }
-}
-
-:root[data-tema="escuro"] {
   color-scheme: dark;
-  --plano:        #0d0d0d;
-  --superficie:   #1a1a19;
-  --tinta:        #f0efec;
-  --tinta-2:      #c3c2b7;
-  --tinta-fraca:  #898781;
-  --grade:        #2c2c2a;
-  --eixo:         #383835;
-  --borda:        rgba(255, 255, 255, 0.10);
 
-  --serie-1:      #3987e5;
-  --serie-2:      #d95926;
-  --serie-3:      #199e70;
+  --plano:            #140f0a;   /* quase preto, puxado para o marrom */
+  --superficie:       #1f1811;   /* cartao */
+  --superficie-2:     #2a2017;   /* dentro do cartao: cabecalho de tabela */
+  --tinta:            #f3efe6;
+  --tinta-2:          #c3b5a3;
+  --tinta-fraca:      #8c7f6f;
+  --grade:            #2e2419;
+  --eixo:             #3d3022;
+  --borda:            rgba(243, 239, 230, 0.10);
 
-  --rampa-1: #184f95;
-  --rampa-2: #256abf;
+  --acento:           #d4524c;   /* o vermelho do jogo, vivo o bastante */
+  --acento-fraco:     rgba(212, 82, 76, 0.16);
+
+  /* as quatro cores dos blocos da Palette */
+  --bloco-evento:     #e8c547;
+  --bloco-acao:       #5b9bf0;
+  --bloco-repeticao:  #e8883c;
+  --bloco-condicional: #a884dd;
+
+  --serie-1:          #5b9bf0;
+  --serie-2:          #e8883c;
+  --serie-3:          #4fc48a;
+
+  --bom:              #4fc48a;
+  --atencao:          #e8c547;
+  --critico:          #e05a52;
+
+  /* rampa ordinal, do mais claro ao mais escuro */
+  --rampa-1: #9ec5f4;
+  --rampa-2: #6da7ec;
   --rampa-3: #3987e5;
-  --rampa-4: #6da7ec;
-  --rampa-5: #9ec5f4;
-  --rampa-0: #383835;
+  --rampa-4: #2566b5;
+  --rampa-5: #174680;
+  --rampa-0: #2a2017;      /* sem dado */
+
+  --raio: 12px;
+  --fonte: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fonte-titulo: Georgia, "Times New Roman", serif;
+}
+
+/* O claro continua disponivel, em pergaminho -- mas o painel foi desenhado
+   no escuro, e e assim que ele deve ser apresentado. */
+:root[data-tema="claro"] {
+  color-scheme: light;
+  --plano:        #e7e0d2;
+  --superficie:   #f6f2e9;
+  --superficie-2: #ece4d5;
+  --tinta:        #2b2118;
+  --tinta-2:      #4a4242;
+  --tinta-fraca:  #8a7f72;
+  --grade:        #d9cfbc;
+  --eixo:         #bfb3a0;
+  --borda:        rgba(43, 33, 24, 0.14);
+  --acento:       #8c3b3b;
+  --acento-fraco: rgba(140, 59, 59, 0.12);
+  --rampa-0:      #e2d9c8;
+  --bom:          #1f9d61;
+  --atencao:      #b98900;
+  --critico:      #c0392b;
 }
 
 * { box-sizing: border-box; }
@@ -445,3 +443,298 @@ select.discreto {
   width: 10px; height: 10px; border-radius: 3px;
   display: inline-block; margin-right: 5px;
 }
+
+/* ===========================================================================
+   PAINEL — uma tela so, no formato das referencias de Power BI
+
+   Faixa de titulo em cima, trilho de filtros a esquerda, fileira de KPI e
+   os graficos ocupando o que sobra. Nada rola, exceto dentro de uma tabela
+   que nao coube.
+   =========================================================================== */
+
+html:has(.painel), body:has(.painel) { height: 100%; overflow: hidden; }
+
+body:has(.painel) {
+  display: flex;
+  flex-direction: column;
+  background: var(--plano);
+}
+
+/* ---------- faixa de titulo ---------- */
+
+.faixa {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 18px;
+  background: linear-gradient(180deg, #241b12, #15100b);
+  border-bottom: 2px solid var(--acento);
+}
+
+:root[data-tema="claro"] .faixa {
+  background: linear-gradient(180deg, #2b2118, #1d170f);
+}
+
+.faixa .marca { height: 34px; width: auto; display: block; }
+
+.faixa h1 {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+  font-family: var(--fonte-titulo);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #f3efe6;
+}
+
+.faixa nav { display: flex; gap: 4px; }
+
+.faixa a, .faixa button.discreto {
+  color: #cbbfae;
+  text-decoration: none;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(243, 239, 230, 0.2);
+  background: transparent;
+  cursor: pointer;
+}
+
+.faixa a:hover, .faixa button.discreto:hover {
+  background: rgba(243, 239, 230, 0.12);
+  color: #f3efe6;
+}
+
+.faixa a[aria-current="page"] {
+  background: var(--acento);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+}
+
+.faixa .quem { font-size: 13px; color: #cbbfae; }
+.faixa .figura { height: 42px; width: auto; align-self: flex-end; margin-bottom: -10px; }
+
+/* ---------- corpo: trilho + painel ---------- */
+
+.painel {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 186px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 14px 14px;
+  margin: 0;
+  max-width: none;
+}
+
+.trilho {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: auto;
+}
+
+.trilho h2 {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+}
+
+.trilho label {
+  display: block;
+  font-size: 12px;
+  color: var(--tinta-2);
+  margin-bottom: 4px;
+}
+
+.trilho select { width: 100%; }
+
+.trilho .abas { display: flex; flex-direction: column; gap: 6px; }
+
+.aba {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--borda);
+  background: transparent;
+  color: var(--tinta-2);
+  cursor: pointer;
+}
+
+.aba:hover { border-color: var(--acento); color: var(--tinta); }
+
+.aba[aria-selected="true"] {
+  background: var(--acento);
+  border-color: transparent;
+  color: #fff;
+}
+
+.conteudo {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---------- fileira de KPI ---------- */
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.kpi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 12px 14px;
+}
+
+/* O disco colorido com o icone dentro, como nas referencias. */
+.kpi .disco {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--tom-fraco, var(--acento-fraco));
+  border: 2px solid var(--tom, var(--acento));
+  color: var(--tom, var(--acento));
+}
+
+.kpi .disco svg { width: 22px; height: 22px; }
+
+.kpi .corpo { min-width: 0; }
+
+.kpi .rotulo {
+  display: block;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+  font-weight: 600;
+}
+
+.kpi .valor {
+  display: block;
+  font-family: var(--fonte-titulo);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--tom, var(--tinta));
+  white-space: nowrap;
+}
+
+.kpi .apoio {
+  display: block;
+  font-size: 11.5px;
+  color: var(--tinta-2);
+  margin-top: 2px;
+}
+
+/* ---------- grade dos graficos ---------- */
+
+.aba-painel {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.aba-painel[hidden] { display: none; }
+
+.aba-painel[data-painel="visao"] {
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 1fr);
+  grid-template-rows: 1.1fr 1fr;
+  grid-template-areas: "a c" "b c";
+}
+
+.aba-painel[data-painel="fases"] {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  grid-template-areas: "a b" "c d";
+}
+
+.aba-painel[data-painel="jogadores"] {
+  grid-template-columns: minmax(0, 1.3fr) minmax(300px, 1fr);
+  grid-template-areas: "a b";
+}
+
+.aba-painel[data-painel="progresso"] {
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr);
+  grid-template-rows: 1.1fr 1fr;
+  grid-template-areas: "a b" "c d";
+}
+
+.aba-painel[data-painel="detalhe"] {
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  grid-template-areas: "a b";
+}
+
+.area-a { grid-area: a; } .area-b { grid-area: b; }
+.area-c { grid-area: c; } .area-d { grid-area: d; }
+
+.aba-painel .cartao {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 12px 14px;
+  overflow: hidden;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+}
+
+.aba-painel .cartao > h2 {
+  font-family: var(--fonte);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tinta-2);
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+
+.aba-painel .tela, .aba-painel .tela.alta {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+
+.rola { flex: 1; min-height: 0; overflow: auto; }
+
+.rola table { width: 100%; }
+.rola thead th {
+  position: sticky;
+  top: 0;
+  background: var(--superficie-2);
+  z-index: 1;
+}
+
+/* Abaixo deste tamanho o painel de uma tela so nao cabe: os cartoes ficariam
+   menores que o proprio titulo. Ai volta a rolar. */
+@media (max-height: 580px), (max-width: 900px) {
+  html:has(.painel), body:has(.painel) { height: auto; overflow: auto; }
+  .painel { grid-template-columns: 1fr; }
+  .aba-painel { display: block; }
+  .aba-painel .cartao { margin-bottom: 12px; height: 320px; }
+  .trilho .abas { flex-direction: row; flex-wrap: wrap; }
+}
+

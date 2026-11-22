@@ -9,10 +9,11 @@ import { FimDeExecucao, ProgramRunner } from '../model/ProgramRunner';
 import { PlanTimer } from '../ui/PlanTimer';
 import { DeathPopup } from '../ui/DeathPopup';
 import { getVisibleArea } from '../utils/viewport';
-import { GAME_H, GAME_W, CURRENT_PHASE_ID, PLAN_TIME_MS } from '../config';
+import { GAME_H, GAME_W } from '../config';
 import { telemetry } from '../telemetry/telemetry';
 import { serializarPrograma } from '../telemetry/programa';
-import { getLevel, enemyHpOf, getNextLevel } from '../model/level';
+import { LEVELS, Level, getLevel, enemyHpOf, getNextLevel } from '../model/level';
+import { PauseMenu } from '../ui/PauseMenu';
 
 export class BattleScene extends Phaser.Scene {
   private editor!: EditorPanel;
@@ -24,10 +25,26 @@ export class BattleScene extends Phaser.Scene {
   private ids = new Map<BlockInstance, string>();
   private editStart = 0;
   private execStart = 0;
-  private currentFaseId: string = CURRENT_PHASE_ID;
+  private currentLevel: Level = LEVELS[0];
+
+  private pauseMenu!: PauseMenu;
+  private paused = false;
+  private pausedAt = 0;
+  private pausedMs = 0;
+  private exiting = false;
 
   constructor() {
     super('BattleScene');
+  }
+
+  init(data?: { faseId?: string; level?: Level }): void {
+    if (data?.level) {
+      this.currentLevel = data.level;
+    } else if (data?.faseId) {
+      this.currentLevel = getLevel(data.faseId) ?? LEVELS[0];
+    } else {
+      this.currentLevel = LEVELS[0];
+    }
   }
 
   preload(): void {
@@ -65,7 +82,18 @@ export class BattleScene extends Phaser.Scene {
     const gameArea = new GameArea(this);
     const runner = new ProgramRunner(gameArea);
 
-    this.editor = new EditorPanel(this, createDefaultCatalog());
+    this.paused = false;
+    this.exiting = false;
+    this.pausedMs = 0;
+    this.tentativaId = null;
+
+    this.pauseMenu = new PauseMenu(this, {
+      onContinue: () => this.resumeGame(runner),
+      onExit: () => this.exitToStart(runner),
+    });
+    gameArea.on('pause', () => this.pauseGame(runner));
+
+    this.editor = new EditorPanel(this, createDefaultCatalog(this.currentLevel.blocks));
     this.editor.setDepth(500);
     this.add.existing(this.editor);
 
@@ -90,22 +118,26 @@ export class BattleScene extends Phaser.Scene {
     runner.on('finished', (fim: FimDeExecucao) => void this.onFinished(gameArea, runner, fim));
     this.editor.workspace.on('restart', () => runner.stop());
 
-    telemetry.registrar('fase_iniciada', { fase_id: this.currentFaseId });
+    telemetry.registrar('fase_iniciada', { fase_id: this.currentLevel.faseId });
     this.startRound(gameArea, runner).catch((e) => console.error('[startRound]', e));
   }
 
   private async startRound(gameArea: GameArea, runner: ProgramRunner): Promise<void> {
     this.timer.stop();
 
-    const level = getLevel(this.currentFaseId);
-    gameArea.resetHp(level ? enemyHpOf(level) : undefined);
+    const level = this.currentLevel;
+    gameArea.resetHp(enemyHpOf(level));
     gameArea.resetPositions();
     this.editor.close();
-    await gameArea.enemyApproach(level?.enemyStopX);
+
+    gameArea.setPauseEnabled(true);
+    await gameArea.enemyApproach(level.enemyStopX);
+    gameArea.setPauseEnabled(false);
+    if (this.exiting) return;
 
     this.editor.open();
     this.editStart = performance.now();
-    this.timer.start(level?.planTimeMs ?? PLAN_TIME_MS, () => this.onPlay(gameArea, runner, 'tempo_esgotado'));
+    this.timer.start(level.planTimeMs, () => this.onPlay(gameArea, runner, 'tempo_esgotado'));
   }
 
   private onPlay(
@@ -126,16 +158,18 @@ export class BattleScene extends Phaser.Scene {
     this.tentativaId = crypto.randomUUID();
     this.ids = ids;
     this.execStart = performance.now();
+    this.pausedMs = 0;
 
     telemetry.registrar('tentativa_executada', {
       tentativa_id: this.tentativaId,
-      fase_id: this.currentFaseId,
+      fase_id: this.currentLevel.faseId,
       programa,
       disparo,
       tempo_edicao_ms: Math.round(this.execStart - this.editStart),
     });
 
     if (executavel) {
+      gameArea.setPauseEnabled(true);
       runner.run(roots);
     } else {
       void this.onFinished(gameArea, runner, {
@@ -166,7 +200,7 @@ export class BattleScene extends Phaser.Scene {
 
     telemetry.registrar('tentativa_finalizada', {
       tentativa_id: tentativaId,
-      fase_id: this.currentFaseId,
+      fase_id: this.currentLevel.faseId,
       resultado,
       duracao_execucao_ms: Math.max(0, Math.round(performance.now() - this.execStart)),
       vida_guerreiro_final: Math.max(0, Math.round(gameArea.heroHp)),
@@ -181,27 +215,23 @@ export class BattleScene extends Phaser.Scene {
     this.timer.stop();
 
     if (resultado === 'vitoria') {
-      const next = getNextLevel(this.currentFaseId);
+      const next = getNextLevel(this.currentLevel.faseId);
       if (next) {
-        this.currentFaseId = next.faseId;
+        this.currentLevel = next;
         this.editor.workspace.clearBlocks();
-        telemetry.registrar('fase_iniciada', { fase_id: this.currentFaseId });
+        this.editor.updateCatalog(createDefaultCatalog(next.blocks));
+        telemetry.registrar('fase_iniciada', { fase_id: this.currentLevel.faseId });
         await this.startRound(gameArea, runner);
       } else {
         console.log('Fim de jogo!');
       }
     } else if (gameArea.heroHp <= 0) {
-      // Derrota com o guerreiro caido: espera ele sumir e so entao mostra a
-      // tela. Mostrar junto com a animacao faria o popup aparecer por cima de
-      // um guerreiro ainda de pe.
       await gameArea.waitHeroDeath();
       this.deathPopup.show(() => {
         this.startRound(gameArea, runner)
           .catch((e) => console.error('[startRound]', e));
       });
     } else {
-      // Interrompida pelo Stop: o guerreiro continua vivo, nao ha morte a
-      // anunciar, e a rodada recomeca direto como sempre fez.
       await this.startRound(gameArea, runner);
     }
   }
@@ -218,5 +248,33 @@ export class BattleScene extends Phaser.Scene {
         Math.max(width / this.background.width, height / this.background.height),
       );
     }
+  }
+
+  private pauseGame(runner: ProgramRunner): void {
+    if (this.paused) return;
+
+    this.paused = true;
+    this.pausedAt = performance.now();
+    runner.pause();
+    this.tweens.pauseAll();
+    this.anims.pauseAll();
+    this.pauseMenu.show();
+  }
+
+  private resumeGame(runner: ProgramRunner): void {
+    if (!this.paused) return;
+
+    this.paused = false;
+    this.pausedMs += performance.now() - this.pausedAt;
+    this.pauseMenu.hide();
+    this.anims.resumeAll();
+    this.tweens.resumeAll();
+    runner.resume();
+  }
+
+  private exitToStart(runner: ProgramRunner): void {
+    this.exiting = true;
+    this.resumeGame(runner);
+    runner.stop();
   }
 }

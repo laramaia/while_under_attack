@@ -73,7 +73,7 @@ export class LoginScene extends Phaser.Scene {
         if (sessao.perfil === 'jogador') {
           telemetry.iniciarSessao(sessao.token, sessao.jogador_id);
         }
-        this.scene.start('BattleScene');
+        this.scene.start('StartScene');
       } catch (err) {
         erro.textContent =
           err instanceof Error && err.message === 'credenciais'

@@ -26,6 +26,8 @@ export class GameArea extends Phaser.GameObjects.Container {
   private enemy: Phaser.GameObjects.Sprite;
   private dying: Promise<void> | null = null;
   private heroDying: Promise<void> | null = null;
+  private pauseBtn!: Phaser.GameObjects.Image;
+  private pauseEnabled = false;
 
   heroHp = HERO_MAX_HP;
   enemyHp = ENEMY_MAX_HP;
@@ -44,7 +46,9 @@ export class GameArea extends Phaser.GameObjects.Container {
     this.add(this.enemy);
 
     this.createButton('button_play', 80, 52, 56, 'play');
-    this.createButton('button_pause', 134, 52, 56, 'pause');
+
+    this.pauseBtn = this.createButton('button_pause', 134, 52, 56, 'pause', () => this.pauseEnabled);
+    this.pauseBtn.setAlpha(0.4);
 
     scene.add.existing(this);
   }
@@ -55,12 +59,18 @@ export class GameArea extends Phaser.GameObjects.Container {
   }
 
   heroAdvance(): Promise<void> {
+    this.hero.play('hero_move');
+
     return new Promise((resolve) => {
       this.scene.tweens.add({
         targets: this.hero,
         x: this.hero.x + ADVANCE_DISTANCE,
         duration: 400,
-        onComplete: () => resolve(),
+        onComplete: () => {
+          this.hero.stop();
+          this.hero.setTexture(HERO_IDLE);
+          resolve();
+        },
       });
     });
   }
@@ -96,7 +106,6 @@ export class GameArea extends Phaser.GameObjects.Container {
     this.dying = null;
   }
 
-  /** Espera a animacao de morte do guerreiro, se ela estiver rodando. */
   async waitHeroDeath(): Promise<void> {
     await this.heroDying;
     this.heroDying = null;
@@ -123,18 +132,28 @@ export class GameArea extends Phaser.GameObjects.Container {
     y: number,
     height: number,
     eventName: string,
+    canPress: () => boolean = () => true,
   ): Phaser.GameObjects.Image {
     const btn = this.scene.add.image(x, y, key).setOrigin(0.5);
     const baseScale = height / btn.height;
     btn.setScale(baseScale);
     btn.setInteractive({ useHandCursor: true });
 
-    btn.on('pointerover', () => btn.setScale(baseScale * HOVER_SCALE));
+    btn.on('pointerover', () => {
+      if (canPress()) btn.setScale(baseScale * HOVER_SCALE);
+    });
     btn.on('pointerout', () => btn.setScale(baseScale));
-    btn.on('pointerdown', () => this.emit(eventName));
+    btn.on('pointerdown', () => {
+      if (canPress()) this.emit(eventName);
+    });
 
     this.add(btn);
     return btn;
+  }
+
+  setPauseEnabled(enabled: boolean): void {
+    this.pauseEnabled = enabled;
+    this.pauseBtn.setAlpha(enabled ? 1 : 0.4);
   }
 
   enemyApproach(stopX?: number, phase: 1 | 2 = 1): Promise<void> {
@@ -172,18 +191,9 @@ export class GameArea extends Phaser.GameObjects.Container {
   damageHero(amount: number): void {
     const before = this.heroHp;
     this.heroHp = Math.max(0, this.heroHp - amount);
-    // Mesma condicao do damageEnemy: dispara na travessia do zero, e nao
-    // sempre que a vida esta em zero. Sem isso, o `enemyAttacksUntilHeroDies`
-    // comecaria uma animacao de morte por golpe depois do primeiro.
     if (before > 0 && this.heroHp === 0) this.heroDying = this.heroDie();
   }
 
-  /** O guerreiro cai: some da cena, como o inimigo faz ao morrer.
-   *
-   * Nao ha sprite de morte do guerreiro -- `public/assets/characters/hero`
-   * tem idle e attack. Entao a queda e um tween de alpha, igual a do inimigo.
-   * Quando houver arte propria, e aqui que ela entra.
-   */
   private heroDie(): Promise<void> {
     return new Promise((resolve) => {
       this.scene.tweens.add({
