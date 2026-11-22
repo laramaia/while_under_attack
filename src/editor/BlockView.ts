@@ -60,21 +60,25 @@ export class BlockView extends Phaser.GameObjects.Container {
 
     const finalInnerH = Math.max(0, innerHeight);
     const topH = this.topSprite.displayHeight;
+    const bottomH = this.bottomSprite.displayHeight;
 
     this.middleSprite.setPosition(0, topH);
     this.middleSprite.displayHeight = finalInnerH;
     this.bottomSprite.setPosition(0, topH + finalInnerH);
 
-    const totalHeight = topH + finalInnerH + this.bottomSprite.displayHeight;
+    const totalHeight = topH + finalInnerH + bottomH;
     this.setSize(BLOCK_W, totalHeight);
 
-    if (this.input) {
+    if (this.input?.hitArea instanceof Phaser.Geom.Rectangle) {
       this.input.hitArea.setSize(BLOCK_W, totalHeight);
     }
   }
 
   enableHit(): this {
-    this.setInteractive(new Phaser.Geom.Rectangle(0, 0, this.width, this.height), Phaser.Geom.Rectangle.Contains);
+    this.setInteractive(
+      new Phaser.Geom.Rectangle(0, 0, this.width, this.height),
+      Phaser.Geom.Rectangle.Contains,
+    );
     return this;
   }
 }
