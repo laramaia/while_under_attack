@@ -253,7 +253,6 @@ tempo limite é global ou por fase?) e a **PD-023** (dá para jogar sem login?).
 | Heloisa | Inteligência de Negócios: ETL, modelo dimensional, API de leitura e dashboards |
 | Lara | O jogo: cenas, motor de execução, Palette, Workspace e telemetria |
 | Mateo | Back-end de autenticação e ingestão |
-| Joao Manoel | Analista de Governança de Dados |
 
 > **A divisão acima foi conferida contra o histórico do git em 19/11/2026**, e
 > duas linhas mudaram porque não batiam. `src/` — o jogo inteiro, Palette
