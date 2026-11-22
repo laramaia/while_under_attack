@@ -76,6 +76,7 @@
       "ordem": 1,
       "titulo": "Primeiros passos",
       "conceito_id": "evento",
+      "instrucao": "Um inimigo apareceu! Crie um programa para fazer o guerreiro atacá-lo.",
       "blocos_disponiveis": ["on-flag", "attack"],
       "solucao_referencia": { "pilhas": [[
         { "id": "r1", "tipo": "on-flag" },
@@ -87,6 +88,7 @@
       "ordem": 2,
       "titulo": "Fora de alcance",
       "conceito_id": "sequencia",
+      "instrucao": "O inimigo está fora do alcance! Pense no que o guerreiro precisa fazer antes de atacar.",
       "blocos_disponiveis": ["on-flag", "advance", "attack"],
       "solucao_referencia": { "pilhas": [[
         { "id": "r1", "tipo": "on-flag" },
@@ -99,6 +101,7 @@
       "ordem": 3,
       "titulo": "Golpe atras de golpe",
       "conceito_id": "repeticao_fixa",
+      "instrucao": "O inimigo aguenta vários golpes! Que tal encontrar uma maneira de repetir seus ataques?",
       "blocos_disponiveis": ["on-flag", "advance", "attack", "defend", "repeat"],
       "solucao_referencia": { "pilhas": [[
         { "id": "r1", "tipo": "on-flag" },

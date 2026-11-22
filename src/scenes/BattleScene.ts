@@ -126,6 +126,7 @@ export class BattleScene extends Phaser.Scene {
     this.timer.stop();
 
     const level = this.currentLevel;
+    gameArea.configureEncounters(level);
     gameArea.resetHp(enemyHpOf(level));
     gameArea.resetPositions();
     this.editor.close();
@@ -188,13 +189,13 @@ export class BattleScene extends Phaser.Scene {
     const tentativaId = this.tentativaId;
     if (!tentativaId) return;
 
-    if (!fim.interrompida && gameArea.enemyHp > 0 && gameArea.heroHp > 0) {
+    if (!fim.interrompida && !gameArea.allEnemiesDefeated && gameArea.heroHp > 0) {
       await gameArea.enemyAttacksUntilHeroDies();
     }
 
     const resultado = fim.interrompida
       ? 'interrompida'
-      : gameArea.enemyHp <= 0
+      : gameArea.allEnemiesDefeated
         ? 'vitoria'
         : 'derrota';
 

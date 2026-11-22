@@ -2,6 +2,14 @@ import { ATTACK_DAMAGE, ENEMY_STOP_X } from '../config';
 
 const DEFAULT_PLAN_TIME_MS = 15000;
 
+export interface EnemyEncounter {
+  enemy: string;
+  hits: number;
+  startX?: number;
+  stopX?: number;
+  advanceOnSpawn?: boolean;
+}
+
 export interface Level {
   faseId: string;
   enemy: string;
@@ -9,6 +17,9 @@ export interface Level {
   planTimeMs: number;
   blocks: string[];
   enemyStopX?: number;
+  advanceDistance?: number;
+  instruction?: string;
+  enemies?: EnemyEncounter[];
 }
 
 export const LEVELS: Level[] = [
@@ -19,6 +30,7 @@ export const LEVELS: Level[] = [
     planTimeMs: DEFAULT_PLAN_TIME_MS,
     blocks: ['on-flag', 'attack'],
     enemyStopX: ENEMY_STOP_X,
+    instruction: 'Um inimigo apareceu! Crie um programa para fazer o guerreiro atacá-lo.',
   },
   {
     faseId: 'F02',
@@ -27,6 +39,7 @@ export const LEVELS: Level[] = [
     planTimeMs: DEFAULT_PLAN_TIME_MS,
     blocks: ['on-flag', 'advance', 'attack'],
     enemyStopX: 700,
+    instruction: 'O inimigo está longe demais! Como você pode fazer o guerreiro chegar até ele antes de atacar?',
   },
   {
     faseId: 'F03',
@@ -35,14 +48,22 @@ export const LEVELS: Level[] = [
     planTimeMs: DEFAULT_PLAN_TIME_MS,
     blocks: ['on-flag', 'advance', 'attack', 'repeat'],
     enemyStopX: 520,
+    instruction: 'O inimigo aguenta vários golpes! Que tal encontrar uma maneira de repetir seus ataques?',
   },
   {
     faseId: 'F04',
     enemy: 'cursed_knight',
-    enemyHits: 3,
+    enemyHits: 1,
     planTimeMs: DEFAULT_PLAN_TIME_MS,
     blocks: ['on-flag', 'advance', 'attack', 'defend', 'repeat'],
-    enemyStopX: 520,
+    enemyStopX: 650,
+    advanceDistance: 150,
+    instruction: 'Três inimigos surgiram no caminho! Como você pode repetir a sequência para enfrentar todos eles?',
+    enemies: [
+      { enemy: 'cursed_knight', hits: 1, startX: 900, stopX: 600, advanceOnSpawn: true },
+      { enemy: 'cursed_knight', hits: 1, startX: 950, stopX: 750, advanceOnSpawn: true },
+      { enemy: 'cursed_knight', hits: 1, startX: 1010, stopX: 860, advanceOnSpawn: true },
+    ],
   },
   {
     faseId: 'F05',
@@ -75,5 +96,8 @@ export function getNextLevel(faseId: string): Level | undefined {
 }
 
 export function enemyHpOf(level: Level): number {
+  if (level.enemies && level.enemies.length > 0) {
+    return level.enemies[0].hits * ATTACK_DAMAGE;
+  }
   return level.enemyHits * ATTACK_DAMAGE;
 }

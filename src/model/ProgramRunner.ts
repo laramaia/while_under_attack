@@ -94,7 +94,7 @@ export class ProgramRunner extends Phaser.Events.EventEmitter {
 
   private checkAbort(): void {
     if (this.stopRequested) throw new Abort(true);
-    if (this.gameArea.enemyHp <= 0 || this.gameArea.heroHp <= 0) throw new Abort(false);
+    if (this.gameArea.allEnemiesDefeated || this.gameArea.heroHp <= 0) throw new Abort(false);
   }
 
   private async executeSingleBlock(block: BlockInstance): Promise<void> {
@@ -103,6 +103,7 @@ export class ProgramRunner extends Phaser.Events.EventEmitter {
         this.gameArea.heroAttack();
         if (this.gameArea.isEnemyInRange()) {
           this.gameArea.damageEnemy(ATTACK_DAMAGE);
+          await this.gameArea.waitNextEnemyReady();
         }
         await this.wait(800);
         break;
