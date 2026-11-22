@@ -59,12 +59,18 @@ export class GameArea extends Phaser.GameObjects.Container {
   }
 
   heroAdvance(): Promise<void> {
+    this.hero.play('hero_move');
+
     return new Promise((resolve) => {
       this.scene.tweens.add({
         targets: this.hero,
         x: this.hero.x + ADVANCE_DISTANCE,
         duration: 400,
-        onComplete: () => resolve(),
+        onComplete: () => {
+          this.hero.stop();
+          this.hero.setTexture(HERO_IDLE);
+          resolve();
+        },
       });
     });
   }
@@ -100,7 +106,6 @@ export class GameArea extends Phaser.GameObjects.Container {
     this.dying = null;
   }
 
-  /** Espera a animacao de morte do guerreiro, se ela estiver rodando. */
   async waitHeroDeath(): Promise<void> {
     await this.heroDying;
     this.heroDying = null;
@@ -186,18 +191,9 @@ export class GameArea extends Phaser.GameObjects.Container {
   damageHero(amount: number): void {
     const before = this.heroHp;
     this.heroHp = Math.max(0, this.heroHp - amount);
-    // Mesma condicao do damageEnemy: dispara na travessia do zero, e nao
-    // sempre que a vida esta em zero. Sem isso, o `enemyAttacksUntilHeroDies`
-    // comecaria uma animacao de morte por golpe depois do primeiro.
     if (before > 0 && this.heroHp === 0) this.heroDying = this.heroDie();
   }
 
-  /** O guerreiro cai: some da cena, como o inimigo faz ao morrer.
-   *
-   * Nao ha sprite de morte do guerreiro -- `public/assets/characters/hero`
-   * tem idle e attack. Entao a queda e um tween de alpha, igual a do inimigo.
-   * Quando houver arte propria, e aqui que ela entra.
-   */
   private heroDie(): Promise<void> {
     return new Promise((resolve) => {
       this.scene.tweens.add({
