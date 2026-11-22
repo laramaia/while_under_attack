@@ -346,6 +346,14 @@ select.discreto {
   min-height: 18px;
 }
 
+/* O aviso de "a pagina nao carregou por completo". Ele nasce visivel e o
+   modulo o remove ao carregar -- o contrario de nascer escondido e aparecer
+   no erro, porque se o modulo nao roda nao ha quem o mostre. */
+#sem-script {
+  margin: 10px 0 0;
+  line-height: 1.4;
+}
+
 .vazio {
   color: var(--tinta-fraca);
   font-size: 13.5px;
@@ -728,5 +736,40 @@ body:has(.painel) {
   .aba-painel { display: block; }
   .aba-painel .cartao { margin-bottom: 12px; height: 320px; }
   .trilho .abas { flex-direction: row; flex-wrap: wrap; }
+}
+
+/* ---------- aviso de carregamento ----------
+   Uma barra que corre sob a faixa de titulo enquanto a primeira leva de
+   consultas nao volta. O banco e remoto e a primeira conexao custa quase
+   dois segundos; sem este aviso, esse tempo parece tela quebrada. */
+
+body.carregando::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  background: linear-gradient(90deg,
+    transparent, var(--acento), var(--bloco-evento), var(--acento), transparent);
+  background-size: 50% 100%;
+  animation: corre 1.1s linear infinite;
+  z-index: 999;
+}
+
+@keyframes corre {
+  from { background-position: -50% 0; }
+  to   { background-position: 150% 0; }
+}
+
+/* Quem pediu menos animacao ve uma barra parada, que ainda diz "espera". */
+@media (prefers-reduced-motion: reduce) {
+  body.carregando::after { animation: none; background: var(--acento); }
+}
+
+.carregando-texto {
+  color: var(--tinta-fraca);
+  font-size: 13px;
+  padding: 10px 2px;
 }
 

@@ -7,6 +7,7 @@ import {
   aplicarTemaSalvo, prepararGraficos, aoTrocarTema, desenhar, semDados,
   eixos, BARRA, EMPILHADA, cor, num, vazio, formatarData, nomeDeBloco,
   kpi, ligarAbas, limiares,
+  carregando,
   temaEscuro, comTabela, tabela, lerFiltros, query,
 } from './app.js';
 
@@ -454,6 +455,7 @@ function desenharTudo() {
   heatmap();
 }
 
+carregando(true);
 try {
   await carregarBase();
   await carregarRecorte();
@@ -470,4 +472,9 @@ try {
   mostrarProcedencia();
 } catch (erro) {
   mostrarErro(`Não foi possível carregar os dados: ${erro.message}`);
+} finally {
+  // `finally` e nao o fim do `try`: se a carga falhar, a barra tem de parar
+  // do mesmo jeito, senao a tela fica dizendo que ainda esta carregando algo
+  // que ja desistiu.
+  carregando(false);
 }

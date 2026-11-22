@@ -7,6 +7,7 @@ import {
   aplicarTemaSalvo, prepararGraficos, aoTrocarTema, desenhar,
   eixos, BARRA, BARRA_H, EMPILHADA, cor, num, vazio, formatarData, duracao,
   nomeDeBloco, CAUSAS, semDados, comTabela, tabela, kpi, ligarAbas, limiares,
+  carregando,
 } from './app.js';
 
 aplicarTemaSalvo();
@@ -345,6 +346,7 @@ function desenharTudo() {
   graficoTravou();
 }
 
+carregando(true);
 try {
   await carregarRotulosDeBloco();
   await montarEscolha();
@@ -359,4 +361,9 @@ try {
   mostrarProcedencia();
 } catch (erro) {
   mostrarErro(`Não foi possível carregar os dados: ${erro.message}`);
+} finally {
+  // `finally` e nao o fim do `try`: se a carga falhar, a barra tem de parar
+  // do mesmo jeito, senao a tela fica dizendo que ainda esta carregando algo
+  // que ja desistiu.
+  carregando(false);
 }

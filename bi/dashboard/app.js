@@ -267,6 +267,17 @@ export function ligarAbas() {
   });
 }
 
+/* Avisa que esta carregando.
+ *
+ * Nao e enfeite: a primeira pintura depende de seis a nove consultas ao
+ * banco, e o banco e remoto. Sem aviso, esse tempo e indistinguivel de uma
+ * tela quebrada -- foi exatamente assim que a equipe leu o atraso ("entro e
+ * nao acontece nada"). Com a barra, lento continua lento, mas deixa de
+ * parecer defeito. */
+export function carregando(ligado) {
+  document.body.classList.toggle('carregando', ligado);
+}
+
 export function formatarData(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
