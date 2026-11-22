@@ -22,6 +22,21 @@ SEGREDO = os.getenv("WUA_SEGREDO", "segredo-de-desenvolvimento-minimo-32-bytes")
 # URL do back-end que autentica os usuarios e emite o JWT (ADR-002, ADR-004).
 BACKEND_URL = os.getenv("WUA_BACKEND_URL", "http://localhost:8001").rstrip("/")
 
+# O ETL processa dado SINTETICO?
+#
+# Falso por padrao desde 22/11/2026. Enquanto o jogo nao enviava, o gerador
+# era a unica fonte e a faixa amarela no dashboard avisava que o numero na
+# tela nao era de ninguem. Agora que a turma joga de verdade, dado inventado
+# misturado ao real so atrapalha -- a media da turma passa a ser metade
+# gente, metade sorteio.
+#
+# A bronze CONTINUA guardando os eventos sinteticos: ela e imutavel (RN-016)
+# e apagar nao e opcao nem seria certo. O que muda e que eles param de virar
+# silver e gold. Ligue de volta para desenvolver sem jogar:
+#
+#     WUA_INCLUIR_SINTETICO=1 python -m wua_bi.etl rodar
+INCLUIR_SINTETICO = os.getenv("WUA_INCLUIR_SINTETICO", "").strip().lower() in {"1", "true", "sim"}
+
 DIR_DDL = RAIZ_BI / "db"
 DIR_DASHBOARD = RAIZ_BI / "dashboard"
 

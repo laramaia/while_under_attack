@@ -32,6 +32,9 @@ class Fase:
     conceito_id: str
     blocos_disponiveis: tuple[str, ...]
     solucao_referencia: dict[str, Any]
+    # Declarado no JSON so quando a deducao nao da conta -- hoje, a primeira
+    # fase. Ver bloco_do_conceito.
+    bloco_conceito: str | None = None
 
     @property
     def tamanho_referencia(self) -> int:
@@ -158,7 +161,18 @@ class Catalogo:
 
         Nulo quando o conceito nao se resume a um bloco: "combinacao" e usar
         um bloco dentro do outro, e nao ha bloco novo que a represente.
+
+        O catalogo pode declarar o bloco direto, e ai a deducao nao opina.
+        Existe por um caso que a deducao nao tem como resolver: a PRIMEIRA
+        fase. Ela acrescenta todos os blocos, porque nao ha fase anterior com
+        que comparar, entao "o que ela acrescenta" nao distingue nada -- e o
+        indicador saia nulo justamente na fase mais simples de todas. A F01
+        ensina `evento` e o bloco e o "Ao clicar em play"; isso um humano
+        sabe e a regra nao tem como saber.
         """
+        if fase.bloco_conceito:
+            return fase.bloco_conceito
+
         introdutora = min(
             (f for f in self.fases if f.conceito_id == fase.conceito_id),
             key=lambda f: f.ordem,
@@ -233,6 +247,7 @@ def carregar(caminho: Path | None = None) -> Catalogo:
                 conceito_id=f["conceito_id"],
                 blocos_disponiveis=tuple(f["blocos_disponiveis"]),
                 solucao_referencia=f["solucao_referencia"],
+                bloco_conceito=f.get("bloco_conceito"),
             )
             for f in bruto["fases"]
         ),

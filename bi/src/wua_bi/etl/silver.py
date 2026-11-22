@@ -11,6 +11,17 @@ from .. import config
 from ..catalogo import Catalogo, catalogo_padrao
 from ..programa import ler_programa
 
+# As tres consultas abaixo leem a bronze pelo mesmo filtro. Por padrao o
+# sintetico fica de fora (config.INCLUIR_SINTETICO): a bronze continua
+# guardando tudo, porque e imutavel (RN-016), mas so partida de gente vira
+# silver e gold. Com a turma jogando, dado inventado misturado ao real faria
+# a mediana da turma ser metade gente e metade sorteio.
+def _onde(alias: str, *condicoes: str) -> str:
+    """Monta o WHERE com o filtro de origem e o que mais a consulta precisar."""
+    origem = "" if config.INCLUIR_SINTETICO else f"{alias}origem = 'jogo'"
+    partes = [c for c in (*condicoes, origem) if c]
+    return ("where " + " and ".join(partes)) if partes else ""
+
 # ---------------------------------------------------------------------------
 # Sessoes
 # ---------------------------------------------------------------------------
@@ -38,6 +49,7 @@ with agregado as (
         max(game_version)                                            as game_version,
         max(origem)                                                  as origem
     from bronze.eventos
+    {ONDE_SESSAO}
     group by session_id
 ),
 classificado as (
@@ -83,7 +95,7 @@ select
     e.session_id, e.jogador_id, e.catalog_version, e.origem,
     e.occurred_at, e.received_at, e.seq, e.event_id
 from bronze.eventos e
-where e.event_type = 'tentativa_executada'
+{ONDE_EV04}
 order by e.received_at, e.seq
 """
 
@@ -99,8 +111,13 @@ select
     e.occurred_at                                   as finalizada_em,
     e.event_id
 from bronze.eventos e
-where e.event_type = 'tentativa_finalizada'
+{ONDE_EV05}
 """
+
+
+SQL_SESSAO = SQL_SESSAO.format(ONDE_SESSAO=_onde(""))
+SQL_EV04 = SQL_EV04.format(ONDE_EV04=_onde("e.", "e.event_type = 'tentativa_executada'"))
+SQL_EV05 = SQL_EV05.format(ONDE_EV05=_onde("e.", "e.event_type = 'tentativa_finalizada'"))
 
 
 def _causa_derrota(resultado: str | None, programa_concluido: bool | None) -> str | None:

@@ -117,7 +117,11 @@ function numeros() {
     kpi({
       rotulo: 'Montando programas', icone: 'ampulheta', tom: 'condicional',
       valor: duracao(r.segundos_montando),
-      apoio: 'pensando antes de apertar Play',
+      // "pensando antes de apertar Play" dava a entender uma sentada so, e
+      // com o limite de 15 s por fase isso e impossivel -- a equipe estranhou
+      // "2 min" com razao. O numero e a SOMA das tentativas ate vencer, em
+      // todas as fases, e o rotulo passa a dizer isso.
+      apoio: `somando as ${num(r.total_tentativas_ate_vencer ?? 0)} tentativas até vencer`,
     }),
   ].join('');
 }

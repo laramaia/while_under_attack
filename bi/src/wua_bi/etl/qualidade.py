@@ -31,6 +31,12 @@ from typing import Any, Iterable
 
 import psycopg
 
+from .. import config
+
+# O mesmo recorte que a silver usa. Sem ele, a REC-001 compararia a bronze
+# inteira com uma silver filtrada e reprovaria toda execucao.
+E_SO_JOGO = "" if config.INCLUIR_SINTETICO else "and origem = 'jogo'"
+
 
 @dataclass(frozen=True)
 class Regra:
@@ -81,9 +87,15 @@ REGRAS_SILVER: list[Regra] = [
     Regra(
         "REC-001",
         "reconciliacao: todo EV-04 da bronze virou tentativa ou quarentena",
+        # O `origem = 'jogo'` tem de estar aqui tambem, e nao e detalhe: desde
+        # 22/11/2026 a silver so processa partida de gente (config.
+        # INCLUIR_SINTETICO). Sem o mesmo filtro, esta regra compararia a
+        # bronze INTEIRA com uma silver filtrada e reprovaria toda execucao
+        # -- a reconciliacao tem de olhar os dois lados do mesmo recorte.
         """select abs(
                (select count(*) from bronze.eventos
-                 where event_type = 'tentativa_executada')
+                 where event_type = 'tentativa_executada'
+                   {E_SO_JOGO})
              - (select count(*) from silver.tentativa)
              - (select count(*) from silver.evento_rejeitado
                  where event_type = 'tentativa_executada')
@@ -193,6 +205,13 @@ REGRAS_GOLD: list[Regra] = [
              - (select count(*) from gold.fato_tentativa)
            )""",
     ),
+]
+
+
+REGRAS_SILVER = [
+    Regra(r.codigo, r.descricao, r.sql.format(E_SO_JOGO=E_SO_JOGO))
+    if "{E_SO_JOGO}" in r.sql else r
+    for r in REGRAS_SILVER
 ]
 
 

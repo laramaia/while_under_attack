@@ -23,6 +23,11 @@ select
     round(avg(p.tentativas_ate_vencer), 1)                   as media_tentativas_ate_vencer,
     round(avg(p.eficiencia_codigo), 2)                       as eficiencia_media,
     coalesce(sum(p.interrompidas_ate_vencer), 0)             as interrompidas,
+    -- Quantas tentativas o tempo de edicao abaixo esta somando. O card
+    -- mostrava "2 min pensando antes de apertar Play", e com o limite de
+    -- 15 s por fase isso e impossivel numa sentada so -- a soma precisa
+    -- dizer de quantas tentativas ela veio.
+    coalesce(sum(p.tentativas_ate_vencer), 0)                as total_tentativas_ate_vencer,
     -- Em SEGUNDOS, e nao em minutos. O card mostrava "0 min" para quem tinha
     -- acabado de jogar, e o dado estava certo o tempo todo: a Lara somava 26 s
     -- montando programas, que viram 0,4 min, que o dashboard arredondava para
@@ -297,15 +302,22 @@ limit 20
 # ---------------------------------------------------------------------------
 
 # O dashboard precisa dizer, na cara, se esta mostrando dado real ou sintetico.
+#
+# A contagem olha a GOLD, e nao a bronze. Desde 22/11/2026 o ETL so processa
+# partida de gente, e a bronze continua guardando os eventos sinteticos
+# porque e imutavel (RN-016). Contar pela bronze faria a faixa amarela
+# aparecer para sempre, avisando sobre um dado que nao esta mais em lugar
+# nenhum da tela -- um aviso que mente para o lado de assustar continua
+# sendo um aviso que mente.
 PROCEDENCIA = """
 select
-    coalesce(max(e.catalog_version), '-')                   as catalog_version,
-    count(*)                                                as eventos,
-    count(*) filter (where e.origem = 'sintetico')          as eventos_sinteticos,
-    max(e.received_at)                                      as ultimo_evento,
-    (select max(terminada_em) from bronze.etl_execucao)     as ultimo_etl,
-    (select count(*) from silver.evento_rejeitado)          as eventos_rejeitados
-from bronze.eventos e
+    coalesce((select max(catalog_version) from gold.dim_fase), '-') as catalog_version,
+    (select count(*) from gold.fato_tentativa)                      as eventos,
+    (select count(*) from gold.fato_tentativa where origem = 'sintetico')
+                                                                    as eventos_sinteticos,
+    (select max(e.received_at) from bronze.eventos e)               as ultimo_evento,
+    (select max(terminada_em) from bronze.etl_execucao)             as ultimo_etl,
+    (select count(*) from silver.evento_rejeitado)                  as eventos_rejeitados
 """
 
 
