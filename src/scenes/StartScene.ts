@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_H, GAME_W } from '../config';
 import { AddBackground } from '../game/AddBackground';
-import { telemetry } from '../telemetry/telemetry';
+import { LEVELS } from '../model/level';
 
 export class StartScene extends Phaser.Scene {
   private background!: Phaser.GameObjects.Image;
@@ -27,7 +27,7 @@ export class StartScene extends Phaser.Scene {
       padding: { x: 40, y: 12 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     this.playButton.on('pointerdown', () => {
-      this.scene.start('BattleScene');
+      this.scene.start('BattleScene', { faseId: LEVELS[0].faseId });
     });
     this.updateLayout();
     this.scale.on('resize', this.updateLayout, this);

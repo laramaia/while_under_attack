@@ -9,10 +9,10 @@ import { FimDeExecucao, ProgramRunner } from '../model/ProgramRunner';
 import { PlanTimer } from '../ui/PlanTimer';
 import { DeathPopup } from '../ui/DeathPopup';
 import { getVisibleArea } from '../utils/viewport';
-import { GAME_H, GAME_W, CURRENT_PHASE_ID, PLAN_TIME_MS } from '../config';
+import { GAME_H, GAME_W } from '../config';
 import { telemetry } from '../telemetry/telemetry';
 import { serializarPrograma } from '../telemetry/programa';
-import { getLevel, enemyHpOf, getNextLevel } from '../model/level';
+import { LEVELS, Level, getLevel, enemyHpOf, getNextLevel } from '../model/level';
 import { PauseMenu } from '../ui/PauseMenu';
 
 export class BattleScene extends Phaser.Scene {
@@ -25,7 +25,7 @@ export class BattleScene extends Phaser.Scene {
   private ids = new Map<BlockInstance, string>();
   private editStart = 0;
   private execStart = 0;
-  private currentFaseId: string = CURRENT_PHASE_ID;
+  private currentLevel: Level = LEVELS[0];
 
   private pauseMenu!: PauseMenu;
   private paused = false;
@@ -35,6 +35,16 @@ export class BattleScene extends Phaser.Scene {
 
   constructor() {
     super('BattleScene');
+  }
+
+  init(data?: { faseId?: string; level?: Level }): void {
+    if (data?.level) {
+      this.currentLevel = data.level;
+    } else if (data?.faseId) {
+      this.currentLevel = getLevel(data.faseId) ?? LEVELS[0];
+    } else {
+      this.currentLevel = LEVELS[0];
+    }
   }
 
   preload(): void {
@@ -83,7 +93,7 @@ export class BattleScene extends Phaser.Scene {
     });
     gameArea.on('pause', () => this.pauseGame(runner));
 
-    this.editor = new EditorPanel(this, createDefaultCatalog());
+    this.editor = new EditorPanel(this, createDefaultCatalog(this.currentLevel.blocks));
     this.editor.setDepth(500);
     this.add.existing(this.editor);
 
@@ -108,26 +118,26 @@ export class BattleScene extends Phaser.Scene {
     runner.on('finished', (fim: FimDeExecucao) => void this.onFinished(gameArea, runner, fim));
     this.editor.workspace.on('restart', () => runner.stop());
 
-    telemetry.registrar('fase_iniciada', { fase_id: this.currentFaseId });
+    telemetry.registrar('fase_iniciada', { fase_id: this.currentLevel.faseId });
     this.startRound(gameArea, runner).catch((e) => console.error('[startRound]', e));
   }
 
   private async startRound(gameArea: GameArea, runner: ProgramRunner): Promise<void> {
     this.timer.stop();
 
-    const level = getLevel(this.currentFaseId);
-    gameArea.resetHp(level ? enemyHpOf(level) : undefined);
+    const level = this.currentLevel;
+    gameArea.resetHp(enemyHpOf(level));
     gameArea.resetPositions();
     this.editor.close();
 
     gameArea.setPauseEnabled(true);
-    await gameArea.enemyApproach(level?.enemyStopX);
+    await gameArea.enemyApproach(level.enemyStopX);
     gameArea.setPauseEnabled(false);
     if (this.exiting) return;
 
     this.editor.open();
     this.editStart = performance.now();
-    this.timer.start(level?.planTimeMs ?? PLAN_TIME_MS, () => this.onPlay(gameArea, runner, 'tempo_esgotado'));
+    this.timer.start(level.planTimeMs, () => this.onPlay(gameArea, runner, 'tempo_esgotado'));
   }
 
   private onPlay(
@@ -152,7 +162,7 @@ export class BattleScene extends Phaser.Scene {
 
     telemetry.registrar('tentativa_executada', {
       tentativa_id: this.tentativaId,
-      fase_id: this.currentFaseId,
+      fase_id: this.currentLevel.faseId,
       programa,
       disparo,
       tempo_edicao_ms: Math.round(this.execStart - this.editStart),
@@ -190,7 +200,7 @@ export class BattleScene extends Phaser.Scene {
 
     telemetry.registrar('tentativa_finalizada', {
       tentativa_id: tentativaId,
-      fase_id: this.currentFaseId,
+      fase_id: this.currentLevel.faseId,
       resultado,
       duracao_execucao_ms: Math.max(0, Math.round(performance.now() - this.execStart)),
       vida_guerreiro_final: Math.max(0, Math.round(gameArea.heroHp)),
@@ -205,11 +215,12 @@ export class BattleScene extends Phaser.Scene {
     this.timer.stop();
 
     if (resultado === 'vitoria') {
-      const next = getNextLevel(this.currentFaseId);
+      const next = getNextLevel(this.currentLevel.faseId);
       if (next) {
-        this.currentFaseId = next.faseId;
+        this.currentLevel = next;
         this.editor.workspace.clearBlocks();
-        telemetry.registrar('fase_iniciada', { fase_id: this.currentFaseId });
+        this.editor.updateCatalog(createDefaultCatalog(next.blocks));
+        telemetry.registrar('fase_iniciada', { fase_id: this.currentLevel.faseId });
         await this.startRound(gameArea, runner);
       } else {
         console.log('Fim de jogo!');

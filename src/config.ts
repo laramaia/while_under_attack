@@ -10,7 +10,6 @@ export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8001';
 export const GAME_VERSION = '0.3.0';
 export const CATALOG_VERSION = '2026.11.2-rascunho';
 export const SCHEMA_VERSION = 1;
-export const CURRENT_PHASE_ID = 'F01';
 
 // Escala da arte dos painéis
 export const PANEL_SCALE = GAME_H / 768;
@@ -115,7 +114,6 @@ export const HERO_MAX_HP = 100;
 export const ENEMY_MAX_HP = 100;
 export const ATTACK_DAMAGE = 100;
 export const ENEMY_DAMAGE = 50;
-export const PLAN_TIME_MS = 15000;
 export const ENEMY_WALK_MS = 4000;
 export const ENEMY_START_X = GAME_W + 150;
 export const ENEMY_STOP_X = 520;

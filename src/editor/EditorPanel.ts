@@ -52,6 +52,10 @@ export class EditorPanel extends Phaser.GameObjects.Container {
     scene.add.existing(this);
   }
 
+  updateCatalog(catalog: BlockCatalog): void {
+    this.palette.setCatalog(catalog);
+  }
+
   onResize(): void {
     this.layoutArt();
     this.x = panelX(this.scene, this.isOpen);

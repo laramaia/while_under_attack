@@ -41,7 +41,7 @@ interface TabButton {
 }
 
 export class Palette extends Phaser.GameObjects.Container {
-  private currentGroup: BlockGroup;
+  private currentGroup: BlockGroup = new BlockGroup('default', 'Padrão', 0xffffff);
   private contentContainer: Phaser.GameObjects.Container;
   public plate!: Phaser.GameObjects.Image;
   private tabButtons: TabButton[] = [];
@@ -49,12 +49,23 @@ export class Palette extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, x: number, y: number, catalog: BlockCatalog) {
     super(scene, x, y);
     this.setSize(PALETTE_CONTENT_W, GAME_H);
-    const groups = catalog.groups;
-    this.currentGroup = groups[0] ?? new BlockGroup('default', 'Padrão', 0xffffff);
     this.buildTitle();
     this.buildPlate();
     this.contentContainer = scene.add.container(0, 0);
     this.add(this.contentContainer);
+    this.setCatalog(catalog);
+  }
+
+  public setCatalog(catalog: BlockCatalog): void {
+    const groups = catalog.groups;
+    this.currentGroup = groups[0] ?? new BlockGroup('default', 'Padrão', 0xffffff);
+
+    this.tabButtons.forEach((tab) => {
+      tab.icon.destroy();
+      tab.label.destroy();
+    });
+    this.tabButtons = [];
+
     this.buildTabs(groups);
     this.refreshContent();
   }

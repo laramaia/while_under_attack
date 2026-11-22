@@ -1,4 +1,6 @@
-import { ATTACK_DAMAGE, PLAN_TIME_MS, ENEMY_STOP_X } from '../config';
+import { ATTACK_DAMAGE, ENEMY_STOP_X } from '../config';
+
+const DEFAULT_PLAN_TIME_MS = 15000;
 
 export interface Level {
   faseId: string;
@@ -10,62 +12,62 @@ export interface Level {
 }
 
 export const LEVELS: Level[] = [
-  { 
-    faseId: 'F01', 
-    enemy: 'cursed_knight', 
-    enemyHits: 1, 
-    planTimeMs: PLAN_TIME_MS, 
+  {
+    faseId: 'F01',
+    enemy: 'cursed_knight',
+    enemyHits: 1,
+    planTimeMs: DEFAULT_PLAN_TIME_MS,
     blocks: ['on-flag', 'attack'],
-    enemyStopX: ENEMY_STOP_X 
+    enemyStopX: ENEMY_STOP_X,
   },
-  { 
-    faseId: 'F02', 
-    enemy: 'cursed_knight', 
-    enemyHits: 1, 
-    planTimeMs: PLAN_TIME_MS, 
+  {
+    faseId: 'F02',
+    enemy: 'cursed_knight',
+    enemyHits: 1,
+    planTimeMs: DEFAULT_PLAN_TIME_MS,
     blocks: ['on-flag', 'advance', 'attack'],
-    enemyStopX: 700 
+    enemyStopX: 700,
   },
-  { 
-    faseId: 'F03', 
-    enemy: 'cursed_knight', 
-    enemyHits: 3, 
-    planTimeMs: PLAN_TIME_MS, 
+  {
+    faseId: 'F03',
+    enemy: 'cursed_knight',
+    enemyHits: 3,
+    planTimeMs: DEFAULT_PLAN_TIME_MS,
+    blocks: ['on-flag', 'advance', 'attack', 'repeat'],
+    enemyStopX: 520,
+  },
+  {
+    faseId: 'F04',
+    enemy: 'cursed_knight',
+    enemyHits: 3,
+    planTimeMs: DEFAULT_PLAN_TIME_MS,
     blocks: ['on-flag', 'advance', 'attack', 'defend', 'repeat'],
-    enemyStopX: 520
+    enemyStopX: 520,
   },
-  { 
-    faseId: 'F04', 
-    enemy: 'cursed_knight', 
-    enemyHits: 3, 
-    planTimeMs: PLAN_TIME_MS, 
-    blocks: ['on-flag', 'advance', 'attack', 'defend', 'repeat'],
-    enemyStopX: 520
-  },
-  { 
-    faseId: 'F05', 
-    enemy: 'cursed_knight', 
-    enemyHits: 1, 
-    planTimeMs: PLAN_TIME_MS, 
+  {
+    faseId: 'F05',
+    enemy: 'cursed_knight',
+    enemyHits: 1,
+    planTimeMs: DEFAULT_PLAN_TIME_MS,
     blocks: ['on-flag', 'advance', 'attack', 'defend', 'repeat', 'if-else'],
-    enemyStopX: 520
+    enemyStopX: 520,
   },
-  { 
-    faseId: 'F06', 
-    enemy: 'cursed_knight', 
-    enemyHits: 3, 
-    planTimeMs: PLAN_TIME_MS, 
+  {
+    faseId: 'F06',
+    enemy: 'cursed_knight',
+    enemyHits: 3,
+    planTimeMs: DEFAULT_PLAN_TIME_MS,
     blocks: ['on-flag', 'advance', 'attack', 'defend', 'repeat', 'if-else'],
-    enemyStopX: 520
+    enemyStopX: 520,
   },
 ];
 
 export function getLevel(faseId: string): Level | undefined {
-  return LEVELS.find(l => l.faseId === faseId);
+  return LEVELS.find((l) => l.faseId === faseId);
 }
 
 export function getNextLevel(faseId: string): Level | undefined {
-  const index = LEVELS.findIndex(l => l.faseId === faseId);
+  const index = LEVELS.findIndex((l) => l.faseId === faseId);
   if (index >= 0 && index < LEVELS.length - 1) {
     return LEVELS[index + 1];
   }
